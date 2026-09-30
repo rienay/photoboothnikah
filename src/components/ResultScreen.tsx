@@ -130,7 +130,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     const timestampDescending = 9999999999999 - Date.now();
     const safeFilename = `wedding-${weddingConfig.brideName.toLowerCase()}-${weddingConfig.groomName.toLowerCase()}-${timestampDescending}.jpg`;
 
-    const res = await uploadToGoogleDrive(driveConfig.appsScriptUrl, stripBase64, safeFilename);
+    const folderIdMatch = driveConfig.driveFolderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
+    const targetFolderId = folderIdMatch ? folderIdMatch[1] : undefined;
+
+    const res = await uploadToGoogleDrive(driveConfig.appsScriptUrl, stripBase64, safeFilename, targetFolderId);
 
     if (res.success) {
       setUploadStatus("success");

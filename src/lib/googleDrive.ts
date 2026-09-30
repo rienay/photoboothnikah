@@ -46,7 +46,8 @@ async function compressForDriveUpload(base64DataUrl: string): Promise<string> {
 export async function uploadToGoogleDrive(
   appsScriptUrl: string,
   base64DataUrl: string,
-  filename: string
+  filename: string,
+  folderId?: string
 ): Promise<UploadResult> {
   if (!appsScriptUrl || !appsScriptUrl.trim()) {
     return { success: false, message: "URL Apps Script belum diisi" };
@@ -71,6 +72,7 @@ export async function uploadToGoogleDrive(
       body: JSON.stringify({
         image: base64Clean,
         filename: filename,
+        folderId: folderId || "1AP-Qy0NhrwDyZn5EuA6zOY5uSzyT4bmV",
       }),
     });
 
