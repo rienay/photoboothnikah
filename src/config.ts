@@ -19,7 +19,7 @@ export const DEFAULT_WEDDING_CONFIG: WeddingConfig = {
 
 export const DEFAULT_DRIVE_CONFIG: DriveConfig = {
   appsScriptUrl:
-    "https://script.google.com/macros/s/AKfycbwjEdDj58epC0wLH3pHAbzpyaM9d_ab2qYXd-7Yf2da0lxYlEuVQMKxYoozqmPVCmRS/exec",
+    "https://script.google.com/macros/s/AKfycbz8FiHwttKR7_j_MZa_BdeUuyw32AfdDkAy71hi1jUq800qSH0jToyTl1g3XNR_nkBk/exec",
   driveFolderUrl:
     "https://drive.google.com/drive/folders/1AP-Qy0NhrwDyZn5EuA6zOY5uSzyT4bmV?usp=drive_link",
   autoUpload: true,

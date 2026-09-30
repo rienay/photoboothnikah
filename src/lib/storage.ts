@@ -72,7 +72,12 @@ export function loadDriveConfig(): DriveConfig {
     const raw = localStorage.getItem(KEYS.DRIVE);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (!parsed.driveFolderUrl || parsed.driveFolderUrl.includes("1lwRNyZWiwyWjOaAh9oDH-uA9pxWtScCN")) {
+      if (
+        !parsed.driveFolderUrl ||
+        parsed.driveFolderUrl.includes("1lwRNyZWiwyWjOaAh9oDH-uA9pxWtScCN") ||
+        !parsed.appsScriptUrl ||
+        parsed.appsScriptUrl.includes("AKfycbwjEdDj58epC0wLH3pHAbzpyaM9d_ab2qYXd-7Yf2da0lxYlEuVQMKxYoozqmPVCmRS")
+      ) {
         return DEFAULT_DRIVE_CONFIG;
       }
       return { ...DEFAULT_DRIVE_CONFIG, ...parsed };
