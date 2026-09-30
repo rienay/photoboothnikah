@@ -58,17 +58,18 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ weddingConfig, onStart }
         {weddingConfig.brideName} <span className="font-serif text-4xl sm:text-5xl text-amber-300/80 font-normal">&</span> {weddingConfig.groomName}
       </h1>
 
-      {/* Date & Venue */}
-      <p className="font-sans text-sm sm:text-base tracking-[0.15em] text-stone-300 font-light mt-2 mb-10 flex items-center gap-2">
+      {/* Date */}
+      <p className="font-sans text-sm sm:text-base tracking-[0.18em] text-stone-300 font-light mt-2 mb-10 flex items-center justify-center">
         <span>{weddingConfig.weddingDate}</span>
-        <span className="text-amber-400/60">•</span>
-        <span>{weddingConfig.venueText}</span>
       </p>
 
       {/* Big Start Button */}
       <button
         onClick={() => {
           soundFx.playChime();
+          if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(() => {});
+          }
           onStart();
         }}
         className="btn-gold shimmer-glow px-12 py-5 sm:px-16 sm:py-6 rounded-full flex items-center justify-center gap-3 text-base sm:text-lg group cursor-pointer shadow-[0_4px_30px_rgba(212,175,55,0.4)]"

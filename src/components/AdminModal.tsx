@@ -178,7 +178,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-[#0c0e12] flex flex-col w-screen h-screen p-2.5 sm:p-4 overflow-hidden">
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-amber-400 text-stone-950 font-semibold text-xs shadow-xl flex items-center gap-2 animate-bounce">
@@ -187,7 +187,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         </div>
       )}
 
-      <div className="max-w-4xl w-full rounded-2xl glass-gold-card border-2 border-amber-400/50 p-6 flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.95)] max-h-[90vh]">
+      <div className="w-full h-full rounded-2xl glass-gold-card border-2 border-amber-400/50 p-4 sm:p-6 flex flex-col shadow-[0_20px_60px_rgba(0,0,0,0.95)] overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between pb-4 border-b border-amber-400/20">
           <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
             <div className="flex-1 overflow-y-auto py-4 px-1">
               {/* Tab 1: Wedding Config */}
               {activeTab === "wedding" && (
-                <div className="space-y-4 max-w-xl">
+                <div className="space-y-4 max-w-2xl">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-medium text-amber-200 mb-1">
@@ -367,21 +367,6 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         setWeddingForm({ ...weddingForm, weddingDate: e.target.value })
                       }
                       placeholder="e.g. 04 Oktober 2026"
-                      className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-medium text-amber-200 mb-1">
-                      Lokasi / Venue Acara
-                    </label>
-                    <input
-                      type="text"
-                      value={weddingForm.venueText}
-                      onChange={(e) =>
-                        setWeddingForm({ ...weddingForm, venueText: e.target.value })
-                      }
-                      placeholder="e.g. Rumah Mempelai Wanita"
                       className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-sm"
                     />
                   </div>
