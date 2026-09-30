@@ -21,7 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenAdmin,
 }) => {
   return (
-    <header className="w-full px-6 py-4 flex items-center justify-between z-30 select-none">
+    <header className="w-full px-5 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between z-30 select-none shrink-0">
       {/* Left: Couple Branding */}
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-full border border-amber-400/50 flex items-center justify-center bg-amber-950/30 shadow-[0_0_12px_rgba(212,175,55,0.2)]">
