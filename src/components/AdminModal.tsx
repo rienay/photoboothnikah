@@ -13,6 +13,7 @@ import {
   Download,
   Upload,
   Wand2,
+  Plus,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -72,7 +73,8 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [driveForm, setDriveForm] = useState<DriveConfig>(driveConfig);
   const [boothForm, setBoothForm] = useState<BoothSettings>(boothSettings);
   const [slotsForm, setSlotsForm] = useState<FrameSlot[]>(frameSlots);
-  const [studioSlotIdx, setStudioSlotIdx] = useState<number | null>(null);
+  const [studioTargetFrame, setStudioTargetFrame] = useState<FrameSlot | null | "new">(null);
+  const [activeLayoutFilter, setActiveLayoutFilter] = useState<string>("all");
 
   // Hardware Camera List
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
@@ -99,6 +101,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setIsAuthenticated(false);
       setPinInput("");
       setPinError(false);
+      setStudioTargetFrame(null);
     }
   }, [isOpen, weddingConfig, driveConfig, boothSettings, frameSlots]);
 
@@ -129,34 +132,71 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
   };
 
-  // Handle PNG upload for a specific slot
-  const handleSlotFileUpload = (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const base64 = event.target?.result as string;
-      const updated = [...slotsForm];
-      updated[index] = { ...updated[index], customImage: base64 };
-      setSlotsForm(updated);
-      showToast(`File PNG untuk Desain ${index + 1} siap disimpan!`);
+  // Layout counts for filter pills (matching yodhabooth)
+  const layoutCounts = React.useMemo(() => {
+    const counts: Record<string, number> = {
+      all: slotsForm.length,
+      "3x1": 0,
+      "3x2": 0,
+      "2x2": 0,
+      "2x1": 0,
+      "1x1": 0,
+      "4x2": 0,
     };
-    reader.readAsDataURL(file);
-  };
+    slotsForm.forEach((s) => {
+      if (counts[s.layoutId] !== undefined) {
+        counts[s.layoutId]++;
+      }
+    });
+    return counts;
+  }, [slotsForm]);
 
-  // Clear PNG for a specific slot
-  const handleRemoveSlotImage = (index: number) => {
-    const updated = [...slotsForm];
-    updated[index] = { ...updated[index], customImage: undefined };
+  const filteredFrames = React.useMemo(() => {
+    if (activeLayoutFilter === "all") return slotsForm;
+    return slotsForm.filter((s) => s.layoutId === activeLayoutFilter);
+  }, [slotsForm, activeLayoutFilter]);
+
+  const filterOptions = [
+    { id: "all", label: `Semua (${layoutCounts.all})` },
+    { id: "3x1", label: `3x1 (${layoutCounts["3x1"] || 0})` },
+    { id: "3x2", label: `3x2 (${layoutCounts["3x2"] || 0})` },
+    { id: "2x2", label: `2x2 (${layoutCounts["2x2"] || 0})` },
+    { id: "2x1", label: `2x1 (${layoutCounts["2x1"] || 0})` },
+    { id: "1x1", label: `1x1 (${layoutCounts["1x1"] || 0})` },
+    { id: "4x2", label: `4x2 (${layoutCounts["4x2"] || 0})` },
+  ];
+
+  // Toggle Frame Active / Inactive
+  const handleToggleFrameActive = (id: string) => {
+    const updated = slotsForm.map((s) => {
+      if (s.id === id) {
+        const isCurrentlyActive = s.enabled !== false;
+        return { ...s, enabled: !isCurrentlyActive };
+      }
+      return s;
+    });
     setSlotsForm(updated);
-    showToast(`File kustom Desain ${index + 1} dihapus`);
+    onSaveFrameSlots(updated);
+    const target = updated.find((s) => s.id === id);
+    showToast(
+      target?.enabled !== false
+        ? `✓ Bingkai "${target?.name}" diaktifkan.`
+        : `Bingkai "${target?.name}" dinonaktifkan.`
+    );
   };
 
-  // Save all 3 slots
-  const handleSaveSlots = () => {
-    onSaveFrameSlots(slotsForm);
-    showToast("3 Desain Bingkai berhasil disimpan!");
+  // Delete Frame
+  const handleDeleteFrame = (id: string, name: string) => {
+    if (slotsForm.length <= 1) {
+      showToast("Minimal harus ada 1 bingkai aktif!");
+      return;
+    }
+    if (window.confirm(`Yakin ingin menghapus bingkai "${name}"?`)) {
+      const updated = slotsForm.filter((s) => s.id !== id);
+      setSlotsForm(updated);
+      onSaveFrameSlots(updated);
+      showToast(`Bingkai "${name}" berhasil dihapus.`);
+    }
   };
 
   // Test drive connection
@@ -282,7 +322,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 }`}
               >
                 <ImageIcon size={14} />
-                <span>3 Desain Bingkai</span>
+                <span>Bingkai Frame</span>
+                <span className="px-1.5 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-400 font-bold ml-0.5">
+                  {slotsForm.filter((s) => s.enabled !== false).length} Aktif
+                </span>
               </button>
 
               <button
@@ -397,169 +440,185 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
-              {/* Tab 2: 3 Desain Bingkai (Frame Slots) */}
+              {/* Tab 2: Manajemen Bingkai Frame (Exact yodhabooth design) */}
               {activeTab === "templates" && (
-                <div className="space-y-6">
-                  <div className="p-3.5 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs leading-relaxed">
-                    🎨 <strong>Pengaturan 3 Desain Bingkai:</strong> Anda dapat mengunggah file gambar PNG transparan desain bingkai sendiri untuk masing-masing slot bingkai (Slot 1, 2, dan 3), serta memilih format layout foto (misal: Strip 3 Foto atau Grid 4 Foto).
+                <div className="bg-slate-50 text-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                  {/* Header with Title, Description, and + Tambah Bingkai Baru button */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                        Manajemen Bingkai Frame
+                      </h2>
+                      <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                        Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru.
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundFx.playChime();
+                        setStudioTargetFrame("new");
+                      }}
+                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shrink-0"
+                    >
+                      <Plus size={16} />
+                      <span>+ Tambah Bingkai Baru</span>
+                    </button>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {slotsForm.slice(0, 3).map((slot, idx) => (
-                      <div
-                        key={slot.id}
-                        className="p-4 rounded-xl glass-gold-card border border-amber-400/30 flex flex-col justify-between"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between mb-3">
-                            <span className="text-xs font-cinzel tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-semibold">
-                              Desain {idx + 1}
-                            </span>
-                            {slot.customImage && (
-                              <span className="text-[10px] text-emerald-400 font-medium">
-                                ✓ File Kustom Aktif
-                              </span>
-                            )}
-                          </div>
+                  {/* Filter Pills */}
+                  <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+                    {filterOptions.map((opt) => {
+                      const isSelected = activeLayoutFilter === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => setActiveLayoutFilter(opt.id)}
+                          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                            isSelected
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80"
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      );
+                    })}
+                  </div>
 
-                          {/* Preview container */}
-                          <div className="h-36 rounded-lg overflow-hidden bg-black/60 border border-amber-400/25 flex items-center justify-center p-2 mb-3 relative">
-                            {slot.customImage ? (
-                              <img
-                                src={slot.customImage}
-                                alt={slot.name}
-                                className="max-h-full max-w-full object-contain"
-                              />
-                            ) : (
-                              <div className="text-center p-2">
-                                <ImageIcon size={24} className="text-amber-400/60 mx-auto mb-1" />
-                                <span className="text-[10px] text-stone-400 block">
-                                  Menggunakan tema preset bawaan
-                                </span>
-                                <span className="text-[10px] text-amber-300/80 font-mono">
-                                  {slot.presetThemeId}
+                  {/* Frame Grid */}
+                  {filteredFrames.length === 0 ? (
+                    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80">
+                      <ImageIcon size={36} className="text-slate-300 mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-slate-700">Belum ada bingkai untuk filter ini</p>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Klik tombol "+ Tambah Bingkai Baru" di atas untuk menambahkan template frame.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
+                      {filteredFrames.map((slot) => {
+                        const isActive = slot.enabled !== false;
+                        return (
+                          <div
+                            key={slot.id}
+                            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group"
+                          >
+                            {/* Preview Area with Checkerboard */}
+                            <div
+                              onClick={() => {
+                                soundFx.playChime();
+                                setStudioTargetFrame(slot);
+                              }}
+                              className="relative aspect-3/4 bg-slate-50 border-b border-slate-100 flex items-center justify-center p-3 cursor-pointer overflow-hidden"
+                              style={{
+                                backgroundImage:
+                                  "linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)",
+                                backgroundSize: "16px 16px",
+                                backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
+                              }}
+                              title="Klik untuk edit frame di Studio"
+                            >
+                              {slot.customImage ? (
+                                <img
+                                  src={slot.customImage}
+                                  alt={slot.name}
+                                  className="max-h-full max-w-full object-contain drop-shadow transition-transform duration-200 group-hover:scale-[1.02]"
+                                />
+                              ) : (
+                                <div className="text-center p-4">
+                                  <ImageIcon size={32} className="text-slate-300 mx-auto mb-2" />
+                                  <span className="text-xs font-semibold text-slate-600 block">{slot.name}</span>
+                                  <span className="text-[10px] text-slate-400 block mt-0.5 font-mono">
+                                    {slot.presetThemeId || "Tema Bawaan"}
+                                  </span>
+                                </div>
+                              )}
+
+                              {/* Hover overlay hint */}
+                              <div className="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <span className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold shadow-md flex items-center gap-1.5">
+                                  <Wand2 size={13} />
+                                  <span>Edit di Studio</span>
                                 </span>
                               </div>
-                            )}
-                          </div>
-
-                          {/* Name Input */}
-                          <div className="mb-2">
-                            <label className="block text-[11px] text-stone-300 mb-1">
-                              Nama Bingkai
-                            </label>
-                            <input
-                              type="text"
-                              value={slot.name}
-                              onChange={(e) => {
-                                const updated = [...slotsForm];
-                                updated[idx] = { ...updated[idx], name: e.target.value };
-                                setSlotsForm(updated);
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-xs"
-                            />
-                          </div>
-
-                          {/* Layout Selection */}
-                          <div className="mb-2">
-                            <label className="block text-[11px] text-stone-300 mb-1">
-                              Format Layout Foto
-                            </label>
-                            <select
-                              value={slot.layoutId}
-                              onChange={(e) => {
-                                const updated = [...slotsForm];
-                                updated[idx] = {
-                                  ...updated[idx],
-                                  layoutId: e.target.value as LayoutId,
-                                };
-                                setSlotsForm(updated);
-                              }}
-                              className="w-full px-2.5 py-1.5 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-xs"
-                            >
-                              {LAYOUTS.map((l) => (
-                                <option key={l.id} value={l.id}>
-                                  {l.name} ({l.totalPhotos} Foto)
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Preset Fallback Theme */}
-                          {!slot.customImage && (
-                            <div className="mb-2">
-                              <label className="block text-[11px] text-stone-300 mb-1">
-                                Tema Desain Bawaan
-                              </label>
-                              <select
-                                value={slot.presetThemeId}
-                                onChange={(e) => {
-                                  const updated = [...slotsForm];
-                                  updated[idx] = {
-                                    ...updated[idx],
-                                    presetThemeId: e.target.value as FrameThemeId,
-                                  };
-                                  setSlotsForm(updated);
-                                }}
-                                className="w-full px-2.5 py-1.5 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-xs"
-                              >
-                                {WEDDING_PRESETS.map((p) => (
-                                  <option key={p.id} value={p.id}>
-                                    {p.name}
-                                  </option>
-                                ))}
-                              </select>
                             </div>
-                          )}
-                        </div>
 
-                        {/* File Upload / Studio Actions */}
-                        <div className="pt-2 border-t border-white/10 mt-2 flex flex-col gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              soundFx.playChime();
-                              setStudioSlotIdx(idx);
-                            }}
-                            className="btn-gold py-2 px-3 rounded-xl text-xs text-center cursor-pointer flex items-center justify-center gap-1.5 font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
-                          >
-                            <Wand2 size={14} />
-                            <span>{slot.customImage ? "Edit di Studio Bingkai" : "Studio Tambah Bingkai"}</span>
-                          </button>
+                            {/* Card Meta & Bottom Toolbar */}
+                            <div className="p-3.5 flex flex-col justify-between flex-1 gap-3 bg-white">
+                              <div>
+                                <div className="flex items-center justify-between gap-2">
+                                  <h4 className="font-bold text-slate-800 text-sm truncate" title={slot.name}>
+                                    {slot.name}
+                                  </h4>
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase shrink-0">
+                                    {slot.layoutId.toUpperCase()}
+                                  </span>
+                                </div>
+                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                  Preset: {slot.presetId || "auto"}
+                                </p>
+                              </div>
 
-                          <label className="btn-gold-outline py-1 px-2.5 rounded-lg text-[10px] text-center cursor-pointer flex items-center justify-center gap-1 opacity-80 hover:opacity-100">
-                            <Upload size={12} />
-                            <span>{slot.customImage ? "Ganti Langsung File PNG" : "Upload Langsung File PNG"}</span>
-                            <input
-                              type="file"
-                              accept="image/png"
-                              onChange={(e) => handleSlotFileUpload(idx, e)}
-                              className="hidden"
-                            />
-                          </label>
+                              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                                {/* Aktif / Nonaktif Toggle */}
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleFrameActive(slot.id);
+                                  }}
+                                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                    isActive
+                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100"
+                                      : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200"
+                                  }`}
+                                >
+                                  {isActive ? (
+                                    <>
+                                      <Check size={13} className="stroke-[3]" />
+                                      <span>Aktif</span>
+                                    </>
+                                  ) : (
+                                    <span>Nonaktif</span>
+                                  )}
+                                </button>
 
-                          {slot.customImage && (
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveSlotImage(idx)}
-                              className="text-rose-400 hover:text-rose-300 text-[10px] flex items-center justify-center gap-1 py-1 cursor-pointer"
-                            >
-                              <Trash2 size={12} />
-                              <span>Hapus File Kustom</span>
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={handleSaveSlots}
-                    className="btn-gold px-7 py-3 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg"
-                  >
-                    <Save size={15} />
-                    <span>Simpan Pengaturan 3 Bingkai</span>
-                  </button>
+                                {/* Actions: Edit & Trash */}
+                                <div className="flex items-center gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      soundFx.playChime();
+                                      setStudioTargetFrame(slot);
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Edit di Studio"
+                                  >
+                                    <Wand2 size={15} />
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteFrame(slot.id, slot.name);
+                                    }}
+                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                    title="Hapus Bingkai"
+                                  >
+                                    <Trash2 size={15} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -843,25 +902,65 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       </div>
 
       {/* Frame Studio Modal (1-Click Auto Scan, Magic Wand, Color Erase & Live Preview) */}
-      {studioSlotIdx !== null && (
+      {studioTargetFrame !== null && (
         <FrameStudioModal
-          isOpen={studioSlotIdx !== null}
-          onClose={() => setStudioSlotIdx(null)}
-          initialSlotIndex={studioSlotIdx}
-          initialName={slotsForm[studioSlotIdx]?.name}
-          initialLayoutId={slotsForm[studioSlotIdx]?.layoutId}
-          initialImage={slotsForm[studioSlotIdx]?.customImage}
-          onSaveFrame={({ slotIndex, name, layoutId, imagePngDataUrl }) => {
-            const updated = [...slotsForm];
-            updated[slotIndex] = {
-              ...updated[slotIndex],
-              name,
-              layoutId,
-              customImage: imagePngDataUrl,
-            };
+          isOpen={studioTargetFrame !== null}
+          onClose={() => setStudioTargetFrame(null)}
+          initialId={typeof studioTargetFrame === "object" ? studioTargetFrame.id : undefined}
+          initialSlotIndex={
+            typeof studioTargetFrame === "object"
+              ? slotsForm.findIndex((s) => s.id === studioTargetFrame.id)
+              : undefined
+          }
+          initialName={typeof studioTargetFrame === "object" ? studioTargetFrame.name : ""}
+          initialLayoutId={typeof studioTargetFrame === "object" ? studioTargetFrame.layoutId : "3x1"}
+          initialImage={typeof studioTargetFrame === "object" ? studioTargetFrame.customImage : undefined}
+          initialPreset={typeof studioTargetFrame === "object" ? studioTargetFrame.presetId : "auto"}
+          initialPhotoBoxes={typeof studioTargetFrame === "object" ? studioTargetFrame.photoBoxes : undefined}
+          onSaveFrame={({ id, slotIndex, name, layoutId, imagePngDataUrl, presetId, photoBoxes }) => {
+            let updated: FrameSlot[];
+            if (id) {
+              updated = slotsForm.map((s) =>
+                s.id === id
+                  ? {
+                      ...s,
+                      name,
+                      layoutId,
+                      customImage: imagePngDataUrl,
+                      presetId,
+                      photoBoxes,
+                    }
+                  : s
+              );
+              showToast(`✓ Bingkai "${name}" berhasil diperbarui!`);
+            } else if (slotIndex !== undefined && slotIndex >= 0 && slotIndex < slotsForm.length) {
+              updated = [...slotsForm];
+              updated[slotIndex] = {
+                ...updated[slotIndex],
+                name,
+                layoutId,
+                customImage: imagePngDataUrl,
+                presetId,
+                photoBoxes,
+              };
+              showToast(`✓ Bingkai "${name}" berhasil diperbarui!`);
+            } else {
+              const newFrame: FrameSlot = {
+                id: `frame_${Date.now()}`,
+                name: name || `Bingkai ${slotsForm.length + 1}`,
+                layoutId,
+                customImage: imagePngDataUrl,
+                presetThemeId: "custom",
+                enabled: true,
+                presetId,
+                photoBoxes,
+              };
+              updated = [...slotsForm, newFrame];
+              showToast(`✓ Bingkai baru "${name}" berhasil ditambahkan!`);
+            }
             setSlotsForm(updated);
             onSaveFrameSlots(updated);
-            showToast(`✓ Desain ${slotIndex + 1} berhasil diperbarui dari Studio!`);
+            setStudioTargetFrame(null);
           }}
         />
       )}

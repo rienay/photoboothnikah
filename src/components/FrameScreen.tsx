@@ -21,6 +21,9 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
   onBack,
   onNext,
 }) => {
+  const activeSlots = frameSlots.filter((s) => s.enabled !== false);
+  const displaySlots = activeSlots.length > 0 ? activeSlots : frameSlots;
+
   return (
     <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-4 py-2 sm:py-3 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
@@ -30,9 +33,21 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
         </h2>
       </div>
 
-      {/* 3 Frame Slots Grid */}
-      <div className="grid grid-cols-3 gap-3.5 sm:gap-5 flex-1 min-h-0 items-center max-w-4xl mx-auto w-full my-auto">
-        {frameSlots.slice(0, 3).map((slot, index) => {
+      {/* Frame Slots Grid */}
+      <div
+        className={`grid gap-3.5 sm:gap-5 flex-1 min-h-0 items-center mx-auto w-full my-auto overflow-y-auto px-1 ${
+          displaySlots.length <= 1
+            ? "max-w-sm grid-cols-1"
+            : displaySlots.length === 2
+            ? "max-w-2xl grid-cols-2"
+            : displaySlots.length === 3
+            ? "max-w-4xl grid-cols-3"
+            : displaySlots.length === 4
+            ? "max-w-5xl grid-cols-2 sm:grid-cols-4"
+            : "max-w-5xl grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
+        }`}
+      >
+        {displaySlots.map((slot, index) => {
           const isSelected = selectedSlotId === slot.id;
           const preset =
             WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
@@ -53,11 +68,11 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
             >
               {/* Header inside card */}
               <div className="flex items-center justify-between w-full mb-1.5 shrink-0">
-                <span className="text-[11px] font-cinzel tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 font-semibold">
-                  Desain {index + 1}
+                <span className="text-[11px] font-cinzel tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 font-semibold truncate max-w-[80%]">
+                  {slot.name || `Desain ${index + 1}`}
                 </span>
                 {isSelected && (
-                  <div className="w-5 h-5 rounded-full bg-amber-400 text-stone-900 flex items-center justify-center shadow-md">
+                  <div className="w-5 h-5 rounded-full bg-amber-400 text-stone-900 flex items-center justify-center shadow-md shrink-0">
                     <Check size={12} strokeWidth={3} />
                   </div>
                 )}

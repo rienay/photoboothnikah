@@ -43,11 +43,14 @@ export interface WeddingFramePreset {
   previewClass: string;
 }
 export interface FrameSlot {
-  id: string; // "slot_1" | "slot_2" | "slot_3"
+  id: string; // "slot_1" | "slot_2" | "slot_3" | custom id
   name: string;
   layoutId: LayoutId;
   customImage?: string;
   presetThemeId: FrameThemeId;
+  enabled?: boolean;
+  presetId?: string;
+  photoBoxes?: { id: string; x: number; y: number; w: number; h: number }[];
 }
 export interface CameraFilter {
   id: string;

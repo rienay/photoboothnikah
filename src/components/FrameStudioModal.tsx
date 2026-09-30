@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   X,
   Wand2,
@@ -6,15 +6,16 @@ import {
   RotateCcw,
   Undo,
   Redo,
-  Upload,
   Paintbrush,
-  Eye,
-  Check,
+  Camera,
   Plus,
+  Trash2,
+  Square,
+  Move,
+  CheckCircle2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { LayoutId } from "../types";
-import { LAYOUTS } from "../config";
-import { soundFx } from "../lib/audio";
 
 export interface PhotoBox {
   id: string;
@@ -27,17 +28,64 @@ export interface PhotoBox {
 interface FrameStudioModalProps {
   isOpen: boolean;
   onClose: () => void;
-  initialSlotIndex: number;
-  initialName: string;
-  initialLayoutId: LayoutId;
+  initialSlotIndex?: number;
+  initialId?: string;
+  initialName?: string;
+  initialLayoutId?: LayoutId;
   initialImage?: string;
+  initialPreset?: string;
+  initialPhotoBoxes?: PhotoBox[];
   onSaveFrame: (result: {
-    slotIndex: number;
+    id?: string;
+    slotIndex?: number;
     name: string;
     layoutId: LayoutId;
     imagePngDataUrl: string;
+    presetId: string;
+    photoBoxes: PhotoBox[];
   }) => void;
 }
+
+const LAYOUT_LABELS: Record<string, string> = {
+  "3x1": "Strip Vertikal (3x1 / 3 Foto)",
+  "3x2": "Grid 6 Foto (3x2 / 6 Foto)",
+  "2x2": "Grid 4 Foto (2x2 / 4 Foto)",
+  "2x1": "Strip Pendek (2x1 / 2 Foto)",
+  "1x1": "Foto Tunggal (1x1 / 1 Foto)",
+  "4x2": "Grid 8 Foto (4x2 / 8 Foto)",
+};
+
+const HOLE_PRESETS: Record<string, { id: string; label: string }[]> = {
+  "2x2": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "default", label: "Default (Full Overlap)" },
+  ],
+  "3x1": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "frame1", label: "Pink (Preset 1)" },
+    { id: "frame2", label: "Biru (Preset 2)" },
+    { id: "frame3", label: "Frame 1 (Preset 3)" },
+    { id: "frame4", label: "Frame 2 (Preset 4)" },
+    { id: "frame5", label: "Frame 3 (Preset 5)" },
+  ],
+  "2x1": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "frame1", label: "Frame 1 (Preset 1)" },
+    { id: "frame2", label: "Frame 2 (Preset 2)" },
+  ],
+  "3x2": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "default", label: "Default (Preset 1)" },
+  ],
+  "1x1": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "default", label: "Default (Full Overlap)" },
+  ],
+  "4x2": [
+    { id: "auto", label: "✨ Otomatis Sesuai Lubang Bingkai (Auto-Detect)" },
+    { id: "default", label: "Default (Full Overlap)" },
+  ],
+};
 
 function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const clean = hex.replace("#", "");
@@ -104,40 +152,76 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
   isOpen,
   onClose,
   initialSlotIndex,
+  initialId,
   initialName,
   initialLayoutId,
   initialImage,
+  initialPreset,
+  initialPhotoBoxes,
   onSaveFrame,
 }) => {
-  const [name, setName] = useState(initialName || `Desain ${initialSlotIndex + 1}`);
-  const [layoutId, setLayoutId] = useState<LayoutId>(initialLayoutId || "3x1");
-  const [activeCanvasData, setActiveCanvasData] = useState<string>(initialImage || "");
-  const [rawBase64Img, setRawBase64Img] = useState<string>(initialImage || "");
+  const [newName, setNewName] = useState(initialName || "");
+  const [newLayout, setNewLayout] = useState<LayoutId>(initialLayoutId || "3x1");
+  const [newPreset, setNewPreset] = useState(initialPreset || "auto");
+  const [uploadError, setUploadError] = useState("");
+  const [rawBase64Img, setRawBase64Img] = useState(initialImage || "");
+  const [activeCanvasData, setActiveCanvasData] = useState(initialImage || "");
   const [historyStack, setHistoryStack] = useState<string[]>([]);
   const [redoStack, setRedoStack] = useState<string[]>([]);
   const [chromaTolerance, setChromaTolerance] = useState(25);
-  const [toolMode, setToolMode] = useState<"wand" | "white" | "green" | "restore">("wand");
-  const [brushSize, setBrushSize] = useState(30);
+  const [chromaColor, setChromaColor] = useState("#FFFFFF");
+  const [toolMode, setToolMode] = useState<"wand" | "restore">("wand");
+  const [brushSize] = useState(30);
+  const [brushCursor, setBrushCursor] = useState<{ x: number; y: number; visible: boolean }>({
+    x: 0,
+    y: 0,
+    visible: false,
+  });
+  const [interactionMode, setInteractionMode] = useState<"erase" | "boxes">("erase");
   const [previewTab, setPreviewTab] = useState<"checkerboard" | "photos">("checkerboard");
-  const [actionStatus, setActionStatus] = useState<string>("");
+  const [photoBoxes, setPhotoBoxes] = useState<PhotoBox[]>(
+    initialPhotoBoxes && initialPhotoBoxes.length > 0
+      ? initialPhotoBoxes
+      : getDefaultBoxesForLayout(initialLayoutId || "3x1")
+  );
+  const [selectedBoxId, setSelectedBoxId] = useState<string | null>(null);
   const [imageMeta, setImageMeta] = useState<{ width: number; height: number } | null>(null);
+  const [actionStatus, setActionStatus] = useState<string>("");
+  const [dragState, setDragState] = useState<{
+    type: "move" | "resize";
+    boxId: string;
+    handle?: "nw" | "ne" | "sw" | "se";
+    startX: number;
+    startY: number;
+    initBox: PhotoBox;
+  } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const workingCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const originalImageRef = useRef<HTMLImageElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-  const isMouseDownRef = useRef(false);
+  const previewImgRef = useRef<HTMLImageElement | null>(null);
 
   // Sync state on open
   useEffect(() => {
     if (isOpen) {
-      setName(initialName || `Desain ${initialSlotIndex + 1}`);
-      setLayoutId(initialLayoutId || "3x1");
-      setActiveCanvasData(initialImage || "");
+      setNewName(initialName || "");
+      setNewLayout(initialLayoutId || "3x1");
+      setNewPreset(initialPreset || "auto");
       setRawBase64Img(initialImage || "");
+      setActiveCanvasData(initialImage || "");
       setHistoryStack([]);
       setRedoStack([]);
+      setUploadError("");
       setActionStatus("");
+      setPhotoBoxes(
+        initialPhotoBoxes && initialPhotoBoxes.length > 0
+          ? initialPhotoBoxes
+          : getDefaultBoxesForLayout(initialLayoutId || "3x1")
+      );
+      setSelectedBoxId(null);
+      setInteractionMode("erase");
+      setToolMode("wand");
 
       if (initialImage) {
         const img = new Image();
@@ -163,18 +247,28 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
         setImageMeta(null);
       }
     }
-  }, [isOpen, initialSlotIndex, initialName, initialLayoutId, initialImage]);
+  }, [isOpen, initialName, initialLayoutId, initialImage, initialPreset, initialPhotoBoxes]);
 
-  // Load new frame file
+  // Layout change handler
+  const handleLayoutChange = (l: LayoutId) => {
+    setNewLayout(l);
+    setNewPreset("auto");
+    const boxes = getDefaultBoxesForLayout(l);
+    setPhotoBoxes(boxes);
+    setSelectedBoxId(boxes[0]?.id || null);
+  };
+
+  // File change handler
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (!file.type.startsWith("image/")) {
-      setActionStatus("⚠️ Berkas harus berupa gambar (PNG, JPG, WEBP)!");
+      setUploadError("Berkas harus berupa gambar (PNG, JPG, WEBP)!");
       return;
     }
 
+    setUploadError("");
     setActionStatus("Sedang memproses gambar...");
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -198,7 +292,11 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
           setHistoryStack([]);
           setRedoStack([]);
           workingCanvasRef.current = canvas;
-          setActionStatus("✓ Gambar berhasil dimuat. Siap dilubangi!");
+
+          const defaultBoxes = getDefaultBoxesForLayout(newLayout);
+          setPhotoBoxes(defaultBoxes);
+          setSelectedBoxId(defaultBoxes[0]?.id || null);
+          setActionStatus("Gambar berhasil dimuat. Siap dilubangi!");
         }
       };
       img.src = dataUrl;
@@ -256,11 +354,11 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
       ctx.drawImage(originalImageRef.current, 0, 0);
       const data = canvas.toDataURL("image/png");
       setActiveCanvasData(data);
-      setActionStatus("✓ Gambar dipulihkan ke kondisi awal.");
+      setActionStatus("Gambar dipulihkan ke kondisi awal.");
     }
   };
 
-  // 1-Click: Auto Scan & Erase
+  // Auto-Scan Erase
   const handleAutoScanErase = () => {
     if (!workingCanvasRef.current || !activeCanvasData) return;
     const canvas = workingCanvasRef.current;
@@ -274,9 +372,9 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
 
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
-    const boxes = getDefaultBoxesForLayout(layoutId);
+    const targetBoxes = photoBoxes.length > 0 ? photoBoxes : getDefaultBoxesForLayout(newLayout);
 
-    boxes.forEach((box) => {
+    targetBoxes.forEach((box) => {
       const bx = Math.max(0, Math.min(width - 1, Math.round((box.x / 100) * width)));
       const by = Math.max(0, Math.min(height - 1, Math.round((box.y / 100) * height)));
       const bw = Math.max(1, Math.min(width - bx, Math.round((box.w / 100) * width)));
@@ -365,11 +463,11 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     ctx.putImageData(imgData, 0, 0);
     const finalData = canvas.toDataURL("image/png");
     setActiveCanvasData(finalData);
-    setActionStatus(`✨ Scan otomatis selesai! Berhasil melubangi area ${boxes.length} kotak foto.`);
+    setActionStatus(`Scan otomatis selesai! Berhasil melubangi area ${targetBoxes.length} kotak foto.`);
   };
 
-  // Erase color globally (White or Green)
-  const handleEraseColor = (colorHex: string, label: string) => {
+  // Erase chosen color
+  const handleEraseChosenColor = (hex: string) => {
     if (!workingCanvasRef.current || !activeCanvasData) return;
     const canvas = workingCanvasRef.current;
     setHistoryStack((prev) => [...prev.slice(-14), activeCanvasData]);
@@ -380,7 +478,7 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    const target = hexToRgb(colorHex);
+    const target = hexToRgb(hex);
     const maxDist = 441.67;
     const threshold = (chromaTolerance / 100) * maxDist;
 
@@ -403,13 +501,20 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     ctx.putImageData(imgData, 0, 0);
     const finalData = canvas.toDataURL("image/png");
     setActiveCanvasData(finalData);
-    setActionStatus(`✓ Warna ${label} berhasil dilubangi!`);
+    setActionStatus(`Warna ${hex} berhasil dilubangi!`);
   };
 
-  // Flood fill erase from clicked point
-  const handleWandClick = (canvasX: number, canvasY: number) => {
+  // Click on canvas for Magic Wand
+  const handlePreviewImageClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!workingCanvasRef.current || !activeCanvasData) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const xRatio = (e.clientX - rect.left) / rect.width;
+    const yRatio = (e.clientY - rect.top) / rect.height;
+
     const canvas = workingCanvasRef.current;
+    const naturalX = Math.floor(xRatio * canvas.width);
+    const naturalY = Math.floor(yRatio * canvas.height);
+
     const width = canvas.width;
     const height = canvas.height;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -418,7 +523,7 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     const imgData = ctx.getImageData(0, 0, width, height);
     const data = imgData.data;
 
-    const startIndex = (canvasY * width + canvasX) * 4;
+    const startIndex = (naturalY * width + naturalX) * 4;
     const targetR = data[startIndex];
     const targetG = data[startIndex + 1];
     const targetB = data[startIndex + 2];
@@ -437,9 +542,9 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     let head = 0;
     let tail = 0;
 
-    queue[tail++] = canvasX;
-    queue[tail++] = canvasY;
-    visited[canvasY * width + canvasX] = 1;
+    queue[tail++] = naturalX;
+    queue[tail++] = naturalY;
+    visited[naturalY * width + naturalX] = 1;
 
     while (head < tail) {
       const x = queue[head++];
@@ -482,59 +587,182 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
     ctx.putImageData(imgData, 0, 0);
     const finalData = canvas.toDataURL("image/png");
     setActiveCanvasData(finalData);
-    setActionStatus("✓ Area kotak yang diklik berhasil dilubangi!");
+    setActionStatus("Area kotak yang diklik berhasil dilubangi!");
   };
 
-  // Restore brush at point
-  const handleRestoreBrush = (canvasX: number, canvasY: number) => {
-    if (!workingCanvasRef.current || !originalImageRef.current || !previewContainerRef.current) return;
+  // Restore brush pointer events
+  const handleCanvasPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!previewContainerRef.current) return;
+    const rect = previewContainerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    if (toolMode === "restore") {
+      setBrushCursor({ x, y, visible: true });
+    }
+
+    // Box drag/resize handling
+    if (dragState && interactionMode === "boxes") {
+      const dxPercent = ((e.clientX - dragState.startX) / rect.width) * 100;
+      const dyPercent = ((e.clientY - dragState.startY) / rect.height) * 100;
+
+      setPhotoBoxes((boxes) =>
+        boxes.map((b) => {
+          if (b.id !== dragState.boxId) return b;
+          if (dragState.type === "move") {
+            const nextX = Math.max(0, Math.min(100 - b.w, dragState.initBox.x + dxPercent));
+            const nextY = Math.max(0, Math.min(100 - b.h, dragState.initBox.y + dyPercent));
+            return { ...b, x: Math.round(nextX * 10) / 10, y: Math.round(nextY * 10) / 10 };
+          }
+          if (dragState.type === "resize") {
+            let nextW = dragState.initBox.w;
+            let nextH = dragState.initBox.h;
+            if (dragState.handle === "se") {
+              nextW = Math.max(10, Math.min(100 - b.x, dragState.initBox.w + dxPercent));
+              nextH = Math.max(10, Math.min(100 - b.y, dragState.initBox.h + dyPercent));
+            } else if (dragState.handle === "sw") {
+              nextW = Math.max(10, dragState.initBox.w - dxPercent);
+              nextH = Math.max(10, dragState.initBox.h + dyPercent);
+            } else if (dragState.handle === "ne") {
+              nextW = Math.max(10, dragState.initBox.w + dxPercent);
+              nextH = Math.max(10, dragState.initBox.h - dyPercent);
+            } else if (dragState.handle === "nw") {
+              nextW = Math.max(10, dragState.initBox.w - dxPercent);
+              nextH = Math.max(10, dragState.initBox.h - dyPercent);
+            }
+            return { ...b, w: Math.round(nextW * 10) / 10, h: Math.round(nextH * 10) / 10 };
+          }
+          return b;
+        })
+      );
+    }
+  };
+
+  const handleCanvasPointerUp = () => {
+    setDragState(null);
+  };
+
+  // Add box manually
+  const handleAddBox = () => {
+    const newId = `box_${photoBoxes.length + 1}`;
+    const newBox: PhotoBox = {
+      id: newId,
+      x: 20,
+      y: 20 + photoBoxes.length * 10,
+      w: 60,
+      h: 25,
+    };
+    setPhotoBoxes([...photoBoxes, newBox]);
+    setSelectedBoxId(newId);
+    setInteractionMode("boxes");
+  };
+
+  // Punch clean inside selected box
+  const handlePunchSelectedBox = () => {
+    if (!workingCanvasRef.current || !activeCanvasData || !selectedBoxId) return;
+    const box = photoBoxes.find((b) => b.id === selectedBoxId);
+    if (!box) return;
+
     const canvas = workingCanvasRef.current;
+    const width = canvas.width;
+    const height = canvas.height;
     const ctx = canvas.getContext("2d", { willReadFrequently: true });
     if (!ctx) return;
 
-    const rect = previewContainerRef.current.getBoundingClientRect();
-    const scale = rect.width > 0 ? canvas.width / rect.width : 1;
-    const radius = Math.max(3, (brushSize / 2) * scale);
+    setHistoryStack((prev) => [...prev.slice(-14), activeCanvasData]);
+    setRedoStack([]);
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(canvasX, canvasY, radius, 0, Math.PI * 2);
-    ctx.clip();
-    ctx.drawImage(originalImageRef.current, 0, 0);
-    ctx.restore();
+    const bx = Math.max(0, Math.min(width - 1, Math.round((box.x / 100) * width)));
+    const by = Math.max(0, Math.min(height - 1, Math.round((box.y / 100) * height)));
+    const bw = Math.max(1, Math.min(width - bx, Math.round((box.w / 100) * width)));
+    const bh = Math.max(1, Math.min(height - by, Math.round((box.h / 100) * height)));
 
-    setActiveCanvasData(canvas.toDataURL("image/png"));
-    setActionStatus("Memulihkan area gambar dengan kuas...");
-  };
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
 
-  const handleCanvasInteraction = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!workingCanvasRef.current || !activeCanvasData) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const xRatio = (e.clientX - rect.left) / rect.width;
-    const yRatio = (e.clientY - rect.top) / rect.height;
-
-    const canvas = workingCanvasRef.current;
-    const naturalX = Math.floor(xRatio * canvas.width);
-    const naturalY = Math.floor(yRatio * canvas.height);
-
-    if (toolMode === "wand") {
-      handleWandClick(naturalX, naturalY);
-    } else if (toolMode === "restore") {
-      handleRestoreBrush(naturalX, naturalY);
+    for (let y = by; y < by + bh; y++) {
+      for (let x = bx; x < bx + bw; x++) {
+        const idx = (y * width + x) * 4;
+        data[idx + 3] = 0;
+      }
     }
+
+    ctx.putImageData(imgData, 0, 0);
+    const finalData = canvas.toDataURL("image/png");
+    setActiveCanvasData(finalData);
+    setActionStatus(`Kotak berhasil dilubangi 100% transparan!`);
   };
 
-  const handleSave = () => {
-    if (!activeCanvasData) {
-      setActionStatus("⚠️ Silakan muat file bingkai terlebih dahulu!");
+  const handlePunchAllBoxes = () => {
+    if (!workingCanvasRef.current || !activeCanvasData) return;
+    const canvas = workingCanvasRef.current;
+    const width = canvas.width;
+    const height = canvas.height;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    setHistoryStack((prev) => [...prev.slice(-14), activeCanvasData]);
+    setRedoStack([]);
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    photoBoxes.forEach((box) => {
+      const bx = Math.max(0, Math.min(width - 1, Math.round((box.x / 100) * width)));
+      const by = Math.max(0, Math.min(height - 1, Math.round((box.y / 100) * height)));
+      const bw = Math.max(1, Math.min(width - bx, Math.round((box.w / 100) * width)));
+      const bh = Math.max(1, Math.min(height - by, Math.round((box.h / 100) * height)));
+
+      for (let y = by; y < by + bh; y++) {
+        for (let x = bx; x < bx + bw; x++) {
+          const idx = (y * width + x) * 4;
+          data[idx + 3] = 0;
+        }
+      }
+    });
+
+    ctx.putImageData(imgData, 0, 0);
+    const finalData = canvas.toDataURL("image/png");
+    setActiveCanvasData(finalData);
+    setActionStatus(`Semua ${photoBoxes.length} kotak berhasil dilubangi!`);
+  };
+
+  const setBoxRatio = (ratio: "1:1" | "3:4" | "4:3" | "9:16" | "2:3") => {
+    if (!selectedBoxId) return;
+    setPhotoBoxes((boxes) =>
+      boxes.map((b) => {
+        if (b.id !== selectedBoxId) return b;
+        let newH = b.h;
+        if (ratio === "1:1") newH = b.w;
+        else if (ratio === "3:4") newH = (b.w * 4) / 3;
+        else if (ratio === "4:3") newH = (b.w * 3) / 4;
+        else if (ratio === "9:16") newH = (b.w * 16) / 9;
+        else if (ratio === "2:3") newH = (b.w * 3) / 2;
+        return { ...b, h: Math.round(Math.min(95, newH) * 10) / 10 };
+      })
+    );
+  };
+
+  // Submit / Save
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newName) {
+      setUploadError("Nama bingkai wajib diisi!");
       return;
     }
-    soundFx.playChime();
+    if (!activeCanvasData && !rawBase64Img) {
+      setUploadError("Silakan upload gambar bingkai!");
+      return;
+    }
+
     onSaveFrame({
+      id: initialId,
       slotIndex: initialSlotIndex,
-      name: name || `Desain ${initialSlotIndex + 1}`,
-      layoutId,
-      imagePngDataUrl: activeCanvasData,
+      name: newName,
+      layoutId: newLayout,
+      imagePngDataUrl: activeCanvasData || rawBase64Img,
+      presetId: newPreset,
+      photoBoxes,
     });
     onClose();
   };
@@ -542,350 +770,779 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 md:p-6 animate-in fade-in duration-200">
-      <div className="bg-stone-900 rounded-2xl max-w-5xl w-full border border-amber-400/40 shadow-[0_0_50px_rgba(0,0,0,0.9)] flex flex-col max-h-[92vh] overflow-hidden">
-        {/* Header */}
-        <div className="px-6 py-3.5 border-b border-amber-400/20 flex items-center justify-between shrink-0 bg-stone-950/70">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/50 flex items-center justify-center text-amber-300">
-              <Wand2 size={18} />
-            </div>
-            <div>
-              <h3 className="text-base font-serif text-gold-gradient font-bold leading-tight">
-                Studio Unggah & Konfigurasi Bingkai (Desain {initialSlotIndex + 1})
-              </h3>
-              <p className="text-[11px] text-stone-400 mt-0.5">
-                Upload bingkai (PNG/JPG). Hapus kotak foto atau warna latar dengan 1 klik agar foto tamu pas di lubang bingkai.
-              </p>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-stone-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer"
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        {/* 2-Column Body */}
-        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-amber-400/15">
-          {/* LEFT: Controls & Tools */}
-          <div className="lg:col-span-6 p-5 space-y-4 overflow-y-auto">
-            {/* Name Input */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-amber-200">Nama Desain Bingkai</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Contoh: Gold Floral Wedding (3 Foto)"
-                className="w-full px-3 py-2 bg-stone-950 border border-amber-400/30 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
-              />
-            </div>
-
-            {/* Layout Select */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-amber-200">Format Layout Foto</label>
-              <select
-                value={layoutId}
-                onChange={(e) => setLayoutId(e.target.value as LayoutId)}
-                className="w-full px-3 py-2 bg-stone-950 border border-amber-400/30 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 cursor-pointer"
-              >
-                {LAYOUTS.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} ({l.totalPhotos} Foto)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* File Upload Box */}
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <label className="block text-xs font-semibold text-amber-200">
-                  File Frame (PNG, JPG, WEBP)
-                </label>
-                {imageMeta && (
-                  <span className="text-[10px] text-amber-300/80 font-mono">
-                    {imageMeta.width} × {imageMeta.height} px
-                  </span>
-                )}
-              </div>
-              <input
-                type="file"
-                accept="image/png,image/jpeg,image/jpg,image/webp"
-                onChange={handleFileChange}
-                ref={fileInputRef}
-                className="hidden"
-              />
-              <div
-                onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-all ${
-                  activeCanvasData
-                    ? "border-amber-400/60 bg-amber-950/20 hover:bg-amber-950/30"
-                    : "border-stone-700 hover:border-amber-400/50 bg-stone-950/50 hover:bg-stone-900"
-                }`}
-              >
-                {activeCanvasData ? (
-                  <div className="flex items-center justify-center gap-3">
-                    <img
-                      src={activeCanvasData}
-                      alt="Thumbnail"
-                      className="w-12 h-12 object-contain rounded border border-amber-400/40 bg-[repeating-conic-gradient(#333_0_25%,#111_0_50%)] bg-[length:6px_6px]"
-                    />
-                    <div className="text-left">
-                      <span className="text-xs font-bold text-amber-200 block">Gambar Berhasil Dimuat</span>
-                      <span className="text-[11px] text-amber-400 hover:underline">Klik untuk ganti file</span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-2 space-y-1">
-                    <Plus className="w-5 h-5 text-amber-400/70 mx-auto" />
-                    <span className="text-xs font-semibold text-stone-200 block">
-                      Pilih Gambar Frame (PNG / JPG / WEBP)
-                    </span>
-                    <span className="text-[10px] text-stone-400 block">
-                      Bisa berupa gambar transparan atau gambar dengan kotak putih / latar hijau
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Editing Tools Card */}
-            <div className="p-3.5 rounded-xl border border-amber-400/25 bg-stone-950/70 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Wand2 className="w-4 h-4 text-amber-300" />
-                  <span className="text-xs font-bold text-amber-100">Alat Hapus & Pulihkan Background</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={handleUndo}
-                    disabled={historyStack.length === 0}
-                    className="px-2 py-1 bg-stone-900 border border-amber-400/30 rounded-lg text-[10px] text-stone-200 hover:bg-stone-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                    title="Undo"
-                  >
-                    <Undo size={11} /> <span>Undo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRedo}
-                    disabled={redoStack.length === 0}
-                    className="px-2 py-1 bg-stone-900 border border-amber-400/30 rounded-lg text-[10px] text-stone-200 hover:bg-stone-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                    title="Redo"
-                  >
-                    <Redo size={11} /> <span>Redo</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleResetOriginal}
-                    disabled={!rawBase64Img || historyStack.length === 0}
-                    className="px-2 py-1 bg-stone-900 border border-amber-400/30 rounded-lg text-[10px] text-stone-200 hover:bg-stone-800 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
-                    title="Reset ke Gambar Awal"
-                  >
-                    <RotateCcw size={11} /> <span>Reset</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Big Auto-Scan Button */}
-              <button
-                type="button"
-                onClick={handleAutoScanErase}
-                disabled={!activeCanvasData}
-                className="w-full py-2.5 px-3 btn-gold rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-pointer shadow-md disabled:opacity-40 active:scale-[0.99]"
-              >
-                <Sparkles size={14} className="animate-spin text-amber-200" />
-                <span>✨ Scan Otomatis & Hapus Background Kotak Foto</span>
-              </button>
-
-              {/* Tool Mode Buttons */}
-              <div className="grid grid-cols-4 gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setToolMode("wand")}
-                  disabled={!activeCanvasData}
-                  className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
-                    toolMode === "wand"
-                      ? "bg-amber-400 text-stone-950 border-amber-400 font-bold shadow-md"
-                      : "bg-stone-900 text-stone-300 border-amber-400/20 hover:bg-stone-800"
-                  }`}
-                >
-                  <Wand2 size={14} />
-                  <span className="text-[10px]">Magic Wand</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleEraseColor("#FFFFFF", "Putih")}
-                  disabled={!activeCanvasData}
-                  className="p-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-amber-400/20 bg-stone-900 text-stone-300 hover:bg-stone-800 transition-all cursor-pointer"
-                >
-                  <div className="w-3.5 h-3.5 rounded bg-white border border-stone-400" />
-                  <span className="text-[10px]">Hapus Putih</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => handleEraseColor("#00FF00", "Hijau")}
-                  disabled={!activeCanvasData}
-                  className="p-2 rounded-xl flex flex-col items-center justify-center gap-1 border border-amber-400/20 bg-stone-900 text-stone-300 hover:bg-stone-800 transition-all cursor-pointer"
-                >
-                  <div className="w-3.5 h-3.5 rounded bg-emerald-500" />
-                  <span className="text-[10px]">Hapus Hijau</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setToolMode("restore")}
-                  disabled={!activeCanvasData}
-                  className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 border transition-all cursor-pointer ${
-                    toolMode === "restore"
-                      ? "bg-amber-400 text-stone-950 border-amber-400 font-bold shadow-md"
-                      : "bg-stone-900 text-stone-300 border-amber-400/20 hover:bg-stone-800"
-                  }`}
-                >
-                  <Paintbrush size={14} />
-                  <span className="text-[10px]">Kuas Pulih</span>
-                </button>
-              </div>
-
-              {/* Tolerance Slider */}
-              <div className="space-y-1 pt-1">
-                <div className="flex items-center justify-between text-[11px] text-stone-300">
-                  <span>Toleransi Warna Hapus:</span>
-                  <span className="font-mono text-amber-300 font-bold">{chromaTolerance}%</span>
-                </div>
-                <input
-                  type="range"
-                  min={5}
-                  max={70}
-                  value={chromaTolerance}
-                  onChange={(e) => setChromaTolerance(parseInt(e.target.value))}
-                  className="w-full accent-amber-400 cursor-pointer"
-                />
-              </div>
-
-              {/* Status Alert Bar */}
-              {actionStatus && (
-                <div className="p-2 rounded-lg bg-amber-400/10 border border-amber-400/30 text-[11px] text-amber-200">
-                  {actionStatus}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* RIGHT: Live Interactive Preview */}
-          <div className="lg:col-span-6 p-5 flex flex-col justify-between bg-stone-950/40 min-h-0">
-            {/* View Switcher Tabs */}
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-amber-200">Pratinjau Hasil Lubang Frame</span>
-              <div className="flex items-center gap-1 bg-stone-900 border border-amber-400/20 rounded-lg p-0.5">
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("checkerboard")}
-                  className={`px-2.5 py-1 rounded text-[10px] font-medium transition-all cursor-pointer ${
-                    previewTab === "checkerboard"
-                      ? "bg-amber-400 text-stone-950 font-bold"
-                      : "text-stone-400 hover:text-white"
-                  }`}
-                >
-                  Papan Catur (Transparan)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPreviewTab("photos")}
-                  className={`px-2.5 py-1 rounded text-[10px] font-medium transition-all cursor-pointer ${
-                    previewTab === "photos"
-                      ? "bg-amber-400 text-stone-950 font-bold"
-                      : "text-stone-400 hover:text-white"
-                  }`}
-                >
-                  Contoh Foto Tamu
-                </button>
-              </div>
-            </div>
-
-            {/* Canvas / Image Display Container */}
-            <div
-              ref={previewContainerRef}
-              onClick={handleCanvasInteraction}
-              className={`flex-1 min-h-[320px] max-h-[460px] rounded-xl border border-amber-400/30 relative flex items-center justify-center overflow-hidden p-2 select-none ${
-                toolMode === "wand"
-                  ? "cursor-crosshair"
-                  : toolMode === "restore"
-                  ? "cursor-pointer"
-                  : "cursor-default"
-              } ${
-                previewTab === "checkerboard"
-                  ? "bg-[repeating-conic-gradient(#262626_0_25%,#171717_0_50%)] bg-[length:14px_14px]"
-                  : "bg-stone-950"
-              }`}
-            >
-              {/* Simulated Photos Underneath if previewTab === 'photos' */}
-              {previewTab === "photos" && (
-                <div className="absolute inset-2 flex flex-col gap-2 p-4 items-center justify-center opacity-80 pointer-events-none">
-                  {getDefaultBoxesForLayout(layoutId).map((box, bIdx) => (
-                    <div
-                      key={box.id}
-                      className="absolute rounded bg-gradient-to-tr from-amber-900/50 to-amber-700/40 border border-amber-400/30 flex items-center justify-center shadow-inner"
-                      style={{
-                        left: `${box.x}%`,
-                        top: `${box.y}%`,
-                        width: `${box.w}%`,
-                        height: `${box.h}%`,
-                      }}
-                    >
-                      <span className="text-[10px] text-amber-200 font-serif font-bold">
-                        Foto Tamu #{bIdx + 1}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Current Frame Layer */}
-              {activeCanvasData ? (
-                <img
-                  src={activeCanvasData}
-                  alt="Frame Layer"
-                  className="max-w-full max-h-full object-contain relative z-10 drop-shadow-xl"
-                />
-              ) : (
-                <div className="text-center p-6 text-stone-500">
-                  <Upload size={32} className="mx-auto mb-2 opacity-50" />
-                  <span className="text-xs block">Belum ada berkas frame</span>
-                  <span className="text-[10px] block mt-1">
-                    Upload file frame di sebelah kiri untuk mulai mengedit
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <p className="text-[10px] text-stone-400 text-center mt-2">
-              💡 <em>Tips: Klik langsung di atas area kotak foto pada gambar untuk melubangi dengan Magic Wand.</em>
+    <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6 backdrop-blur-xs">
+      <div className="bg-white rounded-2xl max-w-5xl w-full shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[94vh] animate-in fade-in zoom-in-95 duration-150">
+        {/* Modal Header */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between shrink-0 bg-white">
+          <div>
+            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+              <Wand2 className="w-4 h-4 text-blue-600" />
+              <span>Studio Unggah & Konfigurasi Bingkai</span>
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Upload file bingkai (PNG/JPG). Hapus kotak foto atau warna latar dengan 1 klik agar foto pengunjung masuk pas ke lubang bingkai.
             </p>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="px-6 py-3 border-t border-amber-400/20 flex items-center justify-between shrink-0 bg-stone-950/80">
           <button
             onClick={onClose}
-            className="btn-gold-outline px-5 py-2 rounded-xl text-xs cursor-pointer"
+            className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
+            title="Tutup Modal"
           >
-            Batal
+            <X className="w-5 h-5" />
           </button>
-          <button
-            onClick={handleSave}
-            disabled={!activeCanvasData}
-            className="btn-gold px-7 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer shadow-lg disabled:opacity-40"
-          >
-            <Check size={16} />
-            <span>Terapkan Bingkai ke Desain {initialSlotIndex + 1}</span>
-          </button>
+        </div>
+
+        {/* Modal Body: 2 Columns */}
+        <div className="flex-1 overflow-y-auto grid grid-cols-1 lg:grid-cols-12 divide-y lg:divide-y-0 lg:divide-x divide-slate-100">
+          {/* LEFT COLUMN: Form Inputs & Eraser Controls */}
+          <div className="lg:col-span-6 p-6 space-y-4">
+            <form onSubmit={handleSave} id="frame-upload-form" className="space-y-4">
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-700">Nama Template Bingkai</label>
+                <input
+                  type="text"
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  placeholder="Contoh: Cute Pink Bears (4 Foto)"
+                  className="w-full px-3.5 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-700">Tata Letak (Layout)</label>
+                  <select
+                    value={newLayout}
+                    onChange={(e) => handleLayoutChange(e.target.value as LayoutId)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    <option value="3x1">Strip Vertikal (3x1 / 3 Foto)</option>
+                    <option value="2x2">Grid 4 Foto (2x2 / Custom 4 Lubang)</option>
+                    <option value="3x2">Grid 6 Foto (3x2 / 6 Foto)</option>
+                    <option value="2x1">Strip Pendek (2x1 / 2 Foto)</option>
+                    <option value="1x1">Foto Tunggal (1x1)</option>
+                    <option value="4x2">Grid 8 Foto (4x2 / 8 Foto)</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="block text-xs font-semibold text-slate-700">Preset Lubang Foto</label>
+                  <select
+                    value={newPreset}
+                    onChange={(e) => setNewPreset(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                  >
+                    {(HOLE_PRESETS[newLayout] || HOLE_PRESETS["3x1"]).map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* File Upload Box */}
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-semibold text-slate-700">Berkas Frame (PNG, JPG, WEBP)</label>
+                  {imageMeta && (
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      {imageMeta.width} × {imageMeta.height} px
+                    </span>
+                  )}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/jpg,image/webp"
+                  onChange={handleFileChange}
+                  ref={fileInputRef}
+                  className="hidden"
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-3 text-center cursor-pointer transition-colors ${
+                    activeCanvasData
+                      ? "border-blue-400 bg-blue-50/20 hover:bg-blue-50/40"
+                      : "border-slate-200 hover:border-blue-500 bg-slate-50 hover:bg-blue-50/30"
+                  }`}
+                >
+                  {activeCanvasData ? (
+                    <div className="flex items-center justify-center gap-3">
+                      <img
+                        src={activeCanvasData}
+                        alt="Thumbnail"
+                        className="w-10 h-10 object-contain rounded border border-slate-200 bg-[repeating-conic-gradient(#cbd5e1_0_25%,#fff_0_50%)] bg-[length:6px_6px]"
+                      />
+                      <div className="text-left">
+                        <span className="text-xs font-bold text-slate-800 block">Gambar Berhasil Dimuat</span>
+                        <span className="text-[11px] text-blue-600 font-medium hover:underline">Klik untuk ganti gambar</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-2 space-y-1">
+                      <Plus className="w-5 h-5 text-slate-400 mx-auto" />
+                      <span className="text-xs font-semibold text-slate-700 block">Pilih Gambar Frame (PNG / JPG / WEBP)</span>
+                      <span className="text-[10px] text-slate-400 block">Bisa berupa gambar transparan atau gambar dengan kotak putih / latar hijau</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 1. ALAT HAPUS & PULIHKAN BACKGROUND */}
+              <div className="p-4 rounded-xl border border-blue-100 bg-blue-50/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                      <Wand2 className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block leading-tight">
+                        Alat Hapus & Pulihkan Background
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        Hapus background atau pulihkan kembali gambar asli
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Undo, Redo & Pulihkan Asli Buttons */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={handleUndo}
+                      disabled={historyStack.length === 0}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+                      title="Undo"
+                    >
+                      <Undo className="w-3 h-3 text-slate-600" />
+                      <span>Undo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleRedo}
+                      disabled={redoStack.length === 0}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+                      title="Redo"
+                    >
+                      <Redo className="w-3 h-3 text-slate-600" />
+                      <span>Redo</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleResetOriginal}
+                      disabled={!rawBase64Img || historyStack.length === 0}
+                      className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-100 disabled:opacity-40 flex items-center gap-1 cursor-pointer"
+                      title="Pulihkan seluruh gambar ke kondisi awal"
+                    >
+                      <RotateCcw className="w-3 h-3 text-slate-600" />
+                      <span>Pulihkan Asli</span>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary Auto-Scan Button */}
+                <button
+                  type="button"
+                  onClick={handleAutoScanErase}
+                  disabled={!activeCanvasData}
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-700 hover:via-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-indigo-500/25 transition-all cursor-pointer disabled:opacity-50 active:scale-[0.99]"
+                  title="Pindai dan hapus background foto di dalam bingkai secara otomatis"
+                >
+                  <Sparkles className="w-4 h-4 text-amber-300 animate-pulse shrink-0" />
+                  <span>✨ Scan Otomatis & Hapus Background Foto</span>
+                </button>
+
+                {/* Quick Erase & Restore Tool Buttons */}
+                <div className="grid grid-cols-4 gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setToolMode("wand");
+                      setInteractionMode("erase");
+                      setPreviewTab("checkerboard");
+                    }}
+                    disabled={!activeCanvasData}
+                    className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs cursor-pointer border ${
+                      toolMode === "wand" && interactionMode === "erase"
+                        ? "bg-blue-600 text-white border-blue-700 shadow-blue-500/20"
+                        : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Wand2 className={`w-4 h-4 ${toolMode === "wand" && interactionMode === "erase" ? "text-white" : "text-blue-600"}`} />
+                    <span className="text-[11px] font-bold leading-tight text-center">Magic Wand</span>
+                    <span className={`text-[9px] ${toolMode === "wand" && interactionMode === "erase" ? "text-blue-100" : "text-slate-400"}`}>
+                      Hapus Klik
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setToolMode("restore");
+                      setInteractionMode("erase");
+                      setPreviewTab("checkerboard");
+                    }}
+                    disabled={!activeCanvasData}
+                    className={`p-2 rounded-xl flex flex-col items-center justify-center gap-1 transition-all shadow-2xs cursor-pointer border ${
+                      toolMode === "restore" && interactionMode === "erase"
+                        ? "bg-amber-600 text-white border-amber-700 shadow-amber-500/20"
+                        : "bg-white text-slate-800 border-slate-200 hover:bg-slate-50"
+                    }`}
+                  >
+                    <Paintbrush className={`w-4 h-4 ${toolMode === "restore" && interactionMode === "erase" ? "text-white" : "text-amber-600"}`} />
+                    <span className="text-[11px] font-bold leading-tight text-center">Pulihkan</span>
+                    <span className={`text-[9px] ${toolMode === "restore" && interactionMode === "erase" ? "text-amber-100" : "text-slate-400"}`}>
+                      Kuas Usap
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEraseChosenColor("#FFFFFF")}
+                    disabled={!activeCanvasData}
+                    className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <div className="w-3.5 h-3.5 rounded-full border border-slate-400 bg-white" />
+                    <span className="text-[11px] font-bold text-slate-800 leading-tight">Hapus Putih</span>
+                    <span className="text-[9px] text-slate-400">1-Klik Semua</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleEraseChosenColor("#00FF00")}
+                    disabled={!activeCanvasData}
+                    className="p-2 rounded-xl bg-white border border-slate-200 hover:bg-slate-50 flex flex-col items-center justify-center gap-1 transition-all shadow-2xs cursor-pointer"
+                  >
+                    <div className="w-3.5 h-3.5 rounded-full bg-emerald-500" />
+                    <span className="text-[11px] font-bold text-slate-800 leading-tight">Hapus Hijau</span>
+                    <span className="text-[9px] text-slate-400">Green Screen</span>
+                  </button>
+                </div>
+
+                {toolMode !== "restore" && (
+                  <div className="pt-2 border-t border-slate-200/80 space-y-2">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="font-semibold text-slate-700">Toleransi Kepekaan Warna:</span>
+                      <span className="font-mono font-bold text-blue-600">{chromaTolerance}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="5"
+                      max="65"
+                      value={chromaTolerance}
+                      onChange={(e) => setChromaTolerance(Number(e.target.value))}
+                      className="w-full accent-blue-600 h-1.5 bg-slate-200 rounded-lg cursor-pointer"
+                    />
+
+                    <div className="flex items-center justify-between pt-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] text-slate-600 font-medium">Hapus Warna Tertentu:</span>
+                        <input
+                          type="color"
+                          value={chromaColor}
+                          onChange={(e) => setChromaColor(e.target.value)}
+                          className="w-6 h-6 rounded border border-slate-200 cursor-pointer p-0.5"
+                          title="Pilih warna kustom"
+                        />
+                        <span className="text-[10px] font-mono text-slate-500">{chromaColor}</span>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleEraseChosenColor(chromaColor)}
+                        disabled={!activeCanvasData}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors disabled:opacity-50 cursor-pointer"
+                      >
+                        Hapus Warna Ini
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {actionStatus && (
+                  <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-[11px] text-emerald-800 font-medium animate-in fade-in flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span>{actionStatus}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. PENANDA POSISI FOTO */}
+              <div className="p-4 rounded-xl border border-indigo-100 bg-indigo-50/30 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-indigo-600 text-white flex items-center justify-center shadow-xs">
+                      <Square className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-900 block leading-tight">
+                        Penanda Posisi Foto ({photoBoxes.length} Kotak)
+                      </span>
+                      <span className="text-[10px] text-slate-500 font-medium">
+                        Menandai letak & rasio foto pengunjung saat sesi foto booth
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const boxes = getDefaultBoxesForLayout(newLayout);
+                        setPhotoBoxes(boxes);
+                        setSelectedBoxId(boxes[0]?.id || null);
+                        setActionStatus("Penanda posisi dipasang otomatis!");
+                      }}
+                      className="px-2.5 py-1 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer active:scale-95"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                      <span>✨ Pasang Otomatis</span>
+                    </button>
+                    {photoBoxes.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={handlePunchAllBoxes}
+                        className="px-2.5 py-1 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <span>Lubangi Semua</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleAddBox}
+                      className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>+ Manual</span>
+                    </button>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-indigo-900/80 bg-white/80 p-2 rounded-lg border border-indigo-100 leading-relaxed">
+                  💡 <strong>Catatan:</strong> Kotak ini menandai area foto pengunjung. Anda juga dapat menekan <strong>Lubangi Kotak</strong> di bawah untuk membuat area foto di dalam kotak 100% transparan tanpa merusak background bingkai.
+                </p>
+
+                {photoBoxes.length > 0 ? (
+                  <div className="space-y-2.5">
+                    <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                      {photoBoxes.map((box, idx) => {
+                        const isSelected = (selectedBoxId || photoBoxes[0]?.id) === box.id;
+                        return (
+                          <button
+                            key={box.id}
+                            type="button"
+                            onClick={() => {
+                              setSelectedBoxId(box.id);
+                              setInteractionMode("boxes");
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all shrink-0 cursor-pointer flex items-center gap-1.5 ${
+                              isSelected
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            <span>Kotak #{idx + 1}</span>
+                            <span className="text-[10px] opacity-75">
+                              ({Math.round(box.w)}% × {Math.round(box.h)}%)
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+
+                    {selectedBoxId && (
+                      <div className="p-3 bg-white rounded-xl border border-indigo-100 space-y-2.5 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-800">
+                            Atur Ukuran & Rasio Kotak Terpilih
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPhotoBoxes((boxes) => boxes.filter((b) => b.id !== selectedBoxId));
+                              setSelectedBoxId(null);
+                            }}
+                            className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors cursor-pointer flex items-center gap-1 text-[11px]"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Hapus Kotak</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-5 gap-1.5">
+                          {(["1:1", "3:4", "4:3", "9:16", "2:3"] as const).map((ratio) => (
+                            <button
+                              key={ratio}
+                              type="button"
+                              onClick={() => setBoxRatio(ratio)}
+                              className="px-2 py-1.5 bg-slate-50 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 hover:border-indigo-300 rounded-lg text-[11px] font-bold text-slate-700 transition-all text-center cursor-pointer"
+                            >
+                              {ratio}
+                            </button>
+                          ))}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handlePunchSelectedBox}
+                          className="w-full py-2 px-3 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors cursor-pointer mt-1"
+                        >
+                          <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Lubangi Bersih Kotak Ini (100% Transparan)</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="p-3 bg-white/70 rounded-xl text-center text-xs text-slate-400">
+                    Belum ada kotak foto. Klik "Tambah Kotak" untuk memulai.
+                  </div>
+                )}
+              </div>
+
+              {uploadError && (
+                <p className="text-xs text-red-600 font-medium bg-red-50 p-2.5 rounded-xl border border-red-200">
+                  {uploadError}
+                </p>
+              )}
+            </form>
+          </div>
+
+          {/* RIGHT COLUMN: Interactive Live Preview & Mode Switcher */}
+          <div className="lg:col-span-6 p-5 bg-slate-50/70 flex flex-col gap-2.5 justify-start">
+            {/* Mode Switcher Tabs Header */}
+            <div className="flex items-center justify-between gap-2 flex-wrap shrink-0">
+              <div className="flex items-center bg-white border border-slate-200 rounded-xl p-1 shadow-2xs gap-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setToolMode("wand");
+                    setInteractionMode("erase");
+                    setPreviewTab("checkerboard");
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    toolMode === "wand" && interactionMode === "erase" && previewTab === "checkerboard"
+                      ? "bg-blue-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`}
+                >
+                  <Wand2 className="w-3.5 h-3.5" />
+                  <span>1. Hapus (Wand)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setToolMode("restore");
+                    setInteractionMode("erase");
+                    setPreviewTab("checkerboard");
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    toolMode === "restore" && interactionMode === "erase" && previewTab === "checkerboard"
+                      ? "bg-amber-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`}
+                >
+                  <Paintbrush className="w-3.5 h-3.5" />
+                  <span>2. Pulihkan (Kuas)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInteractionMode("boxes");
+                    setPreviewTab("checkerboard");
+                  }}
+                  className={`px-3 py-1.5 rounded-lg font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer ${
+                    interactionMode === "boxes" && previewTab === "checkerboard"
+                      ? "bg-indigo-600 text-white shadow-xs"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                  }`}
+                >
+                  <Square className="w-3.5 h-3.5" />
+                  <span>3. Atur Posisi Foto ({photoBoxes.length})</span>
+                </button>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const boxes = getDefaultBoxesForLayout(newLayout);
+                    setPhotoBoxes(boxes);
+                    setSelectedBoxId(boxes[0]?.id || null);
+                    setActionStatus("Penanda posisi dipasang otomatis!");
+                  }}
+                  className="px-3 py-1.5 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:opacity-95 text-white rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-xs active:scale-95"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-300 animate-pulse" />
+                  <span>✨ Pasang Penanda Otomatis</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setPreviewTab(previewTab === "photos" ? "checkerboard" : "photos")}
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    previewTab === "photos"
+                      ? "bg-purple-600 text-white border-purple-700 shadow-xs"
+                      : "bg-white text-slate-700 border-slate-200 hover:bg-slate-100"
+                  }`}
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  <span>Simulasi Foto</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dimension & Aspect Ratio info pill */}
+            {imageMeta && (
+              <div className="flex items-center justify-between px-1 text-[11px] text-slate-500 font-medium shrink-0">
+                <span>Ukuran Frame: <strong className="font-mono text-slate-700">{imageMeta.width} × {imageMeta.height} px</strong></span>
+                <span className="font-mono text-slate-600 bg-slate-200/70 px-2 py-0.5 rounded-full text-[10px]">
+                  Rasio {Math.round((imageMeta.width / imageMeta.height) * 100) / 100} : 1
+                </span>
+              </div>
+            )}
+
+            {/* Live Preview Canvas Outer Container */}
+            <div className="w-full flex justify-center py-1 shrink-0">
+              <div
+                ref={previewContainerRef}
+                onClick={interactionMode === "erase" && toolMode !== "restore" ? handlePreviewImageClick : undefined}
+                onPointerMove={handleCanvasPointerMove}
+                onPointerUp={handleCanvasPointerUp}
+                style={{
+                  aspectRatio: imageMeta ? `${imageMeta.width} / ${imageMeta.height}` : "2 / 3",
+                  width: imageMeta && imageMeta.height > 0
+                    ? `min(100%, calc(min(62vh, 580px) * ${imageMeta.width} / ${imageMeta.height}))`
+                    : "100%",
+                  maxHeight: "min(62vh, 580px)",
+                }}
+                className={`relative max-w-full rounded-2xl overflow-hidden border border-slate-300 shadow-sm flex items-center justify-center select-none ${
+                  toolMode === "restore" && interactionMode === "erase"
+                    ? "cursor-none touch-none"
+                    : interactionMode === "erase" && activeCanvasData
+                    ? "cursor-crosshair"
+                    : "cursor-default"
+                } ${
+                  previewTab === "checkerboard"
+                    ? "bg-[repeating-conic-gradient(#cbd5e1_0_25%,#fff_0_50%)] bg-[length:14px_14px]"
+                    : "bg-slate-900"
+                }`}
+              >
+                {/* Circular Brush Cursor in Restore Mode */}
+                {toolMode === "restore" && interactionMode === "erase" && brushCursor.visible && (
+                  <div
+                    className="absolute pointer-events-none rounded-full border-2 border-amber-500 bg-amber-400/25 shadow-xs -translate-x-1/2 -translate-y-1/2 z-40"
+                    style={{
+                      left: `${brushCursor.x}px`,
+                      top: `${brushCursor.y}px`,
+                      width: `${brushSize}px`,
+                      height: `${brushSize}px`,
+                    }}
+                  />
+                )}
+
+                {/* Photo Simulation Layer */}
+                {previewTab === "photos" && (
+                  <div className="absolute inset-0 z-0 pointer-events-none">
+                    {photoBoxes.map((box, i) => {
+                      const colors = [
+                        "from-sky-400 to-indigo-600",
+                        "from-pink-400 to-rose-600",
+                        "from-amber-400 to-orange-500",
+                        "from-emerald-400 to-teal-600",
+                        "from-purple-500 to-indigo-600",
+                        "from-cyan-400 to-blue-600",
+                      ];
+                      const colorClass = colors[i % colors.length];
+
+                      return (
+                        <div
+                          key={box.id}
+                          className={`absolute rounded-lg bg-gradient-to-tr ${colorClass} flex flex-col items-center justify-center text-white shadow-inner opacity-95`}
+                          style={{
+                            left: `${box.x}%`,
+                            top: `${box.y}%`,
+                            width: `${box.w}%`,
+                            height: `${box.h}%`,
+                          }}
+                        >
+                          <Camera className="w-5 h-5 mb-0.5 opacity-90" />
+                          <span className="text-[10px] font-bold">Foto #{i + 1}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Frame Image Layer */}
+                {activeCanvasData ? (
+                  <div className="relative w-full h-full z-10 flex items-center justify-center pointer-events-none">
+                    <img
+                      ref={previewImgRef}
+                      src={activeCanvasData}
+                      alt="Frame Preview"
+                      className="w-full h-full block object-fill"
+                    />
+                  </div>
+                ) : (
+                  <div className="p-6 text-center space-y-2 text-slate-400 z-10">
+                    <ImageIcon className="w-12 h-12 mx-auto opacity-40" />
+                    <p className="text-xs font-semibold text-slate-600">Belum ada gambar dipilih</p>
+                    <p className="text-[11px] text-slate-400 max-w-[220px] mx-auto">
+                      Pilih berkas frame di sebelah kiri untuk melihat pratinjau dan mengatur kotak foto
+                    </p>
+                  </div>
+                )}
+
+                {/* Photo Boxes Guides & Interactive Overlay */}
+                {activeCanvasData && (
+                  <div className={`absolute inset-0 z-20 ${interactionMode === "boxes" ? "pointer-events-auto" : "pointer-events-none"}`}>
+                    {photoBoxes.map((box, idx) => {
+                      const isSelected = (selectedBoxId || photoBoxes[0]?.id) === box.id;
+                      return (
+                        <div
+                          key={box.id}
+                          onClick={(e) => {
+                            if (interactionMode !== "boxes") return;
+                            e.stopPropagation();
+                            setSelectedBoxId(box.id);
+                          }}
+                          onPointerDown={(e) => {
+                            if (interactionMode !== "boxes") return;
+                            e.stopPropagation();
+                            setSelectedBoxId(box.id);
+                            setDragState({
+                              type: "move",
+                              boxId: box.id,
+                              startX: e.clientX,
+                              startY: e.clientY,
+                              initBox: { ...box },
+                            });
+                          }}
+                          style={{
+                            left: `${box.x}%`,
+                            top: `${box.y}%`,
+                            width: `${box.w}%`,
+                            height: `${box.h}%`,
+                          }}
+                          className={`absolute select-none rounded-lg flex flex-col items-center justify-between p-1.5 transition-all ${
+                            interactionMode === "boxes"
+                              ? isSelected
+                                ? "cursor-move border-2 border-indigo-500 bg-indigo-500/20 ring-2 ring-indigo-400/60 shadow-lg z-30"
+                                : "cursor-move border-2 border-indigo-400/80 bg-indigo-500/10 hover:border-indigo-400 z-20"
+                              : "border-2 border-dashed border-indigo-400/40 bg-indigo-500/5 z-10"
+                          }`}
+                        >
+                          <div className="w-full flex items-center justify-between pointer-events-none">
+                            <span className="px-1.5 py-0.5 rounded bg-indigo-600 text-white font-bold text-[9px] shadow-xs">
+                              #{idx + 1}
+                            </span>
+                            {isSelected && interactionMode === "boxes" && (
+                              <span className="text-[8px] bg-slate-900/80 text-white px-1 py-0.5 rounded font-mono">
+                                {Math.round(box.w)}% × {Math.round(box.h)}%
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="pointer-events-none text-center">
+                            <Camera className={`w-3.5 h-3.5 mx-auto ${isSelected && interactionMode === "boxes" ? "text-indigo-700" : "text-slate-500"}`} />
+                            <span className={`text-[9px] font-bold ${isSelected && interactionMode === "boxes" ? "text-indigo-800" : "text-slate-600"}`}>
+                              Foto #{idx + 1}
+                            </span>
+                          </div>
+
+                          <div className="w-full h-1" />
+
+                          {isSelected && interactionMode === "boxes" && (
+                            <>
+                              <div
+                                onPointerDown={(e) => {
+                                  e.stopPropagation();
+                                  setDragState({
+                                    type: "resize",
+                                    boxId: box.id,
+                                    handle: "se",
+                                    startX: e.clientX,
+                                    startY: e.clientY,
+                                    initBox: { ...box },
+                                  });
+                                }}
+                                className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-white border-2 border-indigo-600 rounded-full cursor-nwse-resize z-40 shadow-xs"
+                                title="Tarik sudut untuk ubah ukuran"
+                              />
+                            </>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* Mode Instruction Banner */}
+                {activeCanvasData && (
+                  <div className="absolute bottom-2 left-2 right-2 z-30 pointer-events-none">
+                    {interactionMode === "erase" ? (
+                      <div className="bg-slate-900/85 backdrop-blur-xs text-white text-[11px] font-medium py-1.5 px-3 rounded-xl shadow-lg text-center">
+                        💡 <strong>Mode Magic Wand:</strong> Klik pada area gambar (misal bagian putih di dalam pigura) untuk melubanginya menjadi transparan.
+                      </div>
+                    ) : (
+                      <div className="bg-indigo-900/85 backdrop-blur-xs text-white text-[11px] font-medium py-1.5 px-3 rounded-xl shadow-lg text-center">
+                        🎯 <strong>Mode Penanda Foto:</strong> Geser kotak atau tarik sudutnya untuk menandai letak & ukuran foto pengunjung.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Helper / Status Footer */}
+            <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 shrink-0">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 text-indigo-700 bg-indigo-50 px-2.5 py-0.5 rounded-md font-semibold border border-indigo-200">
+                  <Move className="w-3.5 h-3.5" />
+                  <span>{photoBoxes.length} Slot Foto Terpasang</span>
+                </span>
+              </div>
+
+              <span className="text-slate-500 font-semibold">
+                {LAYOUT_LABELS[newLayout] || newLayout}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Modal Footer: Action Buttons */}
+        <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between shrink-0">
+          <div className="text-xs text-slate-500">
+            {photoBoxes.length > 0 ? (
+              <span className="text-emerald-700 font-semibold">
+                ✓ Siap! Foto pengunjung akan masuk pas ke dalam {photoBoxes.length} posisi yang sudah ditandai.
+              </span>
+            ) : (
+              <span className="text-slate-500">
+                💡 Tip: Lubangi pigura foto dengan Magic Wand lalu atur penanda foto.
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 hover:bg-white text-xs font-bold transition-colors cursor-pointer"
+            >
+              Batal
+            </button>
+            <button
+              type="submit"
+              form="frame-upload-form"
+              disabled={!newName || (!activeCanvasData && !rawBase64Img)}
+              className="px-6 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-bold shadow-md shadow-blue-600/20 transition-all disabled:opacity-50 cursor-pointer"
+            >
+              Simpan Bingkai
+            </button>
+          </div>
         </div>
       </div>
     </div>
