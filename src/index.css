@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+:root {
+  --color-gold: #D4AF37;
+  --color-gold-light: #F7E7B4;
+  --color-gold-dark: #9E7D23;
+  --color-gold-gradient: linear-gradient(135deg, #ECC876 0%, #D4AF37 50%, #B8860B 100%);
+  --color-rose-gold: linear-gradient(135deg, #F3D1C8 0%, #E0A899 50%, #C48272 100%);
+  --color-bg-dark: #0c0e12;
+  --color-card-dark: rgba(23, 27, 36, 0.75);
+  --color-card-border: rgba(212, 175, 55, 0.28);
+  --color-ivory: #FAF7F2;
+  --color-cream: #F5EFEB;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  background-color: #0b0d11;
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(212, 175, 55, 0.1) 0%, transparent 60%),
+    radial-gradient(circle at 10% 90%, rgba(224, 168, 153, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 90% 90%, rgba(212, 175, 55, 0.06) 0%, transparent 50%);
+  color: #F8F5EE;
+  font-family: 'Montserrat', sans-serif;
+  overflow-x: hidden;
+  user-select: none;
+}
+
+/* Typography Helpers */
+.font-script {
+  font-family: 'Great Vibes', cursive;
+}
+
+.font-cinzel {
+  font-family: 'Cinzel', serif;
+}
+
+.font-serif {
+  font-family: 'Playfair Display', serif;
+}
+
+.font-sans {
+  font-family: 'Montserrat', sans-serif;
+}
+
+/* Gold Gradient Text */
+.text-gold-gradient {
+  background: linear-gradient(135deg, #FFF1CA 0%, #ECC876 35%, #D4AF37 70%, #B8860B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-rose-gradient {
+  background: linear-gradient(135deg, #FFF0EB 0%, #F5CEBE 40%, #E0A899 75%, #B77161 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Glassmorphism Card with Gold Border */
+.glass-gold-card {
+  background: rgba(18, 22, 30, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(212, 175, 55, 0.3);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.6), 0 0 20px -5px rgba(212, 175, 55, 0.12);
+}
+
+.glass-gold-card:hover {
+  border-color: rgba(212, 175, 55, 0.55);
+  box-shadow: 0 15px 35px -8px rgba(0, 0, 0, 0.7), 0 0 25px 0px rgba(212, 175, 55, 0.2);
+}
+
+/* Primary Button Styling */
+.btn-gold {
+  background: linear-gradient(135deg, #E6C265 0%, #D4AF37 50%, #B68612 100%);
+  color: #12141A;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 6px 20px rgba(212, 175, 55, 0.35);
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.btn-gold:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 26px rgba(212, 175, 55, 0.5);
+  background: linear-gradient(135deg, #F0CF78 0%, #E0BE47 50%, #C4941E 100%);
+}
+
+.btn-gold:active {
+  transform: translateY(0);
+}
+
+.btn-gold-outline {
+  background: rgba(212, 175, 55, 0.06);
+  color: #ECC876;
+  border: 1px solid rgba(212, 175, 55, 0.45);
+  transition: all 0.2s ease;
+}
+
+.btn-gold-outline:hover {
+  background: rgba(212, 175, 55, 0.16);
+  border-color: #ECC876;
+  color: #FFF3D4;
+}
+
+/* Flash effect */
+@keyframes cameraFlash {
+  0% { opacity: 0; }
+  15% { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+.camera-flash {
+  position: fixed;
+  inset: 0;
+  background-color: #FFFFFF;
+  z-index: 9999;
+  pointer-events: none;
+  animation: cameraFlash 0.4s ease-out forwards;
+}
+
+/* Subtle Shimmer for Gold Ornaments */
+@keyframes shimmerAnim {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+.shimmer-glow {
+  position: relative;
+  overflow: hidden;
+}
+
+.shimmer-glow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+  transform: skewX(-20deg);
+  animation: shimmerAnim 4s infinite;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 17, 21, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(212, 175, 55, 0.6);
+}
+
+/* Print CSS for Wedding Photobooth Strips */
+@media print {
+  @page {
+    margin: 0;
+    size: auto;
+  }
+  
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  body * {
+    visibility: hidden;
+  }
+
+  #print-target, #print-target * {
+    visibility: visible;
+  }
+
+  #print-target {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+}
