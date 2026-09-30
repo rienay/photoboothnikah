@@ -12,6 +12,7 @@ import {
   Trash2,
   Download,
   Upload,
+  Wand2,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -23,6 +24,7 @@ import {
   WeddingConfig,
 } from "../types";
 import { LAYOUTS, WEDDING_PRESETS } from "../config";
+import { FrameStudioModal } from "./FrameStudioModal";
 import {
   getSessionHistory,
   clearSessionHistory,
@@ -70,6 +72,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [driveForm, setDriveForm] = useState<DriveConfig>(driveConfig);
   const [boothForm, setBoothForm] = useState<BoothSettings>(boothSettings);
   const [slotsForm, setSlotsForm] = useState<FrameSlot[]>(frameSlots);
+  const [studioSlotIdx, setStudioSlotIdx] = useState<number | null>(null);
 
   // Hardware Camera List
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
@@ -525,11 +528,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           )}
                         </div>
 
-                        {/* File Upload / Remove Actions */}
+                        {/* File Upload / Studio Actions */}
                         <div className="pt-2 border-t border-white/10 mt-2 flex flex-col gap-2">
-                          <label className="btn-gold-outline py-1.5 px-3 rounded-lg text-[11px] text-center cursor-pointer flex items-center justify-center gap-1.5">
-                            <Upload size={13} />
-                            <span>{slot.customImage ? "Ganti File PNG" : "Upload File PNG"}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              soundFx.playChime();
+                              setStudioSlotIdx(idx);
+                            }}
+                            className="btn-gold py-2 px-3 rounded-xl text-xs text-center cursor-pointer flex items-center justify-center gap-1.5 font-bold shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all"
+                          >
+                            <Wand2 size={14} />
+                            <span>{slot.customImage ? "Edit di Studio Bingkai" : "Studio Tambah Bingkai"}</span>
+                          </button>
+
+                          <label className="btn-gold-outline py-1 px-2.5 rounded-lg text-[10px] text-center cursor-pointer flex items-center justify-center gap-1 opacity-80 hover:opacity-100">
+                            <Upload size={12} />
+                            <span>{slot.customImage ? "Ganti Langsung File PNG" : "Upload Langsung File PNG"}</span>
                             <input
                               type="file"
                               accept="image/png"
@@ -540,8 +555,9 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                           {slot.customImage && (
                             <button
+                              type="button"
                               onClick={() => handleRemoveSlotImage(idx)}
-                              className="text-rose-400 hover:text-rose-300 text-[10px] flex items-center justify-center gap-1 py-1"
+                              className="text-rose-400 hover:text-rose-300 text-[10px] flex items-center justify-center gap-1 py-1 cursor-pointer"
                             >
                               <Trash2 size={12} />
                               <span>Hapus File Kustom</span>
@@ -840,6 +856,30 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </div>
         )}
       </div>
+
+      {/* Frame Studio Modal (1-Click Auto Scan, Magic Wand, Color Erase & Live Preview) */}
+      {studioSlotIdx !== null && (
+        <FrameStudioModal
+          isOpen={studioSlotIdx !== null}
+          onClose={() => setStudioSlotIdx(null)}
+          initialSlotIndex={studioSlotIdx}
+          initialName={slotsForm[studioSlotIdx]?.name}
+          initialLayoutId={slotsForm[studioSlotIdx]?.layoutId}
+          initialImage={slotsForm[studioSlotIdx]?.customImage}
+          onSaveFrame={({ slotIndex, name, layoutId, imagePngDataUrl }) => {
+            const updated = [...slotsForm];
+            updated[slotIndex] = {
+              ...updated[slotIndex],
+              name,
+              layoutId,
+              customImage: imagePngDataUrl,
+            };
+            setSlotsForm(updated);
+            onSaveFrameSlots(updated);
+            showToast(`✓ Desain ${slotIndex + 1} berhasil diperbarui dari Studio!`);
+          }}
+        />
+      )}
     </div>
   );
 };
