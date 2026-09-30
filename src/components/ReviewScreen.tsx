@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { Check, Camera, RefreshCw } from "lucide-react";
+import { Check, Camera, RefreshCw, FlipHorizontal, CheckCircle2 } from "lucide-react";
 import { PHOTO_FILTERS } from "../config";
 import { CameraFilter, LayoutConfig, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
@@ -36,6 +36,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   const [retakeIdx, setRetakeIdx] = useState<number | null>(null);
   const [retakeCountdown, setRetakeCountdown] = useState<number | null>(null);
   const [isRetakeFlashing, setIsRetakeFlashing] = useState(false);
+  const [mirror, setMirror] = useState(mirrorCamera);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const singleStreamRef = useRef<MediaStream | null>(null);
 
@@ -82,7 +83,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
     };
   }, [retakeIdx, selectedCameraId]);
 
-  // Capture single shot in retake modal
+  // Capture single shot in retake
   const captureSingleShot = useCallback(async () => {
     if (retakeIdx === null || retakeCountdown !== null) return;
 
@@ -105,7 +106,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       canvas.height = video.videoHeight;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        if (mirrorCamera) {
+        if (mirror) {
           ctx.translate(canvas.width, 0);
           ctx.scale(-1, 1);
         }
@@ -115,11 +116,223 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       }
     }
 
-    // Close retake modal
+    // Close retake
     setRetakeIdx(null);
-  }, [retakeIdx, retakeCountdown, mirrorCamera, onUpdatePhoto]);
+  }, [retakeIdx, retakeCountdown, mirror, onUpdatePhoto]);
 
   const currentFilterObj = PHOTO_FILTERS.find((f) => f.id === selectedFilterId);
+
+  // ================= FULL-SCREEN RETAKE VIEW (Matches ShootScreen) =================
+  if (retakeIdx !== null) {
+    return (
+      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-2 sm:px-5 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
+        {/* Shutter Flash Overlay */}
+        {isRetakeFlashing && <div className="camera-flash" />}
+
+        {/* 2-Column Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 flex-1 items-stretch min-h-0">
+          {/* ================= LEFT COLUMN: Camera Feed & Controls ================= */}
+          <div className="lg:col-span-8 xl:col-span-9 flex flex-col justify-between min-h-0">
+            {/* Left Header */}
+            <div className="flex items-center justify-between mb-1.5 px-1">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <span className="font-cinzel text-xs sm:text-sm tracking-wider text-amber-300 uppercase font-semibold">
+                  Foto Ulang: Foto #{retakeIdx + 1}
+                </span>
+                <span className="text-xs text-stone-400">
+                  • Posisikan diri Anda, lalu tekan tombol Ambil Foto Ulang
+                </span>
+              </div>
+            </div>
+
+            {/* Main Camera Viewport */}
+            <div className="flex-1 min-h-0 max-h-[65vh] xl:max-h-[68vh] rounded-2xl overflow-hidden relative border-2 border-amber-400/30 bg-stone-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] flex items-center justify-center">
+              <video
+                ref={singleVideoRef}
+                autoPlay
+                playsInline
+                muted
+                className="w-full h-full object-cover"
+                style={{
+                  filter: currentFilterObj?.css || "none",
+                  transform: mirror ? "scaleX(-1)" : "none",
+                }}
+              />
+
+              {/* Countdown Overlay */}
+              {retakeCountdown !== null && (
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
+                    <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
+                      {retakeCountdown}
+                    </span>
+                  </div>
+                  <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
+                    Bersiaplah... Senyum!
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Left Column Bottom Bar: Batal Button */}
+            <div className="flex items-center justify-start mt-2 px-1">
+              <button
+                onClick={() => {
+                  soundFx.playChime();
+                  setRetakeIdx(null);
+                }}
+                disabled={retakeCountdown !== null}
+                className="btn-gold-outline px-5 py-2 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform"
+              >
+                Batal
+              </button>
+            </div>
+          </div>
+
+          {/* ================= RIGHT COLUMN: Live Strip Preview & Ambil Foto ================= */}
+          <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-between min-h-0 bg-stone-900/30 border border-amber-400/15 rounded-2xl p-2.5 sm:p-3 backdrop-blur-sm shadow-xl">
+            {/* Top Bar of Right Column: Mirror Toggle */}
+            <div className="flex items-center justify-end mb-1.5">
+              <button
+                onClick={() => {
+                  soundFx.playChime();
+                  setMirror(!mirror);
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
+                  mirror
+                    ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                    : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
+                }`}
+                title="Cermin / Flip Kamera"
+              >
+                <FlipHorizontal size={14} />
+                <span>Mirror {mirror ? "ON" : "OFF"}</span>
+              </button>
+            </div>
+
+            {/* Center: Vertical Strip Mockup */}
+            <div className="flex-1 flex items-center justify-center min-h-0 py-1">
+              <div
+                className="w-full max-w-[190px] xl:max-w-[210px] h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all"
+                style={{
+                  aspectRatio: "1 / 2.7",
+                  background: preset.bgColor,
+                  borderColor: preset.borderColor,
+                }}
+              >
+                {/* Optional Custom Frame Overlay */}
+                {customOverlayUrl && (
+                  <img
+                    src={customOverlayUrl}
+                    alt="Bingkai Kustom"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+                  />
+                )}
+
+                {/* Decorative inner hairline border if default preset */}
+                {!customOverlayUrl && (
+                  <div
+                    className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
+                    style={{ borderColor: preset.borderColor }}
+                  />
+                )}
+
+                {/* Strip Header: Couple Names */}
+                <div className="text-center z-10 pt-0.5">
+                  <div
+                    className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
+                    style={{ color: preset.secondaryTextColor }}
+                  >
+                    THE WEDDING OF
+                  </div>
+                  <div
+                    className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                    style={{ color: preset.textColor }}
+                  >
+                    {weddingConfig.brideName} & {weddingConfig.groomName}
+                  </div>
+                </div>
+
+                {/* Photo Slots */}
+                <div className="flex flex-col gap-1.5 w-full px-1 flex-1 justify-center z-10 my-1 min-h-0">
+                  {Array.from({ length: Math.min(3, layout.totalPhotos) }).map((_, slotIdx) => {
+                    const isRetakeTarget = slotIdx === retakeIdx;
+                    const photoSrc = photos[slotIdx];
+
+                    return (
+                      <div
+                        key={slotIdx}
+                        className={`w-full flex-1 rounded-md overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
+                          isRetakeTarget
+                            ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
+                            : photoSrc
+                            ? "border-amber-400/60 shadow-sm"
+                            : "border-white/15 bg-white/5 opacity-70"
+                        }`}
+                        style={{
+                          borderColor: isRetakeTarget ? undefined : preset.borderColor,
+                        }}
+                      >
+                        {isRetakeTarget ? (
+                          <div className="flex flex-col items-center gap-0.5 text-amber-300">
+                            <Camera size={14} className="animate-bounce" />
+                            <span className="text-[8px] font-cinzel uppercase tracking-wider font-semibold">
+                              Ulang Foto #{slotIdx + 1}
+                            </span>
+                          </div>
+                        ) : photoSrc ? (
+                          <div className="w-full h-full relative">
+                            <img
+                              src={photoSrc}
+                              alt={`Foto ${slotIdx + 1}`}
+                              className="w-full h-full object-cover"
+                              style={{
+                                filter: currentFilterObj?.css || "none",
+                              }}
+                            />
+                            <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
+                              <CheckCircle2 size={12} className="text-amber-400" />
+                            </div>
+                          </div>
+                        ) : (
+                          <span
+                            className="text-[8px] font-mono opacity-50"
+                            style={{ color: preset.secondaryTextColor }}
+                          >
+                            Foto {slotIdx + 1}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Strip Footer: Date */}
+                <div
+                  className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
+                  style={{ color: preset.secondaryTextColor }}
+                >
+                  {weddingConfig.weddingDate}
+                </div>
+              </div>
+            </div>
+
+            {/* Bottom Action: Prominent Ambil Foto Ulang Button */}
+            <div className="mt-2">
+              <button
+                onClick={captureSingleShot}
+                disabled={retakeCountdown !== null}
+                className="btn-gold w-full py-3 sm:py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_25px_rgba(212,175,55,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+              >
+                <Camera size={18} />
+                <span>Ambil Foto Ulang</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full px-3 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
@@ -311,61 +524,6 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           </div>
         </div>
       </div>
-
-      {/* Retake Single Photo Modal */}
-      {retakeIdx !== null && (
-        <div className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          {isRetakeFlashing && <div className="camera-flash" />}
-
-          <div className="max-w-xl w-full rounded-2xl border-2 border-amber-400/50 bg-stone-900 p-5 flex flex-col items-center shadow-[0_0_50px_rgba(0,0,0,0.9)] relative">
-            <h3 className="font-serif text-lg text-gold-gradient mb-1">
-              Foto Ulang: Foto #{retakeIdx + 1}
-            </h3>
-            <p className="text-xs text-stone-400 mb-3">
-              Posisikan diri Anda, lalu tekan tombol ambil foto
-            </p>
-
-            <div className="w-full aspect-[4/3] rounded-xl overflow-hidden bg-black border border-amber-400/30 relative">
-              <video
-                ref={singleVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-                style={{
-                  filter: currentFilterObj?.css || "none",
-                  transform: mirrorCamera ? "scaleX(-1)" : "none",
-                }}
-              />
-
-              {retakeCountdown !== null && (
-                <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-                  <span className="font-cinzel text-7xl font-bold text-amber-300 animate-ping">
-                    {retakeCountdown}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center gap-4 mt-4">
-              <button
-                onClick={() => setRetakeIdx(null)}
-                className="btn-gold-outline px-5 py-2.5 rounded-full text-xs cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                onClick={captureSingleShot}
-                disabled={retakeCountdown !== null}
-                className="btn-gold px-7 py-2.5 rounded-full text-xs sm:text-sm font-semibold flex items-center gap-2 cursor-pointer shadow-md"
-              >
-                <Camera size={16} />
-                <span>Ambil Foto Ulang</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
