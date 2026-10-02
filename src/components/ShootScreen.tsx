@@ -50,12 +50,15 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
       return;
     }
     const img = new Image();
-    img.src = customOverlayUrl;
     img.onload = () => {
       if (img.naturalWidth && img.naturalHeight) {
         setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
       }
     };
+    img.src = customOverlayUrl;
+    if (img.complete && img.naturalWidth) {
+      setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+    }
   }, [customOverlayUrl]);
 
   // Frame aspect ratio (default 1/3 for 1-col strip, 2/3 for standard 4R/postcard)
@@ -369,68 +372,68 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           <div className="flex-1 flex items-center justify-center min-h-0 py-1">
             {customOverlayUrl ? (
               /* Custom Uploaded Frame Overlay Mockup */
-              <div
-                className="h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all select-none mx-auto"
-                style={{
-                  aspectRatio: `${effectiveFrameRatio}`,
-                  width: effectiveFrameRatio > 0.5 ? "240px" : "185px",
-                  maxWidth: "100%",
-                  background: "#ffffff",
-                }}
-              >
+              <div className="relative h-full max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
                 {/* Photo Boxes beneath custom overlay */}
-                {(photoBoxes && photoBoxes.length > 0
-                  ? photoBoxes
-                  : getDefaultBoxesForLayout(layout.id)
-                ).map((box, slotIdx) => {
-                  const shotPhoto = capturedPhotos[slotIdx];
-                  const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
+                <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
+                  {(photoBoxes && photoBoxes.length > 0
+                    ? photoBoxes
+                    : getDefaultBoxesForLayout(layout.id)
+                  ).map((box, slotIdx) => {
+                    const shotPhoto = capturedPhotos[slotIdx];
+                    const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
 
-                  return (
-                    <div
-                      key={box.id || slotIdx}
-                      className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
-                        shotPhoto
-                          ? "bg-black"
-                          : isCurrentTarget
-                          ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
-                          : "bg-slate-200 border border-slate-300"
-                      }`}
-                      style={{
-                        left: `${box.x}%`,
-                        top: `${box.y}%`,
-                        width: `${box.w}%`,
-                        height: `${box.h}%`,
-                      }}
-                    >
-                      {shotPhoto ? (
-                        <div className="w-full h-full relative">
-                          <img
-                            src={shotPhoto}
-                            alt={`Shot ${slotIdx + 1}`}
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                            <CheckCircle2 size={11} className="text-amber-400" />
+                    return (
+                      <div
+                        key={box.id || slotIdx}
+                        className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
+                          shotPhoto
+                            ? "bg-black"
+                            : isCurrentTarget
+                            ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
+                            : "bg-stone-800 border border-stone-700"
+                        }`}
+                        style={{
+                          left: `${box.x}%`,
+                          top: `${box.y}%`,
+                          width: `${box.w}%`,
+                          height: `${box.h}%`,
+                        }}
+                      >
+                        {shotPhoto ? (
+                          <div className="w-full h-full relative">
+                            <img
+                              src={shotPhoto}
+                              alt={`Shot ${slotIdx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
+                              <CheckCircle2 size={11} className="text-amber-400" />
+                            </div>
                           </div>
-                        </div>
-                      ) : isCurrentTarget ? (
-                        <div className="flex flex-col items-center gap-0.5 text-amber-300">
-                          <Camera size={14} className="animate-bounce text-amber-400" />
-                          <span className="text-[8px] font-bold text-amber-300">#{slotIdx + 1}</span>
-                        </div>
-                      ) : (
-                        <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
-                      )}
-                    </div>
-                  );
-                })}
+                        ) : isCurrentTarget ? (
+                          <div className="flex flex-col items-center gap-0.5 text-amber-300">
+                            <Camera size={14} className="animate-bounce text-amber-400" />
+                            <span className="text-[8px] font-bold text-amber-300 uppercase">#{slotIdx + 1}</span>
+                          </div>
+                        ) : (
+                          <span className="text-[9px] font-mono text-stone-400 font-bold">#{slotIdx + 1}</span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
 
                 {/* Custom Overlay sits on top so photos peek cleanly through transparent holes */}
                 <img
                   src={customOverlayUrl}
                   alt="Bingkai Kustom"
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+                  className="h-full w-auto max-h-[46vh] xl:max-h-[50vh] block pointer-events-none z-20 drop-shadow"
+                  onLoad={(e) => {
+                    const img = e.currentTarget;
+                    if (img.naturalWidth && img.naturalHeight) {
+                      setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+                    }
+                  }}
                 />
               </div>
             ) : (

@@ -51,12 +51,15 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
       return;
     }
     const img = new Image();
-    img.src = customOverlayUrl;
     img.onload = () => {
       if (img.naturalWidth && img.naturalHeight) {
         setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
       }
     };
+    img.src = customOverlayUrl;
+    if (img.complete && img.naturalWidth) {
+      setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+    }
   }, [customOverlayUrl]);
 
   // Frame aspect ratio
@@ -290,71 +293,73 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <div className="flex-1 flex items-center justify-center min-h-0 py-1">
               {customOverlayUrl ? (
                 /* Custom Uploaded Frame Overlay Mockup */
-                <div
-                  className="h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all select-none mx-auto"
-                  style={{
-                    aspectRatio: `${effectiveFrameRatio}`,
-                    width: effectiveFrameRatio > 0.5 ? "240px" : "185px",
-                    maxWidth: "100%",
-                    background: "#ffffff",
-                  }}
-                >
-                  {(photoBoxes && photoBoxes.length > 0
-                    ? photoBoxes
-                    : getDefaultBoxesForLayout(layout.id)
-                  ).map((box, slotIdx) => {
-                    const isRetakeTarget = slotIdx === retakeIdx;
-                    const photoSrc = photos[slotIdx];
+                <div className="relative h-full max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
+                  {/* Photo Boxes beneath custom overlay */}
+                  <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
+                    {(photoBoxes && photoBoxes.length > 0
+                      ? photoBoxes
+                      : getDefaultBoxesForLayout(layout.id)
+                    ).map((box, slotIdx) => {
+                      const isRetakeTarget = slotIdx === retakeIdx;
+                      const photoSrc = photos[slotIdx];
 
-                    return (
-                      <div
-                        key={box.id || slotIdx}
-                        className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
-                          isRetakeTarget
-                            ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
-                            : photoSrc
-                            ? "bg-black"
-                            : "bg-slate-200 border border-slate-300"
-                        }`}
-                        style={{
-                          left: `${box.x}%`,
-                          top: `${box.y}%`,
-                          width: `${box.w}%`,
-                          height: `${box.h}%`,
-                        }}
-                      >
-                        {isRetakeTarget ? (
-                          <div className="flex flex-col items-center gap-0.5 text-amber-300">
-                            <Camera size={14} className="animate-bounce text-amber-400" />
-                            <span className="text-[8px] font-bold text-amber-300 uppercase">
-                              Ulang #{slotIdx + 1}
-                            </span>
-                          </div>
-                        ) : photoSrc ? (
-                          <div className="w-full h-full relative">
-                            <img
-                              src={photoSrc}
-                              alt={`Foto ${slotIdx + 1}`}
-                              className="w-full h-full object-cover"
-                              style={{ filter: currentFilterObj?.css || "none" }}
-                            />
-                            <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                              <CheckCircle2 size={11} className="text-amber-400" />
+                      return (
+                        <div
+                          key={box.id || slotIdx}
+                          className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
+                            isRetakeTarget
+                              ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
+                              : photoSrc
+                              ? "bg-black"
+                              : "bg-stone-800 border border-stone-700"
+                          }`}
+                          style={{
+                            left: `${box.x}%`,
+                            top: `${box.y}%`,
+                            width: `${box.w}%`,
+                            height: `${box.h}%`,
+                          }}
+                        >
+                          {isRetakeTarget ? (
+                            <div className="flex flex-col items-center gap-0.5 text-amber-300">
+                              <Camera size={14} className="animate-bounce text-amber-400" />
+                              <span className="text-[8px] font-bold text-amber-300 uppercase">
+                                Ulang #{slotIdx + 1}
+                              </span>
                             </div>
-                          </div>
-                        ) : (
-                          <span className="text-[8px] font-mono text-slate-400 font-bold">
-                            #{slotIdx + 1}
-                          </span>
-                        )}
-                      </div>
-                    );
-                  })}
+                          ) : photoSrc ? (
+                            <div className="w-full h-full relative">
+                              <img
+                                src={photoSrc}
+                                alt={`Foto ${slotIdx + 1}`}
+                                className="w-full h-full object-cover"
+                                style={{ filter: currentFilterObj?.css || "none" }}
+                              />
+                              <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
+                                <CheckCircle2 size={11} className="text-amber-400" />
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="text-[8px] font-mono text-stone-400 font-bold">
+                              #{slotIdx + 1}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
 
+                  {/* Custom Overlay sits on top so photos peek cleanly through transparent holes */}
                   <img
                     src={customOverlayUrl}
                     alt="Bingkai Kustom"
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+                    className="h-full w-auto max-h-[46vh] xl:max-h-[50vh] block pointer-events-none z-20 drop-shadow"
+                    onLoad={(e) => {
+                      const img = e.currentTarget;
+                      if (img.naturalWidth && img.naturalHeight) {
+                        setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+                      }
+                    }}
                   />
                 </div>
               ) : (
@@ -485,66 +490,66 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         {/* ================= LEFT: Live Frame / Strip Mockup ================= */}
         {customOverlayUrl ? (
           /* Custom Uploaded Frame Overlay Mockup */
-          <div
-            className="h-full max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all shrink-0 select-none mx-auto"
-            style={{
-              aspectRatio: `${effectiveFrameRatio}`,
-              width: effectiveFrameRatio > 0.5 ? "250px" : "190px",
-              maxWidth: "100%",
-              background: "#ffffff",
-            }}
-          >
+          <div className="relative h-full max-h-[480px] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
             {/* Interactive Photo Boxes beneath custom overlay */}
-            {(photoBoxes && photoBoxes.length > 0
-              ? photoBoxes
-              : getDefaultBoxesForLayout(layout.id)
-            ).map((box, slotIdx) => {
-              const photoUrl = photos[slotIdx];
-              const isSelected = activePhotoIdx === slotIdx;
+            <div className="absolute inset-0 w-full h-full z-10 pointer-events-auto">
+              {(photoBoxes && photoBoxes.length > 0
+                ? photoBoxes
+                : getDefaultBoxesForLayout(layout.id)
+              ).map((box, slotIdx) => {
+                const photoUrl = photos[slotIdx];
+                const isSelected = activePhotoIdx === slotIdx;
 
-              return (
-                <button
-                  key={box.id || slotIdx}
-                  type="button"
-                  onClick={() => {
-                    soundFx.playChime();
-                    setActivePhotoIdx(slotIdx);
-                  }}
-                  className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
-                    isSelected
-                      ? "ring-2 ring-amber-400 z-10 shadow-lg scale-[1.01]"
-                      : "opacity-90 hover:opacity-100"
-                  }`}
-                  style={{
-                    left: `${box.x}%`,
-                    top: `${box.y}%`,
-                    width: `${box.w}%`,
-                    height: `${box.h}%`,
-                  }}
-                  title={`Klik untuk meninjau Foto #${slotIdx + 1}`}
-                >
-                  {photoUrl ? (
-                    <img
-                      src={photoUrl}
-                      alt={`Foto ${slotIdx + 1}`}
-                      className="w-full h-full object-cover"
-                      style={{ filter: currentFilterObj?.css || "none" }}
-                    />
-                  ) : (
-                    <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
-                  )}
-                  <div className="absolute top-1 left-1 bg-black/70 px-1 py-0.2 rounded text-[8px] font-mono text-amber-300">
-                    #{slotIdx + 1}
-                  </div>
-                </button>
-              );
-            })}
+                return (
+                  <button
+                    key={box.id || slotIdx}
+                    type="button"
+                    onClick={() => {
+                      soundFx.playChime();
+                      setActivePhotoIdx(slotIdx);
+                    }}
+                    className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
+                      isSelected
+                        ? "ring-2 ring-amber-400 z-10 shadow-lg scale-[1.01]"
+                        : "opacity-90 hover:opacity-100"
+                    }`}
+                    style={{
+                      left: `${box.x}%`,
+                      top: `${box.y}%`,
+                      width: `${box.w}%`,
+                      height: `${box.h}%`,
+                    }}
+                    title={`Klik untuk meninjau Foto #${slotIdx + 1}`}
+                  >
+                    {photoUrl ? (
+                      <img
+                        src={photoUrl}
+                        alt={`Foto ${slotIdx + 1}`}
+                        className="w-full h-full object-cover"
+                        style={{ filter: currentFilterObj?.css || "none" }}
+                      />
+                    ) : (
+                      <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
+                    )}
+                    <div className="absolute top-1 left-1 bg-black/70 px-1 py-0.2 rounded text-[8px] font-mono text-amber-300">
+                      #{slotIdx + 1}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Custom Overlay sits on top so photos peek cleanly through transparent holes */}
             <img
               src={customOverlayUrl}
               alt="Bingkai Kustom"
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+              className="h-full w-auto max-h-[480px] block pointer-events-none z-20 drop-shadow"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+                }
+              }}
             />
           </div>
         ) : (
