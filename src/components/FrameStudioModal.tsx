@@ -1506,34 +1506,36 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                             width: `${box.w}%`,
                             height: `${box.h}%`,
                           }}
-                          className={`absolute select-none rounded flex flex-col items-center justify-between p-1 transition-all ${
+                          className={`absolute select-none rounded transition-all ${
                             interactionMode === "boxes"
                               ? isSelected
-                                ? "cursor-move border-2 border-amber-400 bg-amber-400/20 shadow-[0_0_15px_rgba(212,175,55,0.4)] z-30"
-                                : "cursor-move border-2 border-amber-400/70 bg-amber-400/10 hover:border-amber-300 z-20"
-                              : "border-2 border-dashed border-amber-400/40 bg-amber-400/5 z-10"
+                                ? "cursor-move border-2 border-amber-400 bg-transparent shadow-[0_0_12px_rgba(212,175,55,0.4)] z-30"
+                                : "cursor-move border border-amber-400/80 hover:border-amber-300 bg-transparent z-20"
+                              : "border border-dashed border-amber-400/40 bg-transparent z-10"
                           }`}
                         >
-                          <div className="w-full flex items-center justify-between pointer-events-none">
-                            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-stone-950 font-bold text-[9px] shadow">
+                          {/* Badge Nomor Foto: Berada di LUAR kotak (tidak menutupi sudut/garis frame) */}
+                          <div
+                            className={`absolute ${
+                              box.y < 7 ? "-bottom-6" : "-top-6"
+                            } left-0 flex items-center gap-1 pointer-events-none z-40 whitespace-nowrap`}
+                          >
+                            <span className="px-2 py-0.5 rounded-full bg-amber-400 text-stone-950 font-bold text-[10px] shadow border border-stone-950">
                               #{idx + 1}
                             </span>
                             {isSelected && interactionMode === "boxes" && (
-                              <span className="text-[8px] bg-black/80 text-amber-200 px-1 py-0.5 rounded font-mono">
+                              <span className="text-[9px] bg-black/85 text-amber-200 px-1.5 py-0.5 rounded font-mono border border-amber-400/30 shadow">
                                 {Math.round(box.w)}% × {Math.round(box.h)}%
                               </span>
                             )}
                           </div>
 
-                          <div className="pointer-events-none text-center">
-                            <Camera className={`w-3.5 h-3.5 mx-auto ${isSelected && interactionMode === "boxes" ? "text-amber-300" : "text-stone-400"}`} />
-                            <span className={`text-[9px] font-bold ${isSelected && interactionMode === "boxes" ? "text-amber-200" : "text-stone-400"}`}>
-                              Foto #{idx + 1}
-                            </span>
+                          {/* Titik pusat halus (area dalam 100% transparan agar frame terlihat jelas) */}
+                          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-25">
+                            <div className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                           </div>
 
-                          <div className="w-full h-1" />
-
+                          {/* Sudut Penarik Ukuran (Resize Handle) */}
                           {isSelected && interactionMode === "boxes" && (
                             <div
                               onPointerDown={(e) => {
@@ -1547,7 +1549,7 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                                   initBox: { ...box },
                                 });
                               }}
-                              className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-400 border-2 border-stone-950 rounded-full cursor-nwse-resize z-40 shadow"
+                              className="absolute -bottom-1.5 -right-1.5 w-3.5 h-3.5 bg-amber-400 border-2 border-stone-950 rounded-full cursor-nwse-resize z-40 shadow hover:scale-125 transition-transform"
                               title="Tarik sudut untuk ubah ukuran"
                             />
                           )}
@@ -1557,20 +1559,7 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                   </div>
                 )}
 
-                {/* Mode Hint Banner */}
-                {activeCanvasData && (
-                  <div className="absolute bottom-2 left-2 right-2 z-30 pointer-events-none">
-                    {interactionMode === "erase" ? (
-                      <div className="bg-stone-950/85 border border-amber-400/30 text-amber-100 text-[11px] font-medium py-1.5 px-3 rounded-xl shadow-lg text-center backdrop-blur-xs">
-                        💡 <strong>Mode Hapus:</strong> Klik tombol <em>"Lubangi Semua Kotak"</em> di kiri untuk 1-klik tembus, atau klik area gambar dengan Magic Wand.
-                      </div>
-                    ) : (
-                      <div className="bg-stone-950/85 border border-amber-400/30 text-amber-100 text-[11px] font-medium py-1.5 px-3 rounded-xl shadow-lg text-center backdrop-blur-xs">
-                        🎯 <strong>Mode Atur Kotak:</strong> Geser kotak atau tarik sudut kanannya untuk mengatur letak foto pengunjung.
-                      </div>
-                    )}
-                  </div>
-                )}
+
               </div>
             </div>
           </div>
