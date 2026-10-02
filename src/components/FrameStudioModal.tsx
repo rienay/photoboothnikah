@@ -581,10 +581,82 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
       }
     }
 
+    // If erasing a green shade, automatically despill any remaining green edges into the floral bronze tone
+    if (target.g > target.r * 1.15 && target.g > target.b * 1.15) {
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] > 0) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const avgRB = (r + b) / 2;
+          if (g > avgRB + 15 && g > 45) {
+            if (r < 110 && b < 100) {
+              const lum = Math.min(1, Math.max(0.25, (r * 0.299 + g * 0.587 + b * 0.114) / 200));
+              data[i] = Math.round(95 * lum + 20);
+              data[i + 1] = Math.round(75 * lum + 15);
+              data[i + 2] = Math.round(50 * lum + 10);
+            } else {
+              data[i + 1] = Math.round(avgRB);
+            }
+          }
+        }
+      }
+    }
+
     ctx.putImageData(imgData, 0, 0);
     const finalData = canvas.toDataURL("image/png");
     setActiveCanvasData(finalData);
     setActionStatus(`✓ Warna ${hex} berhasil dilubangi transparan!`);
+  };
+
+  // 1-Click Despill: Neutralize green fringes/spill on leaves and line elements
+  const handleDespillGreen = () => {
+    if (!workingCanvasRef.current || !activeCanvasData) return;
+    pushHistory();
+
+    const canvas = workingCanvasRef.current;
+    const width = canvas.width;
+    const height = canvas.height;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+    if (!ctx) return;
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    let modifiedCount = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      const a = data[i + 3];
+      if (a === 0) continue;
+
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+
+      const avgRB = (r + b) / 2;
+      // Detect if pixel has green cast / spill
+      if (g > avgRB + 12 && g > 40) {
+        if (r < 115 && b < 105) {
+          // Re-color green lines to matching warm bronze floral outline
+          const lum = Math.min(1, Math.max(0.2, (r * 0.299 + g * 0.587 + b * 0.114) / 190));
+          data[i] = Math.round(95 * lum + 20);     // Bronze red
+          data[i + 1] = Math.round(75 * lum + 15); // Bronze green
+          data[i + 2] = Math.round(50 * lum + 10); // Bronze blue
+        } else {
+          // Neutralize green cast
+          data[i + 1] = Math.round(avgRB);
+        }
+        modifiedCount++;
+      }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    const finalData = canvas.toDataURL("image/png");
+    setActiveCanvasData(finalData);
+    setActionStatus(
+      modifiedCount > 0
+        ? `✓ Berhasil! Warna hijau pada daun (${modifiedCount} piksel) telah diubah kembali ke warna cokelat bunga.`
+        : "Tidak ditemukan sisa noda hijau pada bingkai."
+    );
   };
 
   // Brush Erase & Restore Drawing Handlers
@@ -1105,6 +1177,20 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                       className="btn-gold-outline px-3 py-1 rounded-lg text-[11px] font-semibold transition-all disabled:opacity-40 cursor-pointer"
                     >
                       Hapus Warna Ini
+                    </button>
+                  </div>
+
+                  {/* Despill Green Spill / Neutralize Leaves */}
+                  <div className="pt-2 border-t border-amber-400/10">
+                    <button
+                      type="button"
+                      onClick={handleDespillGreen}
+                      disabled={!activeCanvasData}
+                      className="w-full py-2 px-3 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-200 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer disabled:opacity-40 shadow-sm"
+                      title="Netralkan sisa warna hijau pada daun/garis agar kembali berwarna cokelat emas alami seperti bunga di atasnya"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>🌿 Netralkan Warna Hijau Daun (Ubah ke Cokelat Emas)</span>
                     </button>
                   </div>
                 </div>

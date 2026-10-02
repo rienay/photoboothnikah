@@ -22,6 +22,90 @@ const KEYS = {
   SLOTS: "yodha_frame_slots",
 };
 
+export interface ServerSharedConfig {
+  frameSlots?: FrameSlot[];
+  weddingConfig?: WeddingConfig;
+  driveConfig?: DriveConfig;
+  boothSettings?: BoothSettings;
+  updatedAt?: number;
+}
+
+// Check and push changes to server storage so other devices get them
+export async function pushToServer(partialData: Partial<ServerSharedConfig>): Promise<boolean> {
+  try {
+    const payload: ServerSharedConfig = {
+      frameSlots: partialData.frameSlots || loadFrameSlots(),
+      weddingConfig: partialData.weddingConfig || loadWeddingConfig(),
+      driveConfig: partialData.driveConfig || loadDriveConfig(),
+      boothSettings: partialData.boothSettings || loadBoothSettings(),
+      updatedAt: Date.now(),
+    };
+
+    const endpoints = ["/api/config", "api.php", "../api.php"];
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (res.ok) {
+          return true;
+        }
+      } catch (err) {
+        // try next endpoint
+      }
+    }
+  } catch (e) {
+    console.warn("Could not push to server:", e);
+  }
+  return false;
+}
+
+// Fetch shared config from server storage
+export async function syncFromServer(): Promise<ServerSharedConfig | null> {
+  try {
+    const endpoints = ["/api/config", "api.php", "../api.php"];
+    for (const url of endpoints) {
+      try {
+        const res = await fetch(url, { method: "GET", cache: "no-store" });
+        if (res.ok) {
+          const data = (await res.json()) as ServerSharedConfig;
+          if (data && Object.keys(data).length > 0) {
+            // Update local storage so offline access also matches
+            if (data.frameSlots && Array.isArray(data.frameSlots) && data.frameSlots.length > 0) {
+              try {
+                localStorage.setItem(KEYS.SLOTS, JSON.stringify(data.frameSlots));
+              } catch (_) {}
+            }
+            if (data.weddingConfig && data.weddingConfig.brideName) {
+              try {
+                localStorage.setItem(KEYS.WEDDING, JSON.stringify(data.weddingConfig));
+              } catch (_) {}
+            }
+            if (data.driveConfig) {
+              try {
+                localStorage.setItem(KEYS.DRIVE, JSON.stringify(data.driveConfig));
+              } catch (_) {}
+            }
+            if (data.boothSettings) {
+              try {
+                localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.boothSettings));
+              } catch (_) {}
+            }
+            return data;
+          }
+        }
+      } catch (err) {
+        // try next endpoint
+      }
+    }
+  } catch (e) {
+    console.warn("Server sync check error:", e);
+  }
+  return null;
+}
+
 export function loadFrameSlots(): FrameSlot[] {
   try {
     const raw = localStorage.getItem(KEYS.SLOTS);
@@ -35,6 +119,7 @@ export function loadFrameSlots(): FrameSlot[] {
 export function saveFrameSlots(slots: FrameSlot[]): void {
   try {
     localStorage.setItem(KEYS.SLOTS, JSON.stringify(slots));
+    pushToServer({ frameSlots: slots }).catch(() => {});
   } catch (e) {
     console.error("Failed to save frame slots:", e);
   }
@@ -62,6 +147,7 @@ export function loadWeddingConfig(): WeddingConfig {
 export function saveWeddingConfig(config: WeddingConfig): void {
   try {
     localStorage.setItem(KEYS.WEDDING, JSON.stringify(config));
+    pushToServer({ weddingConfig: config }).catch(() => {});
   } catch (e) {
     console.error("Failed to save wedding config:", e);
   }
@@ -91,6 +177,7 @@ export function loadDriveConfig(): DriveConfig {
 export function saveDriveConfig(config: DriveConfig): void {
   try {
     localStorage.setItem(KEYS.DRIVE, JSON.stringify(config));
+    pushToServer({ driveConfig: config }).catch(() => {});
   } catch (e) {
     console.error("Failed to save drive config:", e);
   }
@@ -109,6 +196,7 @@ export function loadBoothSettings(): BoothSettings {
 export function saveBoothSettings(settings: BoothSettings): void {
   try {
     localStorage.setItem(KEYS.SETTINGS, JSON.stringify(settings));
+    pushToServer({ boothSettings: settings }).catch(() => {});
   } catch (e) {
     console.error("Failed to save booth settings:", e);
   }

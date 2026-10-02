@@ -25,6 +25,7 @@ import {
   saveDriveConfig,
   saveFrameSlots,
   saveWeddingConfig,
+  syncFromServer,
 } from "./lib/storage";
 import { soundFx } from "./lib/audio";
 
@@ -46,6 +47,52 @@ export const App: React.FC = () => {
   // UI state
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Cross-device sync from server on mount and window focus
+  useEffect(() => {
+    let mounted = true;
+
+    const performSync = async () => {
+      const serverData = await syncFromServer();
+      if (!mounted) return;
+
+      if (serverData && Object.keys(serverData).length > 0) {
+        if (serverData.frameSlots && Array.isArray(serverData.frameSlots) && serverData.frameSlots.length > 0) {
+          setFrameSlots(serverData.frameSlots);
+        }
+        if (serverData.weddingConfig) {
+          setWeddingConfig(serverData.weddingConfig);
+        }
+        if (serverData.driveConfig) {
+          setDriveConfig(serverData.driveConfig);
+        }
+        if (serverData.boothSettings) {
+          setBoothSettings(serverData.boothSettings);
+        }
+      } else {
+        // If server is currently empty, push current device's configuration to server
+        // so other connected devices automatically receive it
+        pushToServer({
+          frameSlots: loadFrameSlots(),
+          weddingConfig: loadWeddingConfig(),
+          driveConfig: loadDriveConfig(),
+          boothSettings: loadBoothSettings(),
+        }).catch(() => {});
+      }
+    };
+
+    performSync();
+
+    const onFocus = () => {
+      performSync();
+    };
+    window.addEventListener("focus", onFocus);
+
+    return () => {
+      mounted = false;
+      window.removeEventListener("focus", onFocus);
+    };
+  }, []);
 
   // Sync sound setting
   useEffect(() => {
