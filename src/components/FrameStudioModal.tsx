@@ -1245,6 +1245,61 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                   </div>
                 </div>
 
+                {/* Mode Atur Tata Letak Otomatis (Grid & Preset Presets) */}
+                <div className="p-3 rounded-xl bg-stone-950/80 border border-amber-400/30 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-amber-300 text-xs font-bold">
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Mode Atur Tata Letak Otomatis:</span>
+                    </div>
+                    <span className="text-[10px] text-stone-400">Pilih format agar kotak rapi otomatis</span>
+                  </div>
+
+                  {/* 1-Click Layout Grid Presets */}
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {[
+                      { id: "2x2", label: "4 Foto (Grid 2×2)", count: 4 },
+                      { id: "3x1", label: "3 Foto (Strip 3×1)", count: 3 },
+                      { id: "2x1", label: "2 Foto (Strip 2×1)", count: 2 },
+                      { id: "3x2", label: "6 Foto (Grid 3×2)", count: 6 },
+                      { id: "4x2", label: "8 Foto (Grid 4×2)", count: 8 },
+                      { id: "1x1", label: "1 Foto (Polaroid 1×1)", count: 1 },
+                    ].map((item) => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => {
+                          handleLayoutChange(item.id as LayoutId);
+                          setActionStatus(`✓ Tata letak otomatis diatur ke ${item.label}!`);
+                        }}
+                        className={`py-2 px-2 rounded-lg text-xs font-semibold transition-all border cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                          newLayout === item.id && photoBoxes.length === item.count
+                            ? "bg-amber-400 text-stone-950 border-amber-300 font-bold shadow-md scale-[1.02]"
+                            : "bg-stone-900/90 text-stone-300 border-white/10 hover:border-amber-400/50 hover:bg-stone-800"
+                        }`}
+                      >
+                        <span className="truncate w-full text-center leading-tight">{item.label}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Dropdown Variasi Lubang Preset */}
+                  <div className="flex items-center gap-2 pt-1 border-t border-amber-400/10">
+                    <span className="text-[11px] text-stone-400 whitespace-nowrap">Variasi Lubang:</span>
+                    <select
+                      value={newPreset}
+                      onChange={(e) => handlePresetChange(e.target.value)}
+                      className="flex-1 px-2.5 py-1 bg-stone-900 border border-amber-400/30 rounded-lg text-xs text-amber-100 focus:outline-none focus:border-amber-400 cursor-pointer"
+                    >
+                      {(HOLE_PRESETS_MAP[newLayout] || HOLE_PRESETS_MAP["3x1"]).map((p) => (
+                        <option key={p.id} value={p.id} className="bg-stone-900 text-white">
+                          {p.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
                 {/* Box Selector Pills */}
                 {photoBoxes.length > 0 ? (
                   <div className="space-y-2.5">
