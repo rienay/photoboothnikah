@@ -48,6 +48,147 @@ interface AdminModalProps {
 
 type TabType = "wedding" | "drive" | "booth" | "templates" | "history";
 
+const AdminFrameCardItem: React.FC<{
+  slot: FrameSlot;
+  isActive: boolean;
+  onToggleActive: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+}> = ({ slot, isActive, onToggleActive, onEdit, onDelete }) => {
+  const defaultRatio =
+    slot.layoutId === "3x1" || slot.layoutId === "2x1"
+      ? 1 / 3
+      : slot.layoutId === "1x1"
+      ? 1
+      : 2 / 3;
+
+  const [aspectRatio, setAspectRatio] = useState<number>(defaultRatio);
+
+  return (
+    <div className="glass-gold-card rounded-2xl border border-amber-400/25 hover:border-amber-400/60 shadow-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all flex flex-col overflow-hidden group bg-stone-950/80">
+      {/* Preview Area: Frame wrapper follows the frame aspect ratio directly */}
+      <div
+        onClick={() => {
+          soundFx.playChime();
+          onEdit();
+        }}
+        className="relative h-[260px] sm:h-[280px] bg-stone-950/90 border-b border-amber-400/20 flex items-center justify-center p-3 cursor-pointer overflow-hidden"
+        title="Klik untuk edit frame di Studio"
+      >
+        <div
+          className="h-full max-w-full rounded-xl overflow-hidden relative shadow-md border border-amber-400/35 transition-transform duration-200 group-hover:scale-[1.02]"
+          style={{
+            aspectRatio: `${aspectRatio}`,
+            backgroundImage:
+              "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
+            backgroundSize: "14px 14px",
+            backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
+          }}
+        >
+          {slot.customImage ? (
+            <img
+              src={slot.customImage}
+              alt={slot.name}
+              className="w-full h-full object-fill drop-shadow"
+              onLoad={(e) => {
+                const img = e.currentTarget;
+                if (img.naturalWidth && img.naturalHeight) {
+                  setAspectRatio(img.naturalWidth / img.naturalHeight);
+                }
+              }}
+            />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center p-4 bg-stone-900 text-center">
+              <ImageIcon size={32} className="text-amber-400/40 mb-2" />
+              <span className="text-xs font-semibold text-amber-200 block">{slot.name}</span>
+              <span className="text-[10px] text-stone-400 block mt-0.5 font-mono">
+                {slot.presetThemeId || "Tema Bawaan"}
+              </span>
+            </div>
+          )}
+
+          {/* Hover overlay hint */}
+          <div className="absolute inset-0 bg-amber-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
+            <span className="btn-gold text-stone-950 text-xs font-semibold py-1.5 px-3 rounded-xl shadow-md flex items-center gap-1.5">
+              <Wand2 size={13} />
+              <span>Edit di Studio</span>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Card Meta & Bottom Toolbar */}
+      <div className="p-3.5 flex flex-col justify-between flex-1 gap-3 bg-stone-900/60">
+        <div>
+          <div className="flex items-center justify-between gap-2">
+            <h4 className="font-semibold text-amber-100 text-sm truncate" title={slot.name}>
+              {slot.name}
+            </h4>
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase shrink-0 font-mono">
+              {slot.layoutId.toUpperCase()}
+            </span>
+          </div>
+          <p className="text-[11px] text-stone-400 mt-0.5">
+            Preset: {slot.presetId || "auto"}
+          </p>
+        </div>
+
+        <div className="flex items-center justify-between pt-2.5 border-t border-amber-400/15">
+          {/* Aktif / Nonaktif Toggle */}
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleActive();
+            }}
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+              isActive
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                : "bg-stone-800 text-stone-400 border border-white/10 hover:bg-stone-700 hover:text-white"
+            }`}
+          >
+            {isActive ? (
+              <>
+                <Check size={13} className="stroke-[3]" />
+                <span>Aktif</span>
+              </>
+            ) : (
+              <span>Nonaktif</span>
+            )}
+          </button>
+
+          {/* Actions: Edit & Trash */}
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                soundFx.playChime();
+                onEdit();
+              }}
+              className="p-1.5 text-stone-400 hover:text-amber-300 hover:bg-amber-400/15 rounded-lg transition-colors cursor-pointer"
+              title="Edit di Studio"
+            >
+              <Wand2 size={15} />
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete();
+              }}
+              className="p-1.5 text-stone-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer"
+              title="Hapus Bingkai"
+            >
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const AdminModal: React.FC<AdminModalProps> = ({
   isOpen,
   onClose,
@@ -500,124 +641,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-                      {filteredFrames.map((slot) => {
-                        const isActive = slot.enabled !== false;
-                        return (
-                          <div
-                            key={slot.id}
-                            className="glass-gold-card rounded-2xl border border-amber-400/25 hover:border-amber-400/60 shadow-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all flex flex-col overflow-hidden group bg-stone-950/80"
-                          >
-                            {/* Preview Area with Checkerboard */}
-                            <div
-                              onClick={() => {
-                                soundFx.playChime();
-                                setStudioTargetFrame(slot);
-                              }}
-                              className="relative aspect-3/4 bg-stone-900 border-b border-amber-400/20 flex items-center justify-center p-3 cursor-pointer overflow-hidden"
-                              style={{
-                                backgroundImage:
-                                  "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
-                                backgroundSize: "16px 16px",
-                                backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
-                              }}
-                              title="Klik untuk edit frame di Studio"
-                            >
-                              {slot.customImage ? (
-                                <img
-                                  src={slot.customImage}
-                                  alt={slot.name}
-                                  className="max-h-full max-w-full object-contain drop-shadow transition-transform duration-200 group-hover:scale-[1.02]"
-                                />
-                              ) : (
-                                <div className="text-center p-4">
-                                  <ImageIcon size={32} className="text-amber-400/40 mx-auto mb-2" />
-                                  <span className="text-xs font-semibold text-amber-200 block">{slot.name}</span>
-                                  <span className="text-[10px] text-stone-400 block mt-0.5 font-mono">
-                                    {slot.presetThemeId || "Tema Bawaan"}
-                                  </span>
-                                </div>
-                              )}
-
-                              {/* Hover overlay hint */}
-                              <div className="absolute inset-0 bg-amber-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
-                                <span className="btn-gold text-stone-950 text-xs font-semibold py-1.5 px-3 rounded-xl shadow-md flex items-center gap-1.5">
-                                  <Wand2 size={13} />
-                                  <span>Edit di Studio</span>
-                                </span>
-                              </div>
-                            </div>
-
-                            {/* Card Meta & Bottom Toolbar */}
-                            <div className="p-3.5 flex flex-col justify-between flex-1 gap-3 bg-stone-900/60">
-                              <div>
-                                <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-semibold text-amber-100 text-sm truncate" title={slot.name}>
-                                    {slot.name}
-                                  </h4>
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase shrink-0 font-mono">
-                                    {slot.layoutId.toUpperCase()}
-                                  </span>
-                                </div>
-                                <p className="text-[11px] text-stone-400 mt-0.5">
-                                  Preset: {slot.presetId || "auto"}
-                                </p>
-                              </div>
-
-                              <div className="flex items-center justify-between pt-2.5 border-t border-amber-400/15">
-                                {/* Aktif / Nonaktif Toggle */}
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleToggleFrameActive(slot.id);
-                                  }}
-                                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
-                                    isActive
-                                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
-                                      : "bg-stone-800 text-stone-400 border border-white/10 hover:bg-stone-700 hover:text-white"
-                                  }`}
-                                >
-                                  {isActive ? (
-                                    <>
-                                      <Check size={13} className="stroke-[3]" />
-                                      <span>Aktif</span>
-                                    </>
-                                  ) : (
-                                    <span>Nonaktif</span>
-                                  )}
-                                </button>
-
-                                {/* Actions: Edit & Trash */}
-                                <div className="flex items-center gap-1">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      soundFx.playChime();
-                                      setStudioTargetFrame(slot);
-                                    }}
-                                    className="p-1.5 text-stone-400 hover:text-amber-300 hover:bg-amber-400/15 rounded-lg transition-colors cursor-pointer"
-                                    title="Edit di Studio"
-                                  >
-                                    <Wand2 size={15} />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      handleDeleteFrame(slot.id, slot.name);
-                                    }}
-                                    className="p-1.5 text-stone-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer"
-                                    title="Hapus Bingkai"
-                                  >
-                                    <Trash2 size={15} />
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
+                      {filteredFrames.map((slot) => (
+                        <AdminFrameCardItem
+                          key={slot.id}
+                          slot={slot}
+                          isActive={slot.enabled !== false}
+                          onToggleActive={() => handleToggleFrameActive(slot.id)}
+                          onEdit={() => setStudioTargetFrame(slot)}
+                          onDelete={() => handleDeleteFrame(slot.id, slot.name)}
+                        />
+                      ))}
                     </div>
                   )}
                 </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Check, Camera, Image as ImageIcon } from "lucide-react";
 import { WEDDING_PRESETS, LAYOUTS } from "../config";
 import { FrameSlot, WeddingConfig } from "../types";
@@ -13,6 +13,155 @@ interface FrameScreenProps {
   onNext: () => void;
 }
 
+const SelectableFrameCard: React.FC<{
+  slot: FrameSlot;
+  index: number;
+  isSelected: boolean;
+  weddingConfig: WeddingConfig;
+  onSelect: () => void;
+}> = ({ slot, index, isSelected, weddingConfig, onSelect }) => {
+  const preset =
+    WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
+  const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
+
+  // Default initial aspect ratio based on layout
+  const defaultRatio =
+    layout.cols === 1
+      ? slot.layoutId === "2x1"
+        ? 1 / 2
+        : 1 / 3
+      : slot.layoutId === "1x1"
+      ? 1
+      : 2 / 3;
+
+  const [aspectRatio, setAspectRatio] = useState<number>(defaultRatio);
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        soundFx.playChime();
+        onSelect();
+      }}
+      className={`relative h-[360px] sm:h-[400px] md:h-[440px] max-h-[58vh] rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
+        isSelected
+          ? "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.03] z-20"
+          : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.015] shadow-xl opacity-85 hover:opacity-100"
+      }`}
+      style={{
+        aspectRatio: `${aspectRatio}`,
+      }}
+    >
+      {/* Frame Visual: Takes 100% of the card with NO outer dark box */}
+      <div
+        className="w-full h-full rounded-2xl overflow-hidden relative shadow-inner flex flex-col justify-between"
+        style={
+          slot.customImage
+            ? {
+                backgroundImage:
+                  "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
+                backgroundSize: "14px 14px",
+                backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
+              }
+            : {
+                background: preset.bgColor,
+                borderColor: preset.borderColor,
+              }
+        }
+      >
+        {slot.customImage ? (
+          <img
+            src={slot.customImage}
+            alt={slot.name}
+            className="w-full h-full object-fill pointer-events-none drop-shadow-md"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              if (img.naturalWidth && img.naturalHeight) {
+                setAspectRatio(img.naturalWidth / img.naturalHeight);
+              }
+            }}
+          />
+        ) : (
+          /* Preset Elegant Theme */
+          <div
+            className="w-full h-full p-2.5 sm:p-3 flex flex-col justify-between items-center relative overflow-hidden"
+            style={{
+              background: preset.bgColor,
+              borderColor: preset.borderColor,
+            }}
+          >
+            <div
+              className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-30"
+              style={{ borderColor: preset.borderColor }}
+            />
+
+            {/* Header */}
+            <div className="text-center z-10 pt-7 shrink-0">
+              <div
+                className="text-[7.5px] tracking-[0.2em] font-cinzel uppercase"
+                style={{ color: preset.secondaryTextColor }}
+              >
+                THE WEDDING OF
+              </div>
+              <div
+                className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                style={{ color: preset.textColor }}
+              >
+                {weddingConfig.brideName} & {weddingConfig.groomName}
+              </div>
+            </div>
+
+            {/* Photo Boxes imitation adapting to cols/rows */}
+            <div
+              className="w-full px-2 flex-1 justify-center z-10 my-1 grid gap-1 items-center"
+              style={{
+                gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+              }}
+            >
+              {Array.from({ length: layout.totalPhotos }).map((_, bIdx) => (
+                <div
+                  key={bIdx}
+                  className="w-full h-full min-h-5 rounded border opacity-60 flex items-center justify-center"
+                  style={{
+                    background: "rgba(255,255,255,0.06)",
+                    borderColor: preset.borderColor,
+                  }}
+                >
+                  <span className="text-[8px] text-stone-400 font-mono">
+                    #{bIdx + 1}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Footer */}
+            <div
+              className="text-[7.5px] font-sans tracking-wider z-10 pb-1 shrink-0"
+              style={{ color: preset.secondaryTextColor }}
+            >
+              {weddingConfig.weddingDate}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Floating Badges Directly on the Frame */}
+      {/* Top Left: Frame Name Pill */}
+      <div className="absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/80 border border-amber-400/50 text-[11px] font-cinzel text-amber-200 font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%]">
+        {slot.name || `Desain ${index + 1}`}
+      </div>
+
+      {/* Top Right: Selected Checkmark */}
+      {isSelected && (
+        <div className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center shadow-lg font-bold animate-in zoom-in-75 duration-200">
+          <Check size={14} strokeWidth={3} />
+        </div>
+      )}
+    </button>
+  );
+};
+
 export const FrameScreen: React.FC<FrameScreenProps> = ({
   frameSlots,
   selectedSlotId,
@@ -25,7 +174,7 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
   const displaySlots = activeSlots.length > 0 ? activeSlots : frameSlots;
 
   return (
-    <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-4 py-2 sm:py-3 justify-between min-h-0 h-full overflow-hidden">
+    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-4 py-2 sm:py-3 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
       <div className="text-center mb-1.5 sm:mb-2 shrink-0">
         <h2 className="font-serif text-2xl sm:text-3xl text-gold-gradient font-normal mt-0">
@@ -33,139 +182,18 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
         </h2>
       </div>
 
-      {/* Frame Slots Grid */}
-      <div
-        className={`grid gap-3.5 sm:gap-5 flex-1 min-h-0 items-center mx-auto w-full my-auto overflow-y-auto px-1 ${
-          displaySlots.length <= 1
-            ? "max-w-sm grid-cols-1"
-            : displaySlots.length === 2
-            ? "max-w-2xl grid-cols-2"
-            : displaySlots.length === 3
-            ? "max-w-4xl grid-cols-3"
-            : displaySlots.length === 4
-            ? "max-w-5xl grid-cols-2 sm:grid-cols-4"
-            : "max-w-5xl grid-cols-2 sm:grid-cols-3 md:grid-cols-4"
-        }`}
-      >
-        {displaySlots.map((slot, index) => {
-          const isSelected = selectedSlotId === slot.id;
-          const preset =
-            WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
-          const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
-
-          return (
-            <button
-              key={slot.id}
-              onClick={() => {
-                soundFx.playChime();
-                onSelectSlot(slot);
-              }}
-              className={`relative flex flex-col p-3 sm:p-3.5 rounded-2xl transition-all duration-300 cursor-pointer text-left h-[330px] sm:h-[370px] md:h-[400px] max-h-[52vh] ${
-                isSelected
-                  ? "bg-amber-950/40 border-2 border-amber-400 shadow-[0_0_25px_rgba(212,175,55,0.4)] scale-[1.02]"
-                  : "glass-gold-card hover:border-amber-400/50 hover:scale-[1.01]"
-              }`}
-            >
-              {/* Header inside card */}
-              <div className="flex items-center justify-between w-full mb-1.5 shrink-0">
-                <span className="text-[11px] font-cinzel tracking-wider px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/30 text-amber-300 font-semibold truncate max-w-[80%]">
-                  {slot.name || `Desain ${index + 1}`}
-                </span>
-                {isSelected && (
-                  <div className="w-5 h-5 rounded-full bg-amber-400 text-stone-900 flex items-center justify-center shadow-md shrink-0">
-                    <Check size={12} strokeWidth={3} />
-                  </div>
-                )}
-              </div>
-
-              {/* Visual Frame Mockup / Custom Image (Enlarged to fill card) */}
-              <div
-                className="flex-1 w-full min-h-0 rounded-xl border border-amber-400/35 bg-stone-950/90 p-2 sm:p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner"
-                style={
-                  slot.customImage
-                    ? {
-                        backgroundImage:
-                          "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
-                        backgroundSize: "14px 14px",
-                        backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
-                      }
-                    : undefined
-                }
-              >
-                {slot.customImage ? (
-                  /* Custom PNG uploaded by user */
-                  <img
-                    src={slot.customImage}
-                    alt={slot.name}
-                    className="h-full w-full object-contain drop-shadow-md"
-                  />
-                ) : (
-                  /* Elegant Wedding Preset Preview scaled to full height */
-                  <div
-                    className="w-full h-full rounded-lg border p-2 sm:p-2.5 flex flex-col justify-between items-center relative overflow-hidden"
-                    style={{
-                      background: preset.bgColor,
-                      borderColor: preset.borderColor,
-                    }}
-                  >
-                    <div
-                      className="absolute inset-1 border rounded pointer-events-none opacity-30"
-                      style={{ borderColor: preset.borderColor }}
-                    />
-
-                    {/* Header */}
-                    <div className="text-center z-10 pt-0.5 shrink-0">
-                      <div
-                        className="text-[7.5px] tracking-[0.2em] font-cinzel uppercase"
-                        style={{ color: preset.secondaryTextColor }}
-                      >
-                        THE WEDDING OF
-                      </div>
-                      <div
-                        className="font-script text-base sm:text-lg leading-tight mt-0.5"
-                        style={{ color: preset.textColor }}
-                      >
-                        {weddingConfig.brideName} & {weddingConfig.groomName}
-                      </div>
-                    </div>
-
-                    {/* Photo Boxes imitation adapting to cols/rows */}
-                    <div
-                      className="w-full px-2 flex-1 justify-center z-10 my-1 grid gap-1 items-center"
-                      style={{
-                        gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
-                        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
-                      }}
-                    >
-                      {Array.from({ length: layout.totalPhotos }).map((_, bIdx) => (
-                        <div
-                          key={bIdx}
-                          className="w-full h-full min-h-5 rounded border opacity-60 flex items-center justify-center"
-                          style={{
-                            background: "rgba(255,255,255,0.06)",
-                            borderColor: preset.borderColor,
-                          }}
-                        >
-                          <span className="text-[8px] text-stone-400 font-mono">
-                            #{bIdx + 1}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Footer */}
-                    <div
-                      className="text-[7.5px] font-sans tracking-wider z-10 pb-0.5 shrink-0"
-                      style={{ color: preset.secondaryTextColor }}
-                    >
-                      {weddingConfig.weddingDate}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </button>
-          );
-        })}
+      {/* Frame Slots: Clean flex row with no artificial outer box */}
+      <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 flex-1 min-h-0 mx-auto w-full my-auto py-2 overflow-y-auto px-2">
+        {displaySlots.map((slot, index) => (
+          <SelectableFrameCard
+            key={slot.id}
+            slot={slot}
+            index={index}
+            isSelected={selectedSlotId === slot.id}
+            weddingConfig={weddingConfig}
+            onSelect={() => onSelectSlot(slot)}
+          />
+        ))}
       </div>
 
       {/* Navigation Buttons */}
