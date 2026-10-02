@@ -441,15 +441,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               )}
 
               {/* Tab 2: Manajemen Bingkai Frame (Exact yodhabooth design) */}
+              {/* Tab 2: Manajemen Bingkai Frame (Cohesive Dark-Gold Luxury Theme) */}
               {activeTab === "templates" && (
-                <div className="bg-slate-50 text-slate-800 p-4 sm:p-6 rounded-2xl border border-slate-200 shadow-sm space-y-6">
+                <div className="bg-stone-900/60 p-4 sm:p-6 rounded-2xl border border-amber-400/25 shadow-xl space-y-6 backdrop-blur-md">
                   {/* Header with Title, Description, and + Tambah Bingkai Baru button */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+                      <h2 className="text-xl sm:text-2xl font-serif text-gold-gradient font-medium tracking-wide">
                         Manajemen Bingkai Frame
                       </h2>
-                      <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                      <p className="text-xs sm:text-sm text-stone-400 mt-1">
                         Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru.
                       </p>
                     </div>
@@ -460,7 +461,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         soundFx.playChime();
                         setStudioTargetFrame("new");
                       }}
-                      className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow-sm text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shrink-0"
+                      className="btn-gold px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shrink-0"
                     >
                       <Plus size={16} />
                       <span>+ Tambah Bingkai Baru</span>
@@ -476,10 +477,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           key={opt.id}
                           type="button"
                           onClick={() => setActiveLayoutFilter(opt.id)}
-                          className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
                             isSelected
-                              ? "bg-blue-600 text-white shadow-xs"
-                              : "bg-white hover:bg-slate-100 text-slate-700 border border-slate-200/80"
+                              ? "bg-amber-400 text-stone-950 font-bold shadow-md"
+                              : "bg-stone-900/80 hover:bg-stone-800 text-amber-200/80 hover:text-white border border-amber-400/20"
                           }`}
                         >
                           {opt.label}
@@ -490,10 +491,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
                   {/* Frame Grid */}
                   {filteredFrames.length === 0 ? (
-                    <div className="p-12 text-center bg-white rounded-2xl border border-slate-200/80">
-                      <ImageIcon size={36} className="text-slate-300 mx-auto mb-2" />
-                      <p className="text-sm font-semibold text-slate-700">Belum ada bingkai untuk filter ini</p>
-                      <p className="text-xs text-slate-400 mt-1">
+                    <div className="p-12 text-center bg-stone-950/60 rounded-2xl border border-amber-400/20">
+                      <ImageIcon size={36} className="text-amber-400/40 mx-auto mb-2" />
+                      <p className="text-sm font-serif text-amber-200">Belum ada bingkai untuk filter ini</p>
+                      <p className="text-xs text-stone-400 mt-1">
                         Klik tombol "+ Tambah Bingkai Baru" di atas untuk menambahkan template frame.
                       </p>
                     </div>
@@ -504,7 +505,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                         return (
                           <div
                             key={slot.id}
-                            className="bg-white rounded-2xl border border-slate-200/80 shadow-xs hover:shadow-md transition-all flex flex-col overflow-hidden group"
+                            className="glass-gold-card rounded-2xl border border-amber-400/25 hover:border-amber-400/60 shadow-lg hover:shadow-[0_0_20px_rgba(212,175,55,0.2)] transition-all flex flex-col overflow-hidden group bg-stone-950/80"
                           >
                             {/* Preview Area with Checkerboard */}
                             <div
@@ -512,10 +513,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 soundFx.playChime();
                                 setStudioTargetFrame(slot);
                               }}
-                              className="relative aspect-3/4 bg-slate-50 border-b border-slate-100 flex items-center justify-center p-3 cursor-pointer overflow-hidden"
+                              className="relative aspect-3/4 bg-stone-900 border-b border-amber-400/20 flex items-center justify-center p-3 cursor-pointer overflow-hidden"
                               style={{
                                 backgroundImage:
-                                  "linear-gradient(45deg, #e2e8f0 25%, transparent 25%), linear-gradient(-45deg, #e2e8f0 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e2e8f0 75%), linear-gradient(-45deg, transparent 75%, #e2e8f0 75%)",
+                                  "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
                                 backgroundSize: "16px 16px",
                                 backgroundPosition: "0 0, 0 8px, 8px -8px, -8px 0px",
                               }}
@@ -529,17 +530,17 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                 />
                               ) : (
                                 <div className="text-center p-4">
-                                  <ImageIcon size={32} className="text-slate-300 mx-auto mb-2" />
-                                  <span className="text-xs font-semibold text-slate-600 block">{slot.name}</span>
-                                  <span className="text-[10px] text-slate-400 block mt-0.5 font-mono">
+                                  <ImageIcon size={32} className="text-amber-400/40 mx-auto mb-2" />
+                                  <span className="text-xs font-semibold text-amber-200 block">{slot.name}</span>
+                                  <span className="text-[10px] text-stone-400 block mt-0.5 font-mono">
                                     {slot.presetThemeId || "Tema Bawaan"}
                                   </span>
                                 </div>
                               )}
 
                               {/* Hover overlay hint */}
-                              <div className="absolute inset-0 bg-blue-600/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <span className="px-3 py-1.5 rounded-lg bg-blue-600 text-white text-xs font-semibold shadow-md flex items-center gap-1.5">
+                              <div className="absolute inset-0 bg-amber-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center backdrop-blur-xs">
+                                <span className="btn-gold text-stone-950 text-xs font-semibold py-1.5 px-3 rounded-xl shadow-md flex items-center gap-1.5">
                                   <Wand2 size={13} />
                                   <span>Edit di Studio</span>
                                 </span>
@@ -547,22 +548,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                             </div>
 
                             {/* Card Meta & Bottom Toolbar */}
-                            <div className="p-3.5 flex flex-col justify-between flex-1 gap-3 bg-white">
+                            <div className="p-3.5 flex flex-col justify-between flex-1 gap-3 bg-stone-900/60">
                               <div>
                                 <div className="flex items-center justify-between gap-2">
-                                  <h4 className="font-bold text-slate-800 text-sm truncate" title={slot.name}>
+                                  <h4 className="font-semibold text-amber-100 text-sm truncate" title={slot.name}>
                                     {slot.name}
                                   </h4>
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-50 text-blue-600 border border-blue-100 uppercase shrink-0">
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-400/15 text-amber-300 border border-amber-400/30 uppercase shrink-0 font-mono">
                                     {slot.layoutId.toUpperCase()}
                                   </span>
                                 </div>
-                                <p className="text-[11px] text-slate-400 mt-0.5">
+                                <p className="text-[11px] text-stone-400 mt-0.5">
                                   Preset: {slot.presetId || "auto"}
                                 </p>
                               </div>
 
-                              <div className="flex items-center justify-between pt-2.5 border-t border-slate-100">
+                              <div className="flex items-center justify-between pt-2.5 border-t border-amber-400/15">
                                 {/* Aktif / Nonaktif Toggle */}
                                 <button
                                   type="button"
@@ -570,10 +571,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                     e.stopPropagation();
                                     handleToggleFrameActive(slot.id);
                                   }}
-                                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                  className={`flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
                                     isActive
-                                      ? "bg-emerald-50 text-emerald-700 border border-emerald-200/80 hover:bg-emerald-100"
-                                      : "bg-slate-100 text-slate-500 border border-slate-200 hover:bg-slate-200"
+                                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 hover:bg-emerald-500/30"
+                                      : "bg-stone-800 text-stone-400 border border-white/10 hover:bg-stone-700 hover:text-white"
                                   }`}
                                 >
                                   {isActive ? (
@@ -595,7 +596,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                       soundFx.playChime();
                                       setStudioTargetFrame(slot);
                                     }}
-                                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                    className="p-1.5 text-stone-400 hover:text-amber-300 hover:bg-amber-400/15 rounded-lg transition-colors cursor-pointer"
                                     title="Edit di Studio"
                                   >
                                     <Wand2 size={15} />
@@ -606,7 +607,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                                       e.stopPropagation();
                                       handleDeleteFrame(slot.id, slot.name);
                                     }}
-                                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                                    className="p-1.5 text-stone-400 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-colors cursor-pointer"
                                     title="Hapus Bingkai"
                                   >
                                     <Trash2 size={15} />

@@ -1,8 +1,9 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Check, Camera, RefreshCw, FlipHorizontal, CheckCircle2 } from "lucide-react";
 import { PHOTO_FILTERS } from "../config";
-import { CameraFilter, LayoutConfig, WeddingConfig, WeddingFramePreset } from "../types";
+import { CameraFilter, LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
+import { calculateTargetPhotoRatio, getDefaultBoxesForLayout } from "../lib/frameLayouts";
 
 interface ReviewScreenProps {
   photos: string[];
@@ -10,6 +11,7 @@ interface ReviewScreenProps {
   selectedFilterId: string;
   preset: WeddingFramePreset;
   customOverlayUrl?: string;
+  photoBoxes?: PhotoBox[];
   weddingConfig: WeddingConfig;
   onChangeFilter: (filterId: string) => void;
   onUpdatePhoto: (index: number, newPhotoData: string) => void;
@@ -25,6 +27,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   selectedFilterId,
   preset,
   customOverlayUrl,
+  photoBoxes,
   weddingConfig,
   onChangeFilter,
   onUpdatePhoto,
@@ -37,8 +40,36 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   const [retakeCountdown, setRetakeCountdown] = useState<number | null>(null);
   const [isRetakeFlashing, setIsRetakeFlashing] = useState(false);
   const [mirror, setMirror] = useState(mirrorCamera);
+  const [frameNaturalRatio, setFrameNaturalRatio] = useState<number | null>(null);
   const singleVideoRef = useRef<HTMLVideoElement | null>(null);
   const singleStreamRef = useRef<MediaStream | null>(null);
+
+  // Measure custom overlay aspect ratio if present
+  useEffect(() => {
+    if (!customOverlayUrl) {
+      setFrameNaturalRatio(null);
+      return;
+    }
+    const img = new Image();
+    img.src = customOverlayUrl;
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+  }, [customOverlayUrl]);
+
+  // Frame aspect ratio
+  const effectiveFrameRatio = frameNaturalRatio || (layout.cols === 1 ? 1 / 2.8 : 2 / 3);
+
+  // Target photo box for retake
+  const activeBoxes = photoBoxes && photoBoxes.length > 0 ? photoBoxes : getDefaultBoxesForLayout(layout.id);
+  const retakeTargetBox = retakeIdx !== null ? activeBoxes[retakeIdx] || activeBoxes[0] : activeBoxes[0];
+
+  // Viewfinder and capture aspect ratio for retake
+  const targetPhotoRatio = useMemo(() => {
+    return calculateTargetPhotoRatio(retakeTargetBox, effectiveFrameRatio, layout.aspectRatio);
+  }, [retakeTargetBox, effectiveFrameRatio, layout.aspectRatio]);
 
   // Initialize camera for single retake
   useEffect(() => {
@@ -83,7 +114,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
     };
   }, [retakeIdx, selectedCameraId]);
 
-  // Capture single shot in retake
+  // Capture single shot in retake cropped to match targetPhotoRatio
   const captureSingleShot = useCallback(async () => {
     if (retakeIdx === null || retakeCountdown !== null) return;
 
@@ -101,16 +132,43 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     const video = singleVideoRef.current;
     if (video && video.videoWidth > 0) {
+      const vw = video.videoWidth;
+      const vh = video.videoHeight;
+      const videoRatio = vw / vh;
+
+      let cropW = vw;
+      let cropH = vh;
+      let cropX = 0;
+      let cropY = 0;
+
+      if (videoRatio > targetPhotoRatio) {
+        cropW = vh * targetPhotoRatio;
+        cropX = (vw - cropW) / 2;
+      } else {
+        cropH = vw / targetPhotoRatio;
+        cropY = (vh - cropH) / 2;
+      }
+
       const canvas = document.createElement("canvas");
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
+      canvas.width = Math.round(cropW);
+      canvas.height = Math.round(cropH);
       const ctx = canvas.getContext("2d");
       if (ctx) {
         if (mirror) {
           ctx.translate(canvas.width, 0);
           ctx.scale(-1, 1);
         }
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.drawImage(
+          video,
+          cropX,
+          cropY,
+          cropW,
+          cropH,
+          0,
+          0,
+          canvas.width,
+          canvas.height
+        );
         const newPhotoData = canvas.toDataURL("image/jpeg", 0.95);
         onUpdatePhoto(retakeIdx, newPhotoData);
       }
@@ -118,7 +176,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     // Close retake
     setRetakeIdx(null);
-  }, [retakeIdx, retakeCountdown, mirror, onUpdatePhoto]);
+  }, [retakeIdx, retakeCountdown, mirror, targetPhotoRatio, onUpdatePhoto]);
 
   const currentFilterObj = PHOTO_FILTERS.find((f) => f.id === selectedFilterId);
 
@@ -145,33 +203,51 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
               </div>
             </div>
 
-            {/* Main Camera Viewport */}
-            <div className="flex-1 min-h-0 max-h-[65vh] xl:max-h-[68vh] rounded-2xl overflow-hidden relative border-2 border-amber-400/30 bg-stone-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] flex items-center justify-center">
-              <video
-                ref={singleVideoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
+            {/* Main Camera Viewport Area */}
+            <div className="flex-1 min-h-0 flex items-center justify-center p-1 sm:p-2 relative w-full overflow-hidden">
+              <div
+                className="h-full max-h-[64vh] xl:max-h-[68vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
                 style={{
-                  filter: currentFilterObj?.css || "none",
-                  transform: mirror ? "scaleX(-1)" : "none",
+                  aspectRatio: `${targetPhotoRatio}`,
                 }}
-              />
+              >
+                <video
+                  ref={singleVideoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  style={{
+                    filter: currentFilterObj?.css || "none",
+                    transform: mirror ? "scaleX(-1)" : "none",
+                  }}
+                />
 
-              {/* Countdown Overlay */}
-              {retakeCountdown !== null && (
-                <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
-                  <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
-                    <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
-                      {retakeCountdown}
+                {/* Corner Golden Framing Brackets */}
+                <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
+                <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
+                <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
+                <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
+
+                {/* Target Photo Hole indicator */}
+                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 border border-amber-400/30 text-[10px] font-mono text-amber-200 backdrop-blur-sm pointer-events-none z-10 whitespace-nowrap">
+                  Proporsi Bidikan: {targetPhotoRatio >= 1.2 ? "Landscape" : targetPhotoRatio <= 0.85 ? "Portrait" : "Persegi"} (Sesuai Lubang Frame)
+                </div>
+
+                {/* Countdown Overlay */}
+                {retakeCountdown !== null && (
+                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
+                      <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
+                        {retakeCountdown}
+                      </span>
+                    </div>
+                    <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
+                      Bersiaplah... Senyum!
                     </span>
                   </div>
-                  <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
-                    Bersiaplah... Senyum!
-                  </span>
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Left Column Bottom Bar: Batal Button */}
@@ -210,74 +286,48 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
               </button>
             </div>
 
-            {/* Center: Vertical Strip Mockup */}
+            {/* Center: Live Frame / Strip Mockup for Retake */}
             <div className="flex-1 flex items-center justify-center min-h-0 py-1">
-              <div
-                className="w-full max-w-[190px] xl:max-w-[210px] h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all"
-                style={{
-                  aspectRatio: "1 / 2.7",
-                  background: preset.bgColor,
-                  borderColor: preset.borderColor,
-                }}
-              >
-                {/* Optional Custom Frame Overlay */}
-                {customOverlayUrl && (
-                  <img
-                    src={customOverlayUrl}
-                    alt="Bingkai Kustom"
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
-                  />
-                )}
-
-                {/* Decorative inner hairline border if default preset */}
-                {!customOverlayUrl && (
-                  <div
-                    className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
-                    style={{ borderColor: preset.borderColor }}
-                  />
-                )}
-
-                {/* Strip Header: Couple Names */}
-                <div className="text-center z-10 pt-0.5">
-                  <div
-                    className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
-                    style={{ color: preset.secondaryTextColor }}
-                  >
-                    THE WEDDING OF
-                  </div>
-                  <div
-                    className="font-script text-base sm:text-lg leading-tight mt-0.5"
-                    style={{ color: preset.textColor }}
-                  >
-                    {weddingConfig.brideName} & {weddingConfig.groomName}
-                  </div>
-                </div>
-
-                {/* Photo Slots */}
-                <div className="flex flex-col gap-1.5 w-full px-1 flex-1 justify-center z-10 my-1 min-h-0">
-                  {Array.from({ length: Math.min(3, layout.totalPhotos) }).map((_, slotIdx) => {
+              {customOverlayUrl ? (
+                /* Custom Uploaded Frame Overlay Mockup */
+                <div
+                  className="h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all select-none mx-auto"
+                  style={{
+                    aspectRatio: `${effectiveFrameRatio}`,
+                    width: effectiveFrameRatio > 0.5 ? "240px" : "185px",
+                    maxWidth: "100%",
+                    background: "#ffffff",
+                  }}
+                >
+                  {(photoBoxes && photoBoxes.length > 0
+                    ? photoBoxes
+                    : getDefaultBoxesForLayout(layout.id)
+                  ).map((box, slotIdx) => {
                     const isRetakeTarget = slotIdx === retakeIdx;
                     const photoSrc = photos[slotIdx];
 
                     return (
                       <div
-                        key={slotIdx}
-                        className={`w-full flex-1 rounded-md overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
+                        key={box.id || slotIdx}
+                        className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
                           isRetakeTarget
-                            ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
+                            ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
                             : photoSrc
-                            ? "border-amber-400/60 shadow-sm"
-                            : "border-white/15 bg-white/5 opacity-70"
+                            ? "bg-black"
+                            : "bg-slate-200 border border-slate-300"
                         }`}
                         style={{
-                          borderColor: isRetakeTarget ? undefined : preset.borderColor,
+                          left: `${box.x}%`,
+                          top: `${box.y}%`,
+                          width: `${box.w}%`,
+                          height: `${box.h}%`,
                         }}
                       >
                         {isRetakeTarget ? (
                           <div className="flex flex-col items-center gap-0.5 text-amber-300">
-                            <Camera size={14} className="animate-bounce" />
-                            <span className="text-[8px] font-cinzel uppercase tracking-wider font-semibold">
-                              Ulang Foto #{slotIdx + 1}
+                            <Camera size={14} className="animate-bounce text-amber-400" />
+                            <span className="text-[8px] font-bold text-amber-300 uppercase">
+                              Ulang #{slotIdx + 1}
                             </span>
                           </div>
                         ) : photoSrc ? (
@@ -286,35 +336,129 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                               src={photoSrc}
                               alt={`Foto ${slotIdx + 1}`}
                               className="w-full h-full object-cover"
-                              style={{
-                                filter: currentFilterObj?.css || "none",
-                              }}
+                              style={{ filter: currentFilterObj?.css || "none" }}
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                              <CheckCircle2 size={12} className="text-amber-400" />
+                              <CheckCircle2 size={11} className="text-amber-400" />
                             </div>
                           </div>
                         ) : (
-                          <span
-                            className="text-[8px] font-mono opacity-50"
-                            style={{ color: preset.secondaryTextColor }}
-                          >
-                            Foto {slotIdx + 1}
+                          <span className="text-[8px] font-mono text-slate-400 font-bold">
+                            #{slotIdx + 1}
                           </span>
                         )}
                       </div>
                     );
                   })}
-                </div>
 
-                {/* Strip Footer: Date */}
-                <div
-                  className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
-                  style={{ color: preset.secondaryTextColor }}
-                >
-                  {weddingConfig.weddingDate}
+                  <img
+                    src={customOverlayUrl}
+                    alt="Bingkai Kustom"
+                    className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+                  />
                 </div>
-              </div>
+              ) : (
+                /* Built-in Preset Theme Mockup */
+                <div
+                  className={`w-full ${
+                    layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
+                  } h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
+                  style={{
+                    aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
+                    background: preset.bgColor,
+                    borderColor: preset.borderColor,
+                  }}
+                >
+                  <div
+                    className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
+                    style={{ borderColor: preset.borderColor }}
+                  />
+
+                  {/* Strip Header: Couple Names */}
+                  <div className="text-center z-10 pt-0.5">
+                    <div
+                      className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
+                      style={{ color: preset.secondaryTextColor }}
+                    >
+                      THE WEDDING OF
+                    </div>
+                    <div
+                      className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                      style={{ color: preset.textColor }}
+                    >
+                      {weddingConfig.brideName} & {weddingConfig.groomName}
+                    </div>
+                  </div>
+
+                  {/* Photo Slots Grid */}
+                  <div
+                    className="w-full px-1 flex-1 min-h-0 z-10 my-1 grid gap-1.5 items-center justify-center"
+                    style={{
+                      gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                      gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                    }}
+                  >
+                    {Array.from({ length: layout.totalPhotos }).map((_, slotIdx) => {
+                      const isRetakeTarget = slotIdx === retakeIdx;
+                      const photoSrc = photos[slotIdx];
+
+                      return (
+                        <div
+                          key={slotIdx}
+                          className={`w-full h-full rounded overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
+                            isRetakeTarget
+                              ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
+                              : photoSrc
+                              ? "border-amber-400/60 shadow-sm"
+                              : "border-white/15 bg-white/5 opacity-70"
+                          }`}
+                          style={{
+                            borderColor: isRetakeTarget ? undefined : preset.borderColor,
+                          }}
+                        >
+                          {isRetakeTarget ? (
+                            <div className="flex flex-col items-center gap-0.5 text-amber-300">
+                              <Camera size={14} className="animate-bounce" />
+                              <span className="text-[8px] font-cinzel uppercase tracking-wider font-semibold">
+                                Ulang #{slotIdx + 1}
+                              </span>
+                            </div>
+                          ) : photoSrc ? (
+                            <div className="w-full h-full relative">
+                              <img
+                                src={photoSrc}
+                                alt={`Foto ${slotIdx + 1}`}
+                                className="w-full h-full object-cover"
+                                style={{
+                                  filter: currentFilterObj?.css || "none",
+                                }}
+                              />
+                              <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
+                                <CheckCircle2 size={11} className="text-amber-400" />
+                              </div>
+                            </div>
+                          ) : (
+                            <span
+                              className="text-[8px] font-mono opacity-50"
+                              style={{ color: preset.secondaryTextColor }}
+                            >
+                              Foto {slotIdx + 1}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Strip Footer: Date */}
+                  <div
+                    className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
+                    style={{ color: preset.secondaryTextColor }}
+                  >
+                    {weddingConfig.weddingDate}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Bottom Action: Prominent Ambil Foto Ulang Button */}
@@ -338,92 +482,156 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
     <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full px-3 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
       {/* Centered Main 2-Column Split */}
       <div className="w-full flex flex-col lg:flex-row items-center justify-center gap-5 lg:gap-8 flex-1 min-h-0 max-h-[520px]">
-        {/* ================= LEFT: Vertical Strip Mockup ================= */}
-        <div
-          className="w-full max-w-[190px] xl:max-w-[210px] h-full max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0"
-          style={{
-            aspectRatio: "1 / 2.7",
-            background: preset.bgColor,
-            borderColor: preset.borderColor,
-          }}
-        >
-          {/* Optional Custom Frame Overlay */}
-          {customOverlayUrl && (
-            <img
-              src={customOverlayUrl}
-              alt="Bingkai Kustom"
-              className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
-            />
-          )}
-
-          {/* Decorative hairline border if preset */}
-          {!customOverlayUrl && (
-            <div
-              className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
-              style={{ borderColor: preset.borderColor }}
-            />
-          )}
-
-          {/* Strip Header: Couple Names */}
-          <div className="text-center z-10 pt-0.5">
-            <div
-              className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
-              style={{ color: preset.secondaryTextColor }}
-            >
-              THE WEDDING OF
-            </div>
-            <div
-              className="font-script text-base sm:text-lg leading-tight mt-0.5"
-              style={{ color: preset.textColor }}
-            >
-              {weddingConfig.brideName} & {weddingConfig.groomName}
-            </div>
-          </div>
-
-          {/* 3 Interactive Photo Slots */}
-          <div className="flex flex-col gap-1.5 w-full px-1 flex-1 justify-center z-10 my-1 min-h-0">
-            {photos.map((photoUrl, slotIdx) => {
+        {/* ================= LEFT: Live Frame / Strip Mockup ================= */}
+        {customOverlayUrl ? (
+          /* Custom Uploaded Frame Overlay Mockup */
+          <div
+            className="h-full max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all shrink-0 select-none mx-auto"
+            style={{
+              aspectRatio: `${effectiveFrameRatio}`,
+              width: effectiveFrameRatio > 0.5 ? "250px" : "190px",
+              maxWidth: "100%",
+              background: "#ffffff",
+            }}
+          >
+            {/* Interactive Photo Boxes beneath custom overlay */}
+            {(photoBoxes && photoBoxes.length > 0
+              ? photoBoxes
+              : getDefaultBoxesForLayout(layout.id)
+            ).map((box, slotIdx) => {
+              const photoUrl = photos[slotIdx];
               const isSelected = activePhotoIdx === slotIdx;
 
               return (
                 <button
-                  key={slotIdx}
+                  key={box.id || slotIdx}
+                  type="button"
                   onClick={() => {
                     soundFx.playChime();
                     setActivePhotoIdx(slotIdx);
                   }}
-                  className={`w-full flex-1 rounded-md overflow-hidden relative border transition-all cursor-pointer ${
+                  className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
                     isSelected
-                      ? "border-amber-400 border-2 shadow-[0_0_12px_rgba(212,175,55,0.5)] scale-[1.02]"
-                      : "border-white/20 opacity-80 hover:opacity-100"
+                      ? "ring-2 ring-amber-400 z-10 shadow-lg scale-[1.01]"
+                      : "opacity-90 hover:opacity-100"
                   }`}
                   style={{
-                    borderColor: isSelected ? undefined : preset.borderColor,
+                    left: `${box.x}%`,
+                    top: `${box.y}%`,
+                    width: `${box.w}%`,
+                    height: `${box.h}%`,
                   }}
                   title={`Klik untuk meninjau Foto #${slotIdx + 1}`}
                 >
-                  <img
-                    src={photoUrl}
-                    alt={`Foto ${slotIdx + 1}`}
-                    className="w-full h-full object-cover"
-                    style={{ filter: currentFilterObj?.css || "none" }}
-                  />
+                  {photoUrl ? (
+                    <img
+                      src={photoUrl}
+                      alt={`Foto ${slotIdx + 1}`}
+                      className="w-full h-full object-cover"
+                      style={{ filter: currentFilterObj?.css || "none" }}
+                    />
+                  ) : (
+                    <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
+                  )}
                   <div className="absolute top-1 left-1 bg-black/70 px-1 py-0.2 rounded text-[8px] font-mono text-amber-300">
                     #{slotIdx + 1}
                   </div>
                 </button>
               );
             })}
-          </div>
 
-          {/* Strip Footer: Date */}
-          <div
-            className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
-            style={{ color: preset.secondaryTextColor }}
-          >
-            {weddingConfig.weddingDate}
+            {/* Custom Overlay sits on top so photos peek cleanly through transparent holes */}
+            <img
+              src={customOverlayUrl}
+              alt="Bingkai Kustom"
+              className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+            />
           </div>
-        </div>
+        ) : (
+          /* Built-in Preset Theme Mockup */
+          <div
+            className={`w-full ${
+              layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
+            } h-full max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0 select-none`}
+            style={{
+              aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
+              background: preset.bgColor,
+              borderColor: preset.borderColor,
+            }}
+          >
+            <div
+              className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
+              style={{ borderColor: preset.borderColor }}
+            />
+
+            {/* Strip Header: Couple Names */}
+            <div className="text-center z-10 pt-0.5">
+              <div
+                className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
+                style={{ color: preset.secondaryTextColor }}
+              >
+                THE WEDDING OF
+              </div>
+              <div
+                className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                style={{ color: preset.textColor }}
+              >
+                {weddingConfig.brideName} & {weddingConfig.groomName}
+              </div>
+            </div>
+
+            {/* Interactive Photo Slots Grid */}
+            <div
+              className="w-full px-1 flex-1 min-h-0 z-10 my-1 grid gap-1.5 items-center justify-center"
+              style={{
+                gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+              }}
+            >
+              {photos.map((photoUrl, slotIdx) => {
+                const isSelected = activePhotoIdx === slotIdx;
+
+                return (
+                  <button
+                    key={slotIdx}
+                    type="button"
+                    onClick={() => {
+                      soundFx.playChime();
+                      setActivePhotoIdx(slotIdx);
+                    }}
+                    className={`w-full h-full rounded overflow-hidden relative border transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-amber-400 border-2 shadow-[0_0_12px_rgba(212,175,55,0.5)] scale-[1.02] z-10"
+                        : "border-white/20 opacity-80 hover:opacity-100"
+                    }`}
+                    style={{
+                      borderColor: isSelected ? undefined : preset.borderColor,
+                    }}
+                    title={`Klik untuk meninjau Foto #${slotIdx + 1}`}
+                  >
+                    <img
+                      src={photoUrl}
+                      alt={`Foto ${slotIdx + 1}`}
+                      className="w-full h-full object-cover"
+                      style={{ filter: currentFilterObj?.css || "none" }}
+                    />
+                    <div className="absolute top-1 left-1 bg-black/70 px-1 py-0.2 rounded text-[8px] font-mono text-amber-300">
+                      #{slotIdx + 1}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Strip Footer: Date */}
+            <div
+              className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
+              style={{ color: preset.secondaryTextColor }}
+            >
+              {weddingConfig.weddingDate}
+            </div>
+          </div>
+        )}
 
         {/* ================= RIGHT: Photo Review, 6 Filters & Buttons ================= */}
         <div className="flex-1 max-w-lg w-full flex flex-col justify-between h-full max-h-[480px] bg-stone-900/40 border border-amber-400/15 rounded-2xl p-3.5 backdrop-blur-sm shadow-xl min-h-0">

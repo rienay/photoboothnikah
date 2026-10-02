@@ -42,6 +42,14 @@ export interface WeddingFramePreset {
   headerStyle: "ornament" | "flourish" | "minimal" | "botanical";
   previewClass: string;
 }
+export interface PhotoBox {
+  id: string;
+  x: number; // percentage (0 - 100)
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface FrameSlot {
   id: string; // "slot_1" | "slot_2" | "slot_3" | custom id
   name: string;
@@ -50,7 +58,7 @@ export interface FrameSlot {
   presetThemeId: FrameThemeId;
   enabled?: boolean;
   presetId?: string;
-  photoBoxes?: { id: string; x: number; y: number; w: number; h: number }[];
+  photoBoxes?: PhotoBox[];
 }
 export interface CameraFilter {
   id: string;

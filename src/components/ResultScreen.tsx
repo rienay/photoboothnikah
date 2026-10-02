@@ -11,7 +11,7 @@ import {
   CloudUpload,
 } from "lucide-react";
 import { fireWeddingConfetti } from "../lib/confetti";
-import { DriveConfig, LayoutConfig, SavedSession, WeddingConfig, WeddingFramePreset } from "../types";
+import { DriveConfig, LayoutConfig, PhotoBox, SavedSession, WeddingConfig, WeddingFramePreset } from "../types";
 import { composeWeddingStrip, createDualStripCanvas } from "../lib/canvasComposer";
 import { generateDriveQRCode, uploadToGoogleDrive } from "../lib/googleDrive";
 import { saveSessionHistory } from "../lib/storage";
@@ -22,6 +22,7 @@ interface ResultScreenProps {
   layout: LayoutConfig;
   preset: WeddingFramePreset;
   customOverlayUrl?: string;
+  photoBoxes?: PhotoBox[];
   filterCss?: string;
   weddingConfig: WeddingConfig;
   driveConfig: DriveConfig;
@@ -35,6 +36,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   layout,
   preset,
   customOverlayUrl,
+  photoBoxes,
   filterCss,
   weddingConfig,
   driveConfig,
@@ -67,6 +69,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           layout,
           preset,
           customOverlayUrl,
+          photoBoxes,
           weddingConfig,
           filterCss,
         });
@@ -107,7 +110,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     return () => {
       active = false;
     };
-  }, [photos, layout, preset, customOverlayUrl, weddingConfig, filterCss]);
+  }, [photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss]);
 
   // 2. Generate Google Drive QR Code
   useEffect(() => {

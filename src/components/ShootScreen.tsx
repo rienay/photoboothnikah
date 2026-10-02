@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, FlipHorizontal, RefreshCw, Sparkles, CheckCircle2 } from "lucide-react";
-import { LayoutConfig, WeddingConfig, WeddingFramePreset } from "../types";
+import { LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
+import { calculateTargetPhotoRatio, getDefaultBoxesForLayout } from "../lib/frameLayouts";
 
 interface ShootScreenProps {
   layout: LayoutConfig;
@@ -11,6 +12,7 @@ interface ShootScreenProps {
   selectedCameraId?: string;
   preset: WeddingFramePreset;
   customOverlayUrl?: string;
+  photoBoxes?: PhotoBox[];
   weddingConfig: WeddingConfig;
   onPhotosCaptured: (photos: string[]) => void;
   onBack: () => void;
@@ -24,6 +26,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
   selectedCameraId,
   preset,
   customOverlayUrl,
+  photoBoxes,
   weddingConfig,
   onPhotosCaptured,
   onBack,
@@ -38,6 +41,34 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
   const [isShooting, setIsShooting] = useState(false);
   const [isFlashing, setIsFlashing] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
+  const [frameNaturalRatio, setFrameNaturalRatio] = useState<number | null>(null);
+
+  // Measure custom overlay aspect ratio if present
+  useEffect(() => {
+    if (!customOverlayUrl) {
+      setFrameNaturalRatio(null);
+      return;
+    }
+    const img = new Image();
+    img.src = customOverlayUrl;
+    img.onload = () => {
+      if (img.naturalWidth && img.naturalHeight) {
+        setFrameNaturalRatio(img.naturalWidth / img.naturalHeight);
+      }
+    };
+  }, [customOverlayUrl]);
+
+  // Frame aspect ratio (default 1/3 for 1-col strip, 2/3 for standard 4R/postcard)
+  const effectiveFrameRatio = frameNaturalRatio || (layout.cols === 1 ? 1 / 2.8 : 2 / 3);
+
+  // Identify current targeted photo box
+  const activeBoxes = photoBoxes && photoBoxes.length > 0 ? photoBoxes : getDefaultBoxesForLayout(layout.id);
+  const currentTargetBox = activeBoxes[Math.min(Math.max(0, currentShotIndex - 1), activeBoxes.length - 1)] || activeBoxes[0];
+
+  // Viewfinder and capture aspect ratio (width / height)
+  const targetPhotoRatio = useMemo(() => {
+    return calculateTargetPhotoRatio(currentTargetBox, effectiveFrameRatio, layout.aspectRatio);
+  }, [currentTargetBox, effectiveFrameRatio, layout.aspectRatio]);
 
   // Initialize camera stream
   useEffect(() => {
@@ -88,14 +119,32 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
     };
   }, [selectedCameraId]);
 
-  // Capture single frame from video
+  // Capture single frame from video cropped to match the exact viewfinder & photo hole ratio
   const captureFrame = useCallback((): string | null => {
     const video = videoRef.current;
     if (!video || video.videoWidth === 0) return null;
 
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    const videoRatio = vw / vh;
+
+    // Crop source video coordinates to targetPhotoRatio
+    let cropW = vw;
+    let cropH = vh;
+    let cropX = 0;
+    let cropY = 0;
+
+    if (videoRatio > targetPhotoRatio) {
+      cropW = vh * targetPhotoRatio;
+      cropX = (vw - cropW) / 2;
+    } else {
+      cropH = vw / targetPhotoRatio;
+      cropY = (vh - cropH) / 2;
+    }
+
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = Math.round(cropW);
+    canvas.height = Math.round(cropH);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
 
@@ -104,9 +153,19 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
       ctx.scale(-1, 1);
     }
 
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    ctx.drawImage(
+      video,
+      cropX,
+      cropY,
+      cropW,
+      cropH,
+      0,
+      0,
+      canvas.width,
+      canvas.height
+    );
     return canvas.toDataURL("image/jpeg", 0.95);
-  }, [mirror]);
+  }, [mirror, targetPhotoRatio]);
 
   // Trigger Flash effect and Shutter sound
   const triggerShutterFlash = useCallback(() => {
@@ -198,57 +257,75 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
             </div>
           </div>
 
-          {/* Main Camera Viewport */}
-          <div className="flex-1 min-h-0 max-h-[65vh] xl:max-h-[68vh] rounded-2xl overflow-hidden relative border-2 border-amber-400/30 bg-stone-950 shadow-[0_15px_40px_rgba(0,0,0,0.8)] flex items-center justify-center">
-            {cameraError ? (
-              <div className="text-center p-6 max-w-md">
-                <Camera size={48} className="text-rose-400 mx-auto mb-3 opacity-60" />
-                <h3 className="font-serif text-lg text-rose-200 mb-1">Kamera Bermasalah</h3>
-                <p className="text-xs text-stone-400 mb-4">{cameraError}</p>
-                <button
-                  onClick={() => window.location.reload()}
-                  className="btn-gold-outline px-4 py-2 rounded-full text-xs inline-flex items-center gap-2"
-                >
-                  <RefreshCw size={14} /> Muat Ulang Halaman
-                </button>
-              </div>
-            ) : (
-              <>
-                <video
-                  ref={videoRef}
-                  autoPlay
-                  playsInline
-                  muted
-                  className="w-full h-full object-cover"
-                  style={{
-                    filter: filterCss,
-                    transform: mirror ? "scaleX(-1)" : "none",
-                  }}
-                />
+          {/* Main Camera Viewport Area */}
+          <div className="flex-1 min-h-0 flex items-center justify-center p-1 sm:p-2 relative w-full overflow-hidden">
+            <div
+              className="h-full max-h-[64vh] xl:max-h-[68vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
+              style={{
+                aspectRatio: `${targetPhotoRatio}`,
+              }}
+            >
+              {cameraError ? (
+                <div className="text-center p-6 max-w-md">
+                  <Camera size={48} className="text-rose-400 mx-auto mb-3 opacity-60" />
+                  <h3 className="font-serif text-lg text-rose-200 mb-1">Kamera Bermasalah</h3>
+                  <p className="text-xs text-stone-400 mb-4">{cameraError}</p>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="btn-gold-outline px-4 py-2 rounded-full text-xs inline-flex items-center gap-2"
+                  >
+                    <RefreshCw size={14} /> Muat Ulang Halaman
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <video
+                    ref={videoRef}
+                    autoPlay
+                    playsInline
+                    muted
+                    className="w-full h-full object-cover"
+                    style={{
+                      filter: filterCss,
+                      transform: mirror ? "scaleX(-1)" : "none",
+                    }}
+                  />
 
-                {/* Countdown Overlay */}
-                {countdown !== null && (
-                  <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
-                    <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
-                      <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
-                        {countdown}
+                  {/* Corner Golden Framing Brackets */}
+                  <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
+                  <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
+                  <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
+                  <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
+
+                  {/* Target Photo Hole indicator */}
+                  <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 border border-amber-400/30 text-[10px] font-mono text-amber-200 backdrop-blur-sm pointer-events-none z-10 whitespace-nowrap">
+                    Proporsi Bidikan: {targetPhotoRatio >= 1.2 ? "Landscape" : targetPhotoRatio <= 0.85 ? "Portrait" : "Persegi"} (Sesuai Lubang Frame)
+                  </div>
+
+                  {/* Countdown Overlay */}
+                  {countdown !== null && (
+                    <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
+                      <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
+                        <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
+                          {countdown}
+                        </span>
+                      </div>
+                      <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
+                        Bersiaplah... Senyum!
                       </span>
                     </div>
-                    <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
-                      Bersiaplah... Senyum!
-                    </span>
-                  </div>
-                )}
+                  )}
 
-                {/* In-between shot message */}
-                {isShooting && countdown === null && (
-                  <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-stone-900/90 border border-amber-400/40 text-amber-200 text-xs font-cinzel tracking-wider flex items-center gap-2 shadow-lg z-20">
-                    <Sparkles size={14} className="text-amber-400 animate-spin" />
-                    <span>Foto {currentShotIndex} Tersimpan! Bersiap selanjutnya...</span>
-                  </div>
-                )}
-              </>
-            )}
+                  {/* In-between shot message */}
+                  {isShooting && countdown === null && (
+                    <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-stone-900/90 border border-amber-400/40 text-amber-200 text-xs font-cinzel tracking-wider flex items-center gap-2 shadow-lg z-20">
+                      <Sparkles size={14} className="text-amber-400 animate-spin" />
+                      <span>Foto {currentShotIndex} Tersimpan! Bersiap selanjutnya...</span>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
           </div>
 
           {/* Left Column Bottom Bar: Kembali Button */}
@@ -288,67 +365,42 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
             </button>
           </div>
 
-          {/* Center: Vertical Strip Mockup */}
+          {/* Center: Live Frame / Strip Mockup */}
           <div className="flex-1 flex items-center justify-center min-h-0 py-1">
-            <div
-              className="w-full max-w-[190px] xl:max-w-[210px] h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all"
-              style={{
-                aspectRatio: "1 / 2.7",
-                background: preset.bgColor,
-                borderColor: preset.borderColor,
-              }}
-            >
-              {/* Optional Custom Frame Overlay */}
-              {customOverlayUrl && (
-                <img
-                  src={customOverlayUrl}
-                  alt="Bingkai Kustom"
-                  className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
-                />
-              )}
-
-              {/* Decorative inner hairline border if default preset */}
-              {!customOverlayUrl && (
-                <div
-                  className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
-                  style={{ borderColor: preset.borderColor }}
-                />
-              )}
-
-              {/* Strip Header: Couple Names */}
-              <div className="text-center z-10 pt-0.5">
-                <div
-                  className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
-                  style={{ color: preset.secondaryTextColor }}
-                >
-                  THE WEDDING OF
-                </div>
-                <div
-                  className="font-script text-base sm:text-lg leading-tight mt-0.5"
-                  style={{ color: preset.textColor }}
-                >
-                  {weddingConfig.brideName} & {weddingConfig.groomName}
-                </div>
-              </div>
-
-              {/* 3 Live Photo Slots */}
-              <div className="flex flex-col gap-1.5 w-full px-1 flex-1 justify-center z-10 my-1 min-h-0">
-                {Array.from({ length: Math.min(3, layout.totalPhotos) }).map((_, slotIdx) => {
+            {customOverlayUrl ? (
+              /* Custom Uploaded Frame Overlay Mockup */
+              <div
+                className="h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border border-amber-400/30 transition-all select-none mx-auto"
+                style={{
+                  aspectRatio: `${effectiveFrameRatio}`,
+                  width: effectiveFrameRatio > 0.5 ? "240px" : "185px",
+                  maxWidth: "100%",
+                  background: "#ffffff",
+                }}
+              >
+                {/* Photo Boxes beneath custom overlay */}
+                {(photoBoxes && photoBoxes.length > 0
+                  ? photoBoxes
+                  : getDefaultBoxesForLayout(layout.id)
+                ).map((box, slotIdx) => {
                   const shotPhoto = capturedPhotos[slotIdx];
                   const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
 
                   return (
                     <div
-                      key={slotIdx}
-                      className={`w-full flex-1 rounded-md overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
+                      key={box.id || slotIdx}
+                      className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
                         shotPhoto
-                          ? "border-amber-400/60 shadow-sm"
+                          ? "bg-black"
                           : isCurrentTarget
-                          ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
-                          : "border-white/15 bg-white/5 opacity-70"
+                          ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
+                          : "bg-slate-200 border border-slate-300"
                       }`}
                       style={{
-                        borderColor: isCurrentTarget ? undefined : preset.borderColor,
+                        left: `${box.x}%`,
+                        top: `${box.y}%`,
+                        width: `${box.w}%`,
+                        height: `${box.h}%`,
                       }}
                     >
                       {shotPhoto ? (
@@ -359,37 +411,127 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                            <CheckCircle2 size={12} className="text-amber-400" />
+                            <CheckCircle2 size={11} className="text-amber-400" />
                           </div>
                         </div>
                       ) : isCurrentTarget ? (
                         <div className="flex flex-col items-center gap-0.5 text-amber-300">
-                          <Camera size={14} className="animate-bounce" />
-                          <span className="text-[8px] font-cinzel uppercase tracking-wider">
-                            Jepret #{slotIdx + 1}
-                          </span>
+                          <Camera size={14} className="animate-bounce text-amber-400" />
+                          <span className="text-[8px] font-bold text-amber-300">#{slotIdx + 1}</span>
                         </div>
                       ) : (
-                        <span
-                          className="text-[8px] font-mono opacity-50"
-                          style={{ color: preset.secondaryTextColor }}
-                        >
-                          Foto {slotIdx + 1}
-                        </span>
+                        <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
                       )}
                     </div>
                   );
                 })}
-              </div>
 
-              {/* Strip Footer: Date */}
-              <div
-                className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
-                style={{ color: preset.secondaryTextColor }}
-              >
-                {weddingConfig.weddingDate}
+                {/* Custom Overlay sits on top so photos peek cleanly through transparent holes */}
+                <img
+                  src={customOverlayUrl}
+                  alt="Bingkai Kustom"
+                  className="absolute inset-0 w-full h-full object-contain pointer-events-none z-20"
+                />
               </div>
-            </div>
+            ) : (
+              /* Built-in Preset Frame Mockup */
+              <div
+                className={`w-full ${
+                  layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
+                } h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
+                style={{
+                  aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
+                  background: preset.bgColor,
+                  borderColor: preset.borderColor,
+                }}
+              >
+                <div
+                  className="absolute inset-1.5 border rounded-lg pointer-events-none opacity-25"
+                  style={{ borderColor: preset.borderColor }}
+                />
+
+                {/* Strip Header: Couple Names */}
+                <div className="text-center z-10 pt-0.5">
+                  <div
+                    className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
+                    style={{ color: preset.secondaryTextColor }}
+                  >
+                    THE WEDDING OF
+                  </div>
+                  <div
+                    className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                    style={{ color: preset.textColor }}
+                  >
+                    {weddingConfig.brideName} & {weddingConfig.groomName}
+                  </div>
+                </div>
+
+                {/* Adaptive Photo Grid */}
+                <div
+                  className="w-full px-1 flex-1 min-h-0 z-10 my-1 grid gap-1.5 items-center justify-center"
+                  style={{
+                    gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                    gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                  }}
+                >
+                  {Array.from({ length: layout.totalPhotos }).map((_, slotIdx) => {
+                    const shotPhoto = capturedPhotos[slotIdx];
+                    const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
+
+                    return (
+                      <div
+                        key={slotIdx}
+                        className={`w-full h-full rounded overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
+                          shotPhoto
+                            ? "border-amber-400/60 shadow-sm"
+                            : isCurrentTarget
+                            ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
+                            : "border-white/15 bg-white/5 opacity-70"
+                        }`}
+                        style={{
+                          borderColor: isCurrentTarget ? undefined : preset.borderColor,
+                        }}
+                      >
+                        {shotPhoto ? (
+                          <div className="w-full h-full relative">
+                            <img
+                              src={shotPhoto}
+                              alt={`Shot ${slotIdx + 1}`}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
+                              <CheckCircle2 size={11} className="text-amber-400" />
+                            </div>
+                          </div>
+                        ) : isCurrentTarget ? (
+                          <div className="flex flex-col items-center gap-0.5 text-amber-300">
+                            <Camera size={14} className="animate-bounce" />
+                            <span className="text-[8px] font-cinzel uppercase tracking-wider">
+                              Jepret #{slotIdx + 1}
+                            </span>
+                          </div>
+                        ) : (
+                          <span
+                            className="text-[8px] font-mono opacity-50"
+                            style={{ color: preset.secondaryTextColor }}
+                          >
+                            Foto {slotIdx + 1}
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Strip Footer: Date */}
+                <div
+                  className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
+                  style={{ color: preset.secondaryTextColor }}
+                >
+                  {weddingConfig.weddingDate}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Bottom Action: Prominent Ambil Foto Button (Matches Red Box at bottom right) */}

@@ -15,6 +15,7 @@ import {
   WeddingConfig,
 } from "./types";
 import { LAYOUTS, PHOTO_FILTERS, WEDDING_PRESETS } from "./config";
+import { getEffectiveLayout } from "./lib/frameLayouts";
 import {
   loadBoothSettings,
   loadDriveConfig,
@@ -70,8 +71,7 @@ export const App: React.FC = () => {
 
   // Find active frame slot, layout, and preset theme
   const activeSlot = frameSlots.find((s) => s.id === selectedSlotId) || frameSlots[0];
-  const currentLayoutConfig =
-    LAYOUTS.find((l) => l.id === activeSlot.layoutId) || LAYOUTS[3]; // default 3x1
+  const currentLayoutConfig = getEffectiveLayout(activeSlot, LAYOUTS);
   const currentPreset =
     WEDDING_PRESETS.find((p) => p.id === activeSlot.presetThemeId) || WEDDING_PRESETS[0];
 
@@ -151,6 +151,7 @@ export const App: React.FC = () => {
             selectedCameraId={boothSettings.selectedCameraId}
             preset={currentPreset}
             customOverlayUrl={activeSlot.customImage}
+            photoBoxes={activeSlot.photoBoxes}
             weddingConfig={weddingConfig}
             onPhotosCaptured={(captured) => {
               setPhotos(captured);
@@ -168,6 +169,7 @@ export const App: React.FC = () => {
             selectedFilterId={selectedFilterId}
             preset={currentPreset}
             customOverlayUrl={activeSlot.customImage}
+            photoBoxes={activeSlot.photoBoxes}
             weddingConfig={weddingConfig}
             onChangeFilter={(newFilterId) => setSelectedFilterId(newFilterId)}
             onUpdatePhoto={(index, newPhotoData) => {
@@ -189,6 +191,7 @@ export const App: React.FC = () => {
             layout={currentLayoutConfig}
             preset={currentPreset}
             customOverlayUrl={activeSlot.customImage}
+            photoBoxes={activeSlot.photoBoxes}
             filterCss={activeFilterCss}
             weddingConfig={weddingConfig}
             driveConfig={driveConfig}

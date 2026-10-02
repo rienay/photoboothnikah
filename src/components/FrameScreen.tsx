@@ -79,7 +79,19 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
               </div>
 
               {/* Visual Frame Mockup / Custom Image (Enlarged to fill card) */}
-              <div className="flex-1 w-full min-h-0 rounded-xl border border-amber-400/35 bg-stone-950/90 p-2 sm:p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner">
+              <div
+                className="flex-1 w-full min-h-0 rounded-xl border border-amber-400/35 bg-stone-950/90 p-2 sm:p-2.5 flex flex-col items-center justify-center relative overflow-hidden shadow-inner"
+                style={
+                  slot.customImage
+                    ? {
+                        backgroundImage:
+                          "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
+                        backgroundSize: "14px 14px",
+                        backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
+                      }
+                    : undefined
+                }
+              >
                 {slot.customImage ? (
                   /* Custom PNG uploaded by user */
                   <img
@@ -117,19 +129,25 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
                       </div>
                     </div>
 
-                    {/* Photo Boxes imitation */}
-                    <div className="flex flex-col gap-1.5 w-full px-3 flex-1 justify-center z-10 my-1">
-                      {Array.from({ length: Math.min(3, layout.totalPhotos) }).map((_, bIdx) => (
+                    {/* Photo Boxes imitation adapting to cols/rows */}
+                    <div
+                      className="w-full px-2 flex-1 justify-center z-10 my-1 grid gap-1 items-center"
+                      style={{
+                        gridTemplateColumns: `repeat(${layout.cols}, minmax(0, 1fr))`,
+                        gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
+                      }}
+                    >
+                      {Array.from({ length: layout.totalPhotos }).map((_, bIdx) => (
                         <div
                           key={bIdx}
-                          className="w-full flex-1 max-h-16 min-h-7 rounded border opacity-60 flex items-center justify-center"
+                          className="w-full h-full min-h-5 rounded border opacity-60 flex items-center justify-center"
                           style={{
                             background: "rgba(255,255,255,0.06)",
                             borderColor: preset.borderColor,
                           }}
                         >
-                          <span className="text-[9px] text-stone-400 font-mono">
-                            Foto {bIdx + 1}
+                          <span className="text-[8px] text-stone-400 font-mono">
+                            #{bIdx + 1}
                           </span>
                         </div>
                       ))}
