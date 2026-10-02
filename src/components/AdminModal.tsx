@@ -854,6 +854,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     </label>
                   </div>
 
+                  <div className="flex items-center gap-2 pt-1">
+                    <input
+                      type="checkbox"
+                      id="autoPrintToggle"
+                      checked={boothForm.autoPrint ?? true}
+                      onChange={(e) =>
+                        setBoothForm({ ...boothForm, autoPrint: e.target.checked })
+                      }
+                      className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                    />
+                    <label htmlFor="autoPrintToggle" className="text-xs text-amber-200 font-semibold cursor-pointer">
+                      🖨️ Cetak Otomatis (Auto-Print 10×15 cm 4R) saat Selesai Foto
+                    </label>
+                  </div>
+
                   <button
                     onClick={() => {
                       onSaveBoothSettings(boothForm);

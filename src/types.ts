@@ -92,6 +92,7 @@ export interface BoothSettings {
   defaultPrintCopies: number;
   selectedCameraId?: string;
   kioskFullscreen: boolean;
+  autoPrint?: boolean;
 }
 
 export interface CustomTemplate {

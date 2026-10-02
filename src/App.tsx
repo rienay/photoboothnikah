@@ -244,6 +244,7 @@ export const App: React.FC = () => {
             driveConfig={driveConfig}
             autoResetDuration={boothSettings.autoResetDuration}
             defaultPrintCopies={boothSettings.defaultPrintCopies}
+            autoPrint={boothSettings.autoPrint ?? true}
             onHome={resetToHome}
           />
         )}

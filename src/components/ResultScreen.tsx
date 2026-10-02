@@ -28,6 +28,7 @@ interface ResultScreenProps {
   driveConfig: DriveConfig;
   autoResetDuration: number;
   defaultPrintCopies: number;
+  autoPrint?: boolean;
   onHome: () => void;
 }
 
@@ -42,6 +43,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   driveConfig,
   autoResetDuration,
   defaultPrintCopies,
+  autoPrint = true,
   onHome,
 }) => {
   const [renderedStrip, setRenderedStrip] = useState<string | null>(null);
@@ -56,6 +58,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   const [isComposing, setIsComposing] = useState(true);
 
   const uploadAttemptedRef = useRef(false);
+  const autoPrintTriggeredRef = useRef(false);
 
   // 1. Compose the high resolution wedding strip
   useEffect(() => {
@@ -77,12 +80,30 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         if (!active) return;
         setRenderedStrip(stripUrl);
 
-        // If strip layout (cols === 1), create dual side-by-side strip for 4R photo paper
-        if (layout.cols === 1) {
+        // Check the natural aspect ratio of the composed strip:
+        // A single vertical strip has aspect ratio < 0.48 (e.g. 5x15cm, ratio ~0.33).
+        // If it's a single narrow strip, duplicate side-by-side onto 4R (10x15cm) paper.
+        // If it's ALREADY 10x15cm (ratio >= 0.5, e.g. 2:3 or 10:15), print directly 1:1 on 10x15cm!
+        const checkImg = new Image();
+        checkImg.src = stripUrl;
+        await new Promise((res) => {
+          if (checkImg.complete && checkImg.naturalWidth) return res(null);
+          checkImg.onload = () => res(null);
+          checkImg.onerror = () => res(null);
+        });
+
+        const imgRatio =
+          checkImg.naturalWidth && checkImg.naturalHeight
+            ? checkImg.naturalWidth / checkImg.naturalHeight
+            : layout.cols === 1
+            ? 0.33
+            : 0.67;
+
+        if (imgRatio < 0.48 && layout.cols === 1) {
           const dualUrl = await createDualStripCanvas(stripUrl);
           if (active) setPrintImageSrc(dualUrl);
         } else {
-          setPrintImageSrc(stripUrl);
+          if (active) setPrintImageSrc(stripUrl);
         }
 
         // Fire celebratory wedding confetti!
@@ -111,6 +132,18 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       active = false;
     };
   }, [photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss]);
+
+  // 1b. Automatic Print trigger when strip composition is ready
+  useEffect(() => {
+    if (!printImageSrc || isComposing || autoPrintTriggeredRef.current) return;
+    if (autoPrint) {
+      autoPrintTriggeredRef.current = true;
+      const printTimer = setTimeout(() => {
+        window.print();
+      }, 700);
+      return () => clearTimeout(printTimer);
+    }
+  }, [printImageSrc, isComposing, autoPrint]);
 
   // 2. Generate Google Drive QR Code
   useEffect(() => {
