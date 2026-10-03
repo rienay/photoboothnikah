@@ -552,8 +552,9 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 ? photoBoxes
                 : getDefaultBoxesForLayout(layout.id)
               ).map((box, slotIdx) => {
-                const photoUrl = photos[slotIdx];
-                const isSelected = activePhotoIdx === slotIdx;
+                const shotIdx = getBoxShotIndex(slotIdx, activeBoxes, layout);
+                const photoUrl = photos[shotIdx];
+                const isSelected = activePhotoIdx === shotIdx;
 
                 return (
                   <button
@@ -561,7 +562,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     type="button"
                     onClick={() => {
                       soundFx.playChime();
-                      setActivePhotoIdx(slotIdx);
+                      setActivePhotoIdx(shotIdx);
                     }}
                     className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
                       isSelected
@@ -584,10 +585,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                         style={{ filter: currentFilterObj?.css || "none" }}
                       />
                     ) : (
-                      <span className="text-[9px] font-mono text-slate-400 font-bold">#{slotIdx + 1}</span>
+                      <span className="text-[9px] font-mono text-slate-400 font-bold">#{shotIdx + 1}</span>
                     )}
                     <div className="absolute top-1 left-1 bg-black/70 px-1 py-0.2 rounded text-[8px] font-mono text-amber-300">
-                      #{slotIdx + 1}
+                      #{shotIdx + 1}
                     </div>
                   </button>
                 );
