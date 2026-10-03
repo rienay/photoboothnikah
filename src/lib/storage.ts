@@ -18,6 +18,10 @@ import {
   loadCloudSyncConfig,
   saveCloudSyncConfig,
 } from "./cloudSync";
+import {
+  loadFramesFromIndexedDB,
+  saveFramesToIndexedDB,
+} from "./frameDB";
 
 const KEYS = {
   WEDDING: "yodha_wedding_config",
@@ -64,16 +68,27 @@ function getStorageEndpoints(): string[] {
   return list;
 }
 
+let lastLocalFrameUpdate: number = Date.now();
+
+export function getLastLocalFrameUpdate(): number {
+  return lastLocalFrameUpdate;
+}
+
+export function setLastLocalFrameUpdate(ts: number): void {
+  lastLocalFrameUpdate = ts;
+}
+
 // Check and push changes to server storage so other devices get them
 export async function pushToServer(partialData: Partial<ServerSharedConfig>): Promise<boolean> {
   try {
+    const timestamp = partialData.updatedAt || Date.now();
     const payload: ServerSharedConfig = {
       frameSlots: partialData.frameSlots || loadFrameSlots(),
       weddingConfig: partialData.weddingConfig || loadWeddingConfig(),
       driveConfig: partialData.driveConfig || loadDriveConfig(),
       boothSettings: partialData.boothSettings || loadBoothSettings(),
       cloudSyncConfig: partialData.cloudSyncConfig || loadCloudSyncConfig(),
-      updatedAt: Date.now(),
+      updatedAt: timestamp,
     };
 
     // Broadcast immediately to other tabs on the same machine
@@ -114,12 +129,24 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
           const data = (await res.json()) as ServerSharedConfig;
           if (data && typeof data === "object" && Object.keys(data).length > 0) {
             cachedEndpoint = url;
-            // Update local storage so offline access also matches
+
+            // If server has frameSlots
             if (data.frameSlots && Array.isArray(data.frameSlots) && data.frameSlots.length > 0) {
-              try {
-                localStorage.setItem(KEYS.SLOTS, JSON.stringify(data.frameSlots));
-              } catch (_) {}
+              const serverUpdatedAt = data.updatedAt || 0;
+              // Only overwrite local frames if server is newer or equal
+              if (serverUpdatedAt >= lastLocalFrameUpdate) {
+                lastLocalFrameUpdate = serverUpdatedAt;
+                saveFramesToIndexedDB(data.frameSlots, serverUpdatedAt).catch(() => {});
+                try {
+                  localStorage.setItem(KEYS.SLOTS, JSON.stringify(data.frameSlots));
+                } catch (_) {}
+              } else {
+                // Local is newer than server! Keep local frames and update server
+                data.frameSlots = undefined;
+                pushToServer({ updatedAt: lastLocalFrameUpdate }).catch(() => {});
+              }
             }
+
             if (data.weddingConfig && data.weddingConfig.brideName) {
               try {
                 localStorage.setItem(KEYS.WEDDING, JSON.stringify(data.weddingConfig));
@@ -169,14 +196,57 @@ export function loadFrameSlots(): FrameSlot[] {
   return DEFAULT_FRAME_SLOTS;
 }
 
-export function saveFrameSlots(slots: FrameSlot[]): void {
+/**
+ * Initializes frame slots from IndexedDB first (bypassing localStorage 5MB quota).
+ * If IndexedDB is empty, falls back to localStorage or DEFAULT_FRAME_SLOTS and migrates them.
+ */
+export async function initFrameSlots(): Promise<FrameSlot[]> {
+  try {
+    const idbResult = await loadFramesFromIndexedDB();
+    if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
+      if (idbResult.updatedAt) {
+        lastLocalFrameUpdate = idbResult.updatedAt;
+      }
+      return idbResult.slots;
+    }
+  } catch (err) {
+    console.warn("Failed loading frames from IndexedDB:", err);
+  }
+
+  // Fallback to localStorage or defaults
+  const localSlots = loadFrameSlots();
+  saveFramesToIndexedDB(localSlots, lastLocalFrameUpdate).catch(() => {});
+  return localSlots;
+}
+
+export function saveFrameSlots(slots: FrameSlot[], timestamp: number = Date.now()): void {
+  lastLocalFrameUpdate = timestamp;
+
+  // 1. Always save to IndexedDB (safe from quota limits)
+  saveFramesToIndexedDB(slots, timestamp).catch((err) => {
+    console.error("Failed to save frame slots to IndexedDB:", err);
+  });
+
+  // 2. Try saving to localStorage safely (ignore quota errors if slots contain large base64)
   try {
     localStorage.setItem(KEYS.SLOTS, JSON.stringify(slots));
-    pushToServer({ frameSlots: slots }).catch(() => {});
-    pushFramesToCloud(slots).catch(() => {});
-  } catch (e) {
-    console.error("Failed to save frame slots:", e);
+  } catch (quotaErr) {
+    console.warn("localStorage quota exceeded for frame slots; safely stored in IndexedDB:", quotaErr);
   }
+
+  // 3. Broadcast to other tabs on same machine
+  try {
+    syncChannel?.postMessage({
+      type: "CONFIG_UPDATED",
+      data: { frameSlots: slots, updatedAt: timestamp },
+    });
+  } catch (_) {}
+
+  // 4. Push to local dev/PHP server
+  pushToServer({ frameSlots: slots, updatedAt: timestamp }).catch(() => {});
+
+  // 5. Push to cloud database if configured
+  pushFramesToCloud(slots).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------

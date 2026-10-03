@@ -224,14 +224,30 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
         originalImageRef.current = img;
         const w = img.naturalWidth || img.width;
         const h = img.naturalHeight || img.height;
-        setImageMeta({ width: w, height: h });
+
+        // Clamp image resolution to max 1800px (300 DPI standard for 4R)
+        // Keeps PNG dataUrl compact (~1MB) preventing localStorage quota issues
+        let targetW = w;
+        let targetH = h;
+        const MAX_DIM = 1800;
+        if (targetW > MAX_DIM || targetH > MAX_DIM) {
+          if (targetW >= targetH) {
+            targetH = Math.round((targetH * MAX_DIM) / targetW);
+            targetW = MAX_DIM;
+          } else {
+            targetW = Math.round((targetW * MAX_DIM) / targetH);
+            targetH = MAX_DIM;
+          }
+        }
+
+        setImageMeta({ width: targetW, height: targetH });
 
         const canvas = document.createElement("canvas");
-        canvas.width = w;
-        canvas.height = h;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (ctx) {
-          ctx.drawImage(img, 0, 0);
+          ctx.drawImage(img, 0, 0, targetW, targetH);
           const initialData = canvas.toDataURL("image/png");
           setRawBase64Img(initialData);
           setActiveCanvasData(initialData);

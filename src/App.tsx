@@ -28,6 +28,8 @@ import {
   syncFromServer,
   pushToServer,
   syncChannel,
+  initFrameSlots,
+  getLastLocalFrameUpdate,
 } from "./lib/storage";
 import { fetchFramesFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
@@ -50,20 +52,39 @@ export const App: React.FC = () => {
   // UI state
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const isAdminOpenRef = React.useRef(isAdminOpen);
+
+  useEffect(() => {
+    isAdminOpenRef.current = isAdminOpen;
+  }, [isAdminOpen]);
+
+  // Load from IndexedDB on initial mount
+  useEffect(() => {
+    initFrameSlots().then((slots) => {
+      if (slots && slots.length > 0) {
+        setFrameSlots(slots);
+      }
+    });
+  }, []);
 
   // Cross-device sync from server on mount, interval, and window focus
   useEffect(() => {
     let mounted = true;
 
     const performSync = async () => {
+      // If admin panel is currently open, DO NOT poll or overwrite frames
+      if (isAdminOpenRef.current) return;
+
       // 1. Check cloud frames from Supabase first (if configured)
       try {
         const cloud = await fetchFramesFromCloud();
         if (cloud.success && cloud.frames && cloud.frames.length > 0) {
-          if (!mounted) return;
+          if (!mounted || isAdminOpenRef.current) return;
           setFrameSlots((prev) => {
             if (JSON.stringify(prev) !== JSON.stringify(cloud.frames)) {
-              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+              try {
+                localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+              } catch (_) {}
               return cloud.frames!;
             }
             return prev;
@@ -73,13 +94,15 @@ export const App: React.FC = () => {
 
       // 2. Local PHP / Dev Server Storage sync (Laragon / Apache / Vite)
       const serverData = await syncFromServer();
-      if (!mounted) return;
+      if (!mounted || isAdminOpenRef.current) return;
 
       if (serverData && Object.keys(serverData).length > 0) {
         if (serverData.frameSlots && Array.isArray(serverData.frameSlots) && serverData.frameSlots.length > 0) {
           setFrameSlots((prev) => {
             if (JSON.stringify(prev) !== JSON.stringify(serverData.frameSlots)) {
-              localStorage.setItem("yodha_frame_slots", JSON.stringify(serverData.frameSlots));
+              try {
+                localStorage.setItem("yodha_frame_slots", JSON.stringify(serverData.frameSlots));
+              } catch (_) {}
               return serverData.frameSlots!;
             }
             return prev;
@@ -123,22 +146,26 @@ export const App: React.FC = () => {
 
     performSync();
 
-    // Background interval to keep frames & config synced across all devices in real-time
+    // Background interval to keep frames & config synced across devices
     const pollInterval = setInterval(() => {
-      if (!mounted) return;
+      if (!mounted || isAdminOpenRef.current) return;
       performSync();
-    }, 3500);
+    }, 12000);
 
     const onFocus = () => {
-      performSync();
+      if (!isAdminOpenRef.current) {
+        performSync();
+      }
     };
     window.addEventListener("focus", onFocus);
 
     // Cross-tab broadcast listener for instant sync
     const handleBroadcast = (e: MessageEvent) => {
-      if (!mounted) return;
+      if (!mounted || isAdminOpenRef.current) return;
       if (e.data?.type === "CONFIG_UPDATED" && e.data?.data) {
         const d = e.data.data;
+        const localTs = getLastLocalFrameUpdate();
+        if (d.updatedAt && d.updatedAt < localTs) return;
         if (d.frameSlots) setFrameSlots(d.frameSlots);
         if (d.weddingConfig) setWeddingConfig(d.weddingConfig);
         if (d.driveConfig) setDriveConfig(d.driveConfig);

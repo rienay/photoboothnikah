@@ -249,9 +249,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const [cloudPulling, setCloudPulling] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
 
-  // Sync props when modal opens
+  // Sync props only when modal first opens (prevent background props updates from resetting user edits)
+  const wasOpenRef = React.useRef(false);
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !wasOpenRef.current) {
       setWeddingForm(weddingConfig);
       setDriveForm(driveConfig);
       setBoothForm(boothSettings);
@@ -259,13 +260,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setCloudConfig(loadCloudSyncConfig());
       loadMediaDevices();
       loadHistory();
-    } else {
+    } else if (!isOpen) {
       setIsAuthenticated(false);
       setPinInput("");
       setPinError(false);
       setStudioTargetFrame(null);
     }
-  }, [isOpen, weddingConfig, driveConfig, boothSettings, frameSlots]);
+    wasOpenRef.current = isOpen;
+  }, [isOpen]);
 
   // Test Supabase connection
   const handleTestCloud = async () => {
