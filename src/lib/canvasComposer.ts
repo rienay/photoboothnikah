@@ -321,6 +321,14 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
  */
 export async function createDualStripCanvas(stripDataUrl: string): Promise<string> {
   const singleImg = await loadImage(stripDataUrl);
+  const ratio = singleImg.naturalWidth / singleImg.naturalHeight;
+
+  // If the image is ALREADY a 4R sheet (ratio ~0.66, e.g. > 0.52),
+  // DO NOT squish or duplicate it - it already contains the full print design!
+  if (ratio > 0.52) {
+    return stripDataUrl;
+  }
+
   const targetW = 1200;
   const targetH = 1800;
   const halfW = 600;

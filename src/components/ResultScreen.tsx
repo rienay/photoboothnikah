@@ -252,27 +252,27 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           background: white !important;
           margin: 0 !important;
           padding: 0 !important;
-          width: 100mm !important;
-          height: 150mm !important;
+          width: 100% !important;
+          height: 100% !important;
           overflow: hidden !important;
         }
         #yodha-print-section {
           display: block !important;
-          position: fixed !important;
+          position: absolute !important;
           left: 0 !important;
           top: 0 !important;
-          width: 100mm !important;
-          height: 150mm !important;
+          width: 100% !important;
+          height: 100% !important;
           margin: 0 !important;
           padding: 0 !important;
         }
         @page {
-          size: 100mm 150mm;
-          margin: 0mm !important;
+          size: 4in 6in;
+          margin: 0 !important;
         }
         .page {
-          width: 100mm !important;
-          height: 150mm !important;
+          width: 100% !important;
+          height: 100% !important;
           position: relative !important;
           page-break-after: always !important;
           break-after: page !important;
@@ -290,15 +290,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           position: absolute !important;
           top: 0 !important;
           left: 0 !important;
-          width: 100mm !important;
-          height: 150mm !important;
+          width: 100% !important;
+          height: 100% !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: hidden !important;
         }
         .print-sheet-img {
-          width: 100mm !important;
-          height: 150mm !important;
+          width: 100% !important;
+          height: 100% !important;
           display: block !important;
           object-fit: fill !important;
           margin: 0 !important;
