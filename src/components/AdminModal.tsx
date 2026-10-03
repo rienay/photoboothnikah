@@ -1238,7 +1238,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <input
                       type="checkbox"
                       id="autoPrintToggle"
-                      checked={boothForm.autoPrint ?? true}
+                      checked={boothForm.autoPrint ?? false}
                       onChange={(e) =>
                         setBoothForm({ ...boothForm, autoPrint: e.target.checked })
                       }

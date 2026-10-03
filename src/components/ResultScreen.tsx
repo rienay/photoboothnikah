@@ -58,7 +58,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   driveConfig,
   autoResetDuration,
   defaultPrintCopies,
-  autoPrint = true,
+  autoPrint = false,
   printMarginX = 5,
   printMarginY = 3,
   onHome,

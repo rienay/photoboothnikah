@@ -353,7 +353,7 @@ export const App: React.FC = () => {
             driveConfig={driveConfig}
             autoResetDuration={boothSettings.autoResetDuration}
             defaultPrintCopies={boothSettings.defaultPrintCopies}
-            autoPrint={boothSettings.autoPrint ?? true}
+            autoPrint={boothSettings.autoPrint ?? false}
             printMarginX={boothSettings.printMarginX ?? 5}
             printMarginY={boothSettings.printMarginY ?? 3}
             onHome={resetToHome}
