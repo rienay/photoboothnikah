@@ -310,7 +310,7 @@ export function saveDriveConfig(config: DriveConfig): void {
 export function loadBoothSettings(): BoothSettings {
   try {
     const raw = localStorage.getItem(KEYS.SETTINGS);
-    if (raw) return { ...DEFAULT_BOOTH_SETTINGS, ...JSON.parse(raw) };
+    if (raw) return { ...DEFAULT_BOOTH_SETTINGS, ...JSON.parse(raw), screenRotation: 0 };
   } catch (e) {
     console.warn("Failed to load booth settings:", e);
   }

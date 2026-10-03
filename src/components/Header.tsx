@@ -1,5 +1,5 @@
 import React from "react";
-import { Maximize2, Minimize2, RotateCw, Settings, Volume2, VolumeX } from "lucide-react";
+import { Maximize2, Minimize2, Settings, Volume2, VolumeX } from "lucide-react";
 import { WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
@@ -9,8 +9,6 @@ interface HeaderProps {
   onToggleSound: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
-  screenRotation: 0 | 90 | 180 | 270;
-  onRotateScreen: () => void;
   onOpenAdmin: () => void;
 }
 
@@ -20,8 +18,6 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSound,
   isFullscreen,
   onToggleFullscreen,
-  screenRotation,
-  onRotateScreen,
   onOpenAdmin,
 }) => {
   return (
@@ -55,22 +51,6 @@ export const Header: React.FC<HeaderProps> = ({
           title={soundEnabled ? "Mute Suara" : "Aktifkan Suara"}
         >
           {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} className="text-stone-500" />}
-        </button>
-
-        {/* Screen Rotation toggle */}
-        <button
-          onClick={() => {
-            soundFx.playChime();
-            onRotateScreen();
-          }}
-          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer border ${
-            screenRotation !== 0
-              ? "bg-amber-400/20 border-amber-400/60 text-amber-300 shadow-[0_0_12px_rgba(212,175,55,0.3)]"
-              : "text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border-amber-400/20"
-          }`}
-          title={`Putar Orientasi Layar (Saat ini: ${screenRotation}°). Klik untuk memutar.`}
-        >
-          <RotateCw size={15} />
         </button>
 
         {/* Fullscreen toggle */}
