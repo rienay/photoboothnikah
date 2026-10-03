@@ -252,24 +252,19 @@ export function punchBoxesOnCanvas(
  * If the frame has custom photo boxes, totalPhotos and grid dimensions will adapt automatically.
  */
 export function getEffectiveLayout(slot: FrameSlot, allLayouts: LayoutConfig[]): LayoutConfig {
-  const baseLayout = allLayouts.find((l) => l.id === slot.layoutId) || allLayouts[3]; // default 3x1
+  const baseLayout =
+    allLayouts.find((l) => l.id === slot.layoutId) ||
+    allLayouts.find((l) => l.id === "3x1") ||
+    allLayouts[0];
+
   const boxCount =
     slot.photoBoxes && slot.photoBoxes.length > 0
       ? slot.photoBoxes.length
       : baseLayout.totalPhotos;
 
-  let matchedLayout = allLayouts.find((l) => l.id === slot.layoutId);
-  if (!matchedLayout || matchedLayout.totalPhotos !== boxCount) {
-    const foundByCount = allLayouts.find((l) => l.totalPhotos === boxCount);
-    if (foundByCount) {
-      matchedLayout = foundByCount;
-    }
-  }
-
-  const finalLayout = matchedLayout || baseLayout;
   return {
-    ...finalLayout,
-    name: slot.name || finalLayout.name,
+    ...baseLayout,
+    name: slot.name || baseLayout.name,
     totalPhotos: boxCount,
   };
 }

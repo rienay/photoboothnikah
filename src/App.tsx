@@ -46,6 +46,7 @@ export const App: React.FC = () => {
 
   // Active session selection state
   const [selectedSlotId, setSelectedSlotId] = useState<string>(() => frameSlots[0]?.id || "slot_1");
+  const [activeSlotOverride, setActiveSlotOverride] = useState<FrameSlot | null>(null);
   const [selectedFilterId, setSelectedFilterId] = useState<string>("normal");
   const [photos, setPhotos] = useState<string[]>([]);
 
@@ -206,7 +207,11 @@ export const App: React.FC = () => {
 
   // Find active frame slot, layout, and preset theme
   const fallbackSlot = DEFAULT_FRAME_SLOTS[0];
-  const activeSlot = frameSlots.find((s) => s.id === selectedSlotId) || frameSlots[0] || fallbackSlot;
+  const activeSlot =
+    activeSlotOverride ||
+    frameSlots.find((s) => s.id === selectedSlotId) ||
+    frameSlots[0] ||
+    fallbackSlot;
   const currentLayoutConfig = getEffectiveLayout(activeSlot, LAYOUTS);
   const currentPreset =
     (activeSlot?.presetThemeId && WEDDING_PRESETS.find((p) => p.id === activeSlot.presetThemeId)) ||
@@ -239,6 +244,7 @@ export const App: React.FC = () => {
 
   const resetToHome = () => {
     setPhotos([]);
+    setActiveSlotOverride(null);
     setCurrentScreen("home");
   };
 
@@ -310,9 +316,19 @@ export const App: React.FC = () => {
             frameSlots={frameSlots}
             selectedSlotId={selectedSlotId}
             weddingConfig={weddingConfig}
-            onSelectSlot={(slot) => setSelectedSlotId(slot.id)}
-            onBack={() => setCurrentScreen("home")}
-            onNext={() => setCurrentScreen("shoot")}
+            onSelectSlot={(slot) => {
+              setSelectedSlotId(slot.id);
+              setActiveSlotOverride(slot);
+            }}
+            onBack={() => {
+              setActiveSlotOverride(null);
+              setCurrentScreen("home");
+            }}
+            onNext={(chosenSlot) => {
+              setSelectedSlotId(chosenSlot.id);
+              setActiveSlotOverride(chosenSlot);
+              setCurrentScreen("shoot");
+            }}
           />
         )}
 
@@ -336,7 +352,10 @@ export const App: React.FC = () => {
               setPhotos(captured);
               setCurrentScreen("review");
             }}
-            onBack={() => setCurrentScreen("frame")}
+            onBack={() => {
+              setActiveSlotOverride(null);
+              setCurrentScreen("frame");
+            }}
           />
         )}
 

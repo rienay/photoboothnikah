@@ -10,7 +10,7 @@ interface FrameScreenProps {
   weddingConfig: WeddingConfig;
   onSelectSlot: (slot: FrameSlot) => void;
   onBack: () => void;
-  onNext: () => void;
+  onNext: (slot: FrameSlot) => void;
 }
 
 const SelectableFrameCard: React.FC<{
@@ -19,7 +19,8 @@ const SelectableFrameCard: React.FC<{
   isSelected: boolean;
   weddingConfig: WeddingConfig;
   onSelect: () => void;
-}> = ({ slot, index, isSelected, weddingConfig, onSelect }) => {
+  onConfirm: () => void;
+}> = ({ slot, index, isSelected, weddingConfig, onSelect, onConfirm }) => {
   const preset =
     WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
   const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
@@ -41,7 +42,11 @@ const SelectableFrameCard: React.FC<{
       type="button"
       onClick={() => {
         soundFx.playChime();
-        onSelect();
+        if (isSelected) {
+          onConfirm();
+        } else {
+          onSelect();
+        }
       }}
       className={`relative h-[360px] sm:h-[400px] md:h-[440px] max-h-[58vh] rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
         isSelected
@@ -148,7 +153,7 @@ const SelectableFrameCard: React.FC<{
 
       {/* Floating Badges Directly on the Frame */}
       {/* Top Left: Frame Name Pill */}
-      <div className="absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/80 border border-amber-400/50 text-[11px] font-cinzel text-amber-200 font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%]">
+      <div className="absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/85 border border-amber-400/50 text-[11px] font-cinzel text-amber-200 font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%]">
         {slot.name || `Desain ${index + 1}`}
       </div>
 
@@ -156,6 +161,21 @@ const SelectableFrameCard: React.FC<{
       {isSelected && (
         <div className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center shadow-lg font-bold animate-in zoom-in-75 duration-200">
           <Check size={14} strokeWidth={3} />
+        </div>
+      )}
+
+      {/* Bottom Left: Layout & Photo Count Badge */}
+      <div className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-0.5 rounded-full bg-black/85 border border-amber-400/40 text-[10px] font-mono text-amber-300 font-bold shadow-md">
+        {slot.layoutId.toUpperCase()} • {layout.totalPhotos} Foto
+      </div>
+
+      {/* Bottom Right: Quick action when selected */}
+      {isSelected && (
+        <div className="absolute bottom-2.5 right-2.5 z-20">
+          <span className="btn-gold py-1 px-3 rounded-full text-[11px] font-bold shadow-lg flex items-center gap-1 animate-pulse">
+            <Camera size={12} />
+            <span>Mulai Foto</span>
+          </span>
         </div>
       )}
     </button>
@@ -173,6 +193,10 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
   const activeSlots = frameSlots.filter((s) => s.enabled !== false);
   const displaySlots = activeSlots.length > 0 ? activeSlots : frameSlots;
 
+  // Selected slot or fallback to first
+  const currentSelectedSlot =
+    displaySlots.find((s) => s.id === selectedSlotId) || displaySlots[0];
+
   return (
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-4 py-2 sm:py-3 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
@@ -189,9 +213,10 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
             key={slot.id}
             slot={slot}
             index={index}
-            isSelected={selectedSlotId === slot.id}
+            isSelected={currentSelectedSlot?.id === slot.id}
             weddingConfig={weddingConfig}
             onSelect={() => onSelectSlot(slot)}
+            onConfirm={() => onNext(slot)}
           />
         ))}
       </div>
@@ -212,12 +237,14 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
         <button
           onClick={() => {
             soundFx.playChime();
-            onNext();
+            if (currentSelectedSlot) {
+              onNext(currentSelectedSlot);
+            }
           }}
           className="btn-gold px-7 py-2.5 rounded-full flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)]"
         >
           <Camera size={16} />
-          <span>Mulai Pemotretan</span>
+          <span>Mulai Pemotretan ({currentSelectedSlot?.name || "Pilih Bingkai"})</span>
         </button>
       </div>
     </div>
