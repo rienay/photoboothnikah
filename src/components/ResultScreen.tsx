@@ -192,8 +192,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     document.body.removeChild(a);
   };
 
-  // 6. Direct Print with exact physical 4R dimensions (same as booth/src/routes/index.tsx)
-  const printPhoto = useCallback(() => {
+  // 6. Direct Print with exact physical 4R dimensions (10x15 cm)
+  const printPhoto = useCallback(async () => {
     if (!renderedStrip) return;
     soundFx.playChime();
 
@@ -201,62 +201,32 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     const sheetWidth = 10;
     const sheetHeight = 15;
 
+    // For strips: create dual-strip 10x15cm canvas so 1 image fills 100% of 10x15cm 4R paper
+    let printImageUrl = renderedStrip;
+    if (isStrip) {
+      try {
+        printImageUrl = await createDualStripCanvas(renderedStrip);
+      } catch (err) {
+        console.warn("Failed creating dual strip canvas, using renderedStrip:", err);
+      }
+    }
+
     // Convert base64 data URL to Blob URL to ensure fast loading/rendering
-    const blob = dataURLtoBlob(renderedStrip);
+    const blob = dataURLtoBlob(printImageUrl);
     const blobUrl = URL.createObjectURL(blob);
 
     let pagesContent = "";
-    const safeMarginX = typeof printMarginX === "number" ? printMarginX : 5;
-    const safeMarginY = typeof printMarginY === "number" ? printMarginY : 3;
+    // Total 10x15cm sheets: for strip layout, 1 sheet contains 2 strips.
+    const totalSheets = isStrip ? Math.max(1, Math.ceil(printCopies / 2)) : printCopies;
 
-    if (isStrip) {
-      // Untuk strip 5cm: cetak sesuai jumlah rangkap (printCopies) di mana satu lembar 10x15cm memuat maksimal 2 strip
-      const totalSheets = Math.ceil(printCopies / 2);
-      let remainingCopies = printCopies;
-
-      for (let s = 0; s < totalSheets; s++) {
-        if (remainingCopies >= 2) {
-          pagesContent += `
-            <div class="page">
-              <div class="print-container">
-                <div class="strip-item">
-                  <img src="${blobUrl}" />
-                </div>
-                <div class="strip-item">
-                  <img src="${blobUrl}" />
-                </div>
-              </div>
-            </div>
-          `;
-          remainingCopies -= 2;
-        } else {
-          // Hanya ada 1 rangkap tersisa untuk lembar ini: taruh di sebelah kanan agar sejajar baki kertas printer
-          pagesContent += `
-            <div class="page">
-              <div class="print-container">
-                <div class="strip-item"></div>
-                <div class="strip-item">
-                  <img src="${blobUrl}" />
-                </div>
-              </div>
-            </div>
-          `;
-          remainingCopies -= 1;
-        }
-      }
-    } else {
-      // Untuk grid (2x2, 3x2, 4x2) dan foto tunggal (1x1): cetak 1 gambar per halaman (lebar 10cm, tinggi 15cm)
-      for (let c = 0; c < printCopies; c++) {
-        pagesContent += `
-          <div class="page">
-            <div class="print-container">
-              <div class="grid-item">
-                <img src="${blobUrl}" />
-              </div>
-            </div>
+    for (let s = 0; s < totalSheets; s++) {
+      pagesContent += `
+        <div class="page">
+          <div class="print-container">
+            <img src="${blobUrl}" class="print-sheet-img" />
           </div>
-        `;
-      }
+        </div>
+      `;
     }
 
     // Create container element in the main document for printing
@@ -279,6 +249,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           padding: 0 !important;
           width: 100% !important;
           height: 100% !important;
+          overflow: hidden !important;
         }
         #yodha-print-section {
           display: block !important;
@@ -287,20 +258,22 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           top: 0 !important;
           width: 100% !important;
           height: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }
         @page {
           size: ${sheetWidth}cm ${sheetHeight}cm;
-          margin: 0;
+          margin: 0 !important;
         }
         .page {
-          width: 100vw !important;
-          height: 100vh !important;
+          width: ${sheetWidth}cm !important;
+          height: ${sheetHeight}cm !important;
           position: relative !important;
           page-break-after: always !important;
           break-after: page !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
+          display: block !important;
+          margin: 0 auto !important;
+          padding: 0 !important;
           background: white !important;
           overflow: hidden !important;
         }
@@ -312,56 +285,20 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           position: absolute !important;
           top: 0 !important;
           left: 0 !important;
-          right: 0 !important;
-          margin: 0 auto !important;
           width: ${sheetWidth}cm !important;
           height: ${sheetHeight}cm !important;
-          display: flex !important;
-          flex-direction: row !important;
-          align-items: center !important;
-          justify-content: center !important;
+          margin: 0 !important;
+          padding: 0 !important;
           overflow: hidden !important;
-          padding: ${safeMarginY}mm ${safeMarginX}mm !important;
           box-sizing: border-box !important;
         }
-        .strip-item {
-          width: 50% !important;
-          height: 100% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-          padding: 0 1.5mm !important;
-        }
-        .strip-item img {
-          max-width: 100% !important;
-          max-height: 100% !important;
-          width: auto !important;
-          height: 100% !important;
-          display: block !important;
-          object-fit: contain !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        .grid-item {
+        .print-sheet-img {
           width: 100% !important;
           height: 100% !important;
-          display: flex !important;
-          align-items: center !important;
-          justify-content: center !important;
-          box-sizing: border-box !important;
-        }
-        .grid-item img {
-          max-width: 100% !important;
-          max-height: 100% !important;
-          width: auto !important;
-          height: 100% !important;
           display: block !important;
-          object-fit: contain !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
-        }
-        img {
+          object-fit: fill !important;
+          margin: 0 !important;
+          padding: 0 !important;
           -webkit-print-color-adjust: exact !important;
           print-color-adjust: exact !important;
         }

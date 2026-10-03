@@ -177,8 +177,9 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   }
 
   // 2. Draw Elegant Double Hairline Border
-  const outerMargin = W * 0.035;
-  const innerMargin = outerMargin + (W * 0.012);
+  // Safe margin from physical paper edges (approx 4.5mm at 300 DPI)
+  const outerMargin = isStrip ? 52 : 54;
+  const innerMargin = outerMargin + (isStrip ? 7 : 12);
 
   ctx.strokeStyle = preset.borderColor;
   ctx.lineWidth = 2.5;
@@ -316,34 +317,40 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
 
 /**
  * Creates side-by-side 2-strip canvas for 4R photo paper print (5x15cm x 2 on 10x15cm paper)
+ * Standard 4R resolution: 1200 x 1800 px (exact 10 x 15 cm)
  */
 export async function createDualStripCanvas(stripDataUrl: string): Promise<string> {
   const singleImg = await loadImage(stripDataUrl);
-  const sw = singleImg.naturalWidth > 0 ? singleImg.naturalWidth : 600;
-  const sh = singleImg.naturalHeight > 0 ? singleImg.naturalHeight : 1800;
+  const targetW = 1200;
+  const targetH = 1800;
+  const halfW = 600;
 
   const canvas = document.createElement("canvas");
-  canvas.width = sw * 2;
-  canvas.height = sh;
+  canvas.width = targetW;
+  canvas.height = targetH;
   const ctx = canvas.getContext("2d");
   if (!ctx) return stripDataUrl;
 
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // Fill pure clean base
   ctx.fillStyle = "#FFFFFF";
-  ctx.fillRect(0, 0, sw * 2, sh);
+  ctx.fillRect(0, 0, targetW, targetH);
 
-  // Draw left strip (0..sw)
-  ctx.drawImage(singleImg, 0, 0, sw, sh);
-  // Draw right strip (sw..sw*2)
-  ctx.drawImage(singleImg, sw, 0, sw, sh);
+  // Draw left strip (0..halfW, 0..targetH)
+  ctx.drawImage(singleImg, 0, 0, halfW, targetH);
+  // Draw right strip (halfW..targetW, 0..targetH)
+  ctx.drawImage(singleImg, halfW, 0, halfW, targetH);
 
-  // Subtle cut line in the middle
-  ctx.strokeStyle = "rgba(0, 0, 0, 0.25)";
+  // Subtle cut guide in the middle (5.0 cm line)
+  ctx.strokeStyle = "rgba(180, 160, 130, 0.4)";
   ctx.lineWidth = 1;
-  ctx.setLineDash([8, 8]);
+  ctx.setLineDash([10, 10]);
   ctx.beginPath();
-  ctx.moveTo(sw, 20);
-  ctx.lineTo(sw, sh - 20);
+  ctx.moveTo(halfW, 20);
+  ctx.lineTo(halfW, targetH - 20);
   ctx.stroke();
 
-  return canvas.toDataURL("image/png");
+  return canvas.toDataURL("image/jpeg", 0.98);
 }
