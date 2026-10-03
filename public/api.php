@@ -10,12 +10,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit(0);
 }
 
-// Find server_storage.json in current dir or parent dir (if running from dist/)
+// Find server_storage.json in current dir or parent dir
 $file = file_exists(__DIR__ . '/server_storage.json') 
     ? __DIR__ . '/server_storage.json' 
     : (file_exists(dirname(__DIR__) . '/server_storage.json') 
         ? dirname(__DIR__) . '/server_storage.json' 
-        : __DIR__ . '/server_storage.json');
+        : dirname(__DIR__) . '/server_storage.json');
 
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
     if (file_exists($file)) {

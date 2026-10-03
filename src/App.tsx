@@ -26,6 +26,8 @@ import {
   saveFrameSlots,
   saveWeddingConfig,
   syncFromServer,
+  pushToServer,
+  syncChannel,
 } from "./lib/storage";
 import { fetchFramesFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
@@ -49,37 +51,63 @@ export const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Cross-device sync from server on mount and window focus
+  // Cross-device sync from server on mount, interval, and window focus
   useEffect(() => {
     let mounted = true;
 
     const performSync = async () => {
-      // 1. Check cloud frames from Supabase first (specific to frames)
+      // 1. Check cloud frames from Supabase first (if configured)
       try {
         const cloud = await fetchFramesFromCloud();
         if (cloud.success && cloud.frames && cloud.frames.length > 0) {
           if (!mounted) return;
-          setFrameSlots(cloud.frames);
-          localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+          setFrameSlots((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(cloud.frames)) {
+              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+              return cloud.frames!;
+            }
+            return prev;
+          });
         }
       } catch (_) {}
 
-      // 2. Local PHP / Dev Server Storage fallback
+      // 2. Local PHP / Dev Server Storage sync (Laragon / Apache / Vite)
       const serverData = await syncFromServer();
       if (!mounted) return;
 
       if (serverData && Object.keys(serverData).length > 0) {
         if (serverData.frameSlots && Array.isArray(serverData.frameSlots) && serverData.frameSlots.length > 0) {
-          setFrameSlots(serverData.frameSlots);
+          setFrameSlots((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(serverData.frameSlots)) {
+              localStorage.setItem("yodha_frame_slots", JSON.stringify(serverData.frameSlots));
+              return serverData.frameSlots!;
+            }
+            return prev;
+          });
         }
         if (serverData.weddingConfig) {
-          setWeddingConfig(serverData.weddingConfig);
+          setWeddingConfig((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(serverData.weddingConfig)) {
+              return serverData.weddingConfig!;
+            }
+            return prev;
+          });
         }
         if (serverData.driveConfig) {
-          setDriveConfig(serverData.driveConfig);
+          setDriveConfig((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(serverData.driveConfig)) {
+              return serverData.driveConfig!;
+            }
+            return prev;
+          });
         }
         if (serverData.boothSettings) {
-          setBoothSettings(serverData.boothSettings);
+          setBoothSettings((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(serverData.boothSettings)) {
+              return serverData.boothSettings!;
+            }
+            return prev;
+          });
         }
       } else {
         // If server is currently empty, push current device's configuration to server
@@ -95,32 +123,35 @@ export const App: React.FC = () => {
 
     performSync();
 
-    // Background interval to keep frames synced across all devices in real-time
-    const pollInterval = setInterval(async () => {
+    // Background interval to keep frames & config synced across all devices in real-time
+    const pollInterval = setInterval(() => {
       if (!mounted) return;
-      try {
-        const cloud = await fetchFramesFromCloud();
-        if (cloud.success && cloud.frames && cloud.frames.length > 0) {
-          setFrameSlots((prev) => {
-            if (JSON.stringify(prev) !== JSON.stringify(cloud.frames)) {
-              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
-              return cloud.frames!;
-            }
-            return prev;
-          });
-        }
-      } catch (_) {}
-    }, 15000);
+      performSync();
+    }, 3500);
 
     const onFocus = () => {
       performSync();
     };
     window.addEventListener("focus", onFocus);
 
+    // Cross-tab broadcast listener for instant sync
+    const handleBroadcast = (e: MessageEvent) => {
+      if (!mounted) return;
+      if (e.data?.type === "CONFIG_UPDATED" && e.data?.data) {
+        const d = e.data.data;
+        if (d.frameSlots) setFrameSlots(d.frameSlots);
+        if (d.weddingConfig) setWeddingConfig(d.weddingConfig);
+        if (d.driveConfig) setDriveConfig(d.driveConfig);
+        if (d.boothSettings) setBoothSettings(d.boothSettings);
+      }
+    };
+    syncChannel?.addEventListener("message", handleBroadcast);
+
     return () => {
       mounted = false;
       clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
+      syncChannel?.removeEventListener("message", handleBroadcast);
     };
   }, []);
 

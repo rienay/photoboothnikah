@@ -12,7 +12,12 @@ import {
   DEFAULT_FRAME_SLOTS,
   DEFAULT_WEDDING_CONFIG,
 } from "../config";
-import { pushFramesToCloud } from "./cloudSync";
+import {
+  pushFramesToCloud,
+  CloudSyncConfig,
+  loadCloudSyncConfig,
+  saveCloudSyncConfig,
+} from "./cloudSync";
 
 const KEYS = {
   WEDDING: "yodha_wedding_config",
@@ -28,7 +33,35 @@ export interface ServerSharedConfig {
   weddingConfig?: WeddingConfig;
   driveConfig?: DriveConfig;
   boothSettings?: BoothSettings;
+  cloudSyncConfig?: CloudSyncConfig;
   updatedAt?: number;
+}
+
+let cachedEndpoint: string | null = null;
+
+export const syncChannel = typeof window !== "undefined" && typeof BroadcastChannel !== "undefined"
+  ? new BroadcastChannel("yodha_sync_channel")
+  : null;
+
+function getStorageEndpoints(): string[] {
+  if (typeof window === "undefined") return ["/api/config", "api.php", "../api.php"];
+  
+  const currentPath = window.location.pathname;
+  const dir = currentPath.substring(0, currentPath.lastIndexOf("/") + 1);
+
+  const list = [
+    `${dir}api.php`,
+    `${dir}../api.php`,
+    "api.php",
+    "../api.php",
+    "/api/config",
+    "/api.php",
+  ];
+
+  if (cachedEndpoint) {
+    return [cachedEndpoint, ...list.filter((u) => u !== cachedEndpoint)];
+  }
+  return list;
 }
 
 // Check and push changes to server storage so other devices get them
@@ -39,10 +72,16 @@ export async function pushToServer(partialData: Partial<ServerSharedConfig>): Pr
       weddingConfig: partialData.weddingConfig || loadWeddingConfig(),
       driveConfig: partialData.driveConfig || loadDriveConfig(),
       boothSettings: partialData.boothSettings || loadBoothSettings(),
+      cloudSyncConfig: partialData.cloudSyncConfig || loadCloudSyncConfig(),
       updatedAt: Date.now(),
     };
 
-    const endpoints = ["/api/config", "api.php", "../api.php"];
+    // Broadcast immediately to other tabs on the same machine
+    try {
+      syncChannel?.postMessage({ type: "CONFIG_UPDATED", data: payload });
+    } catch (_) {}
+
+    const endpoints = getStorageEndpoints();
     for (const url of endpoints) {
       try {
         const res = await fetch(url, {
@@ -51,6 +90,7 @@ export async function pushToServer(partialData: Partial<ServerSharedConfig>): Pr
           body: JSON.stringify(payload),
         });
         if (res.ok) {
+          cachedEndpoint = url;
           return true;
         }
       } catch (err) {
@@ -66,13 +106,14 @@ export async function pushToServer(partialData: Partial<ServerSharedConfig>): Pr
 // Fetch shared config from server storage
 export async function syncFromServer(): Promise<ServerSharedConfig | null> {
   try {
-    const endpoints = ["/api/config", "api.php", "../api.php"];
+    const endpoints = getStorageEndpoints();
     for (const url of endpoints) {
       try {
         const res = await fetch(url, { method: "GET", cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as ServerSharedConfig;
-          if (data && Object.keys(data).length > 0) {
+          if (data && typeof data === "object" && Object.keys(data).length > 0) {
+            cachedEndpoint = url;
             // Update local storage so offline access also matches
             if (data.frameSlots && Array.isArray(data.frameSlots) && data.frameSlots.length > 0) {
               try {
@@ -92,6 +133,17 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
             if (data.boothSettings) {
               try {
                 localStorage.setItem(KEYS.SETTINGS, JSON.stringify(data.boothSettings));
+              } catch (_) {}
+            }
+            if (data.cloudSyncConfig && data.cloudSyncConfig.supabaseUrl) {
+              try {
+                const cur = loadCloudSyncConfig();
+                if (!cur.supabaseUrl || cur.supabaseUrl !== data.cloudSyncConfig.supabaseUrl) {
+                  saveCloudSyncConfig({
+                    ...data.cloudSyncConfig,
+                    enabled: true,
+                  });
+                }
               } catch (_) {}
             }
             return data;

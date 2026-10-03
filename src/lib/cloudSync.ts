@@ -9,10 +9,16 @@ export interface CloudSyncConfig {
 
 const STORAGE_KEY = "yodha_cloud_sync_config";
 
+const envUrl =
+  (import.meta as any).env?.VITE_SUPABASE_URL || "https://pryhynqfaryhyxomgehd.supabase.co";
+const envKey =
+  (import.meta as any).env?.VITE_SUPABASE_ANON_KEY ||
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InByeWh5bnFmYXJ5aHl4b21nZWhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA5NjE0MzIsImV4cCI6MjEwNjUzNzQzMn0.GJ1x3OlZkFtAcIIRxAsgKI4frJyYIgOWUGQoQ5fYrso";
+
 export const DEFAULT_CLOUD_SYNC: CloudSyncConfig = {
-  supabaseUrl: "",
-  supabaseAnonKey: "",
-  enabled: false,
+  supabaseUrl: envUrl,
+  supabaseAnonKey: envKey,
+  enabled: true,
 };
 
 export const SUPABASE_SQL_SETUP = `-- Jalankan perintah ini di Menu 'SQL Editor' pada dashboard Supabase Anda:
@@ -37,7 +43,15 @@ export function loadCloudSyncConfig(): CloudSyncConfig {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...DEFAULT_CLOUD_SYNC, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      const url = parsed.supabaseUrl || DEFAULT_CLOUD_SYNC.supabaseUrl;
+      const key = parsed.supabaseAnonKey || DEFAULT_CLOUD_SYNC.supabaseAnonKey;
+      return {
+        supabaseUrl: url,
+        supabaseAnonKey: key,
+        enabled: parsed.enabled !== undefined ? parsed.enabled : Boolean(url && key),
+        lastSyncedAt: parsed.lastSyncedAt,
+      };
     }
   } catch (e) {
     console.warn("Failed to load cloud sync config:", e);
