@@ -14,7 +14,7 @@ import {
   Screen,
   WeddingConfig,
 } from "./types";
-import { LAYOUTS, PHOTO_FILTERS, WEDDING_PRESETS } from "./config";
+import { DEFAULT_FRAME_SLOTS, LAYOUTS, PHOTO_FILTERS, WEDDING_PRESETS } from "./config";
 import { getEffectiveLayout } from "./lib/frameLayouts";
 import {
   loadBoothSettings,
