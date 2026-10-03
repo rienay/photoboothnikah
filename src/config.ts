@@ -33,7 +33,7 @@ export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
   adminPin: "1234",
   defaultPrintCopies: 1,
   kioskFullscreen: false,
-  autoPrint: true,
+  autoPrint: false,
 };
 
 export const LAYOUTS: LayoutConfig[] = [

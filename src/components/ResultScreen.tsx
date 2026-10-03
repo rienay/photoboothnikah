@@ -133,17 +133,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     };
   }, [photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss]);
 
-  // 1b. Automatic Print trigger when strip composition is ready
-  useEffect(() => {
-    if (!printImageSrc || isComposing || autoPrintTriggeredRef.current) return;
-    if (autoPrint) {
-      autoPrintTriggeredRef.current = true;
-      const printTimer = setTimeout(() => {
-        window.print();
-      }, 700);
-      return () => clearTimeout(printTimer);
-    }
-  }, [printImageSrc, isComposing, autoPrint]);
 
   // 2. Generate Google Drive QR Code
   useEffect(() => {
