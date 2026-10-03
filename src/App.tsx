@@ -27,6 +27,7 @@ import {
   saveWeddingConfig,
   syncFromServer,
 } from "./lib/storage";
+import { fetchFramesFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
 
 export const App: React.FC = () => {
@@ -53,6 +54,17 @@ export const App: React.FC = () => {
     let mounted = true;
 
     const performSync = async () => {
+      // 1. Check cloud frames from Supabase first (specific to frames)
+      try {
+        const cloud = await fetchFramesFromCloud();
+        if (cloud.success && cloud.frames && cloud.frames.length > 0) {
+          if (!mounted) return;
+          setFrameSlots(cloud.frames);
+          localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+        }
+      } catch (_) {}
+
+      // 2. Local PHP / Dev Server Storage fallback
       const serverData = await syncFromServer();
       if (!mounted) return;
 
@@ -83,6 +95,23 @@ export const App: React.FC = () => {
 
     performSync();
 
+    // Background interval to keep frames synced across all devices in real-time
+    const pollInterval = setInterval(async () => {
+      if (!mounted) return;
+      try {
+        const cloud = await fetchFramesFromCloud();
+        if (cloud.success && cloud.frames && cloud.frames.length > 0) {
+          setFrameSlots((prev) => {
+            if (JSON.stringify(prev) !== JSON.stringify(cloud.frames)) {
+              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+              return cloud.frames!;
+            }
+            return prev;
+          });
+        }
+      } catch (_) {}
+    }, 15000);
+
     const onFocus = () => {
       performSync();
     };
@@ -90,6 +119,7 @@ export const App: React.FC = () => {
 
     return () => {
       mounted = false;
+      clearInterval(pollInterval);
       window.removeEventListener("focus", onFocus);
     };
   }, []);

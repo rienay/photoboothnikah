@@ -14,6 +14,9 @@ import {
   Upload,
   Wand2,
   Plus,
+  Database,
+  RefreshCw,
+  Copy,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -32,6 +35,15 @@ import {
 } from "../lib/storage";
 import { uploadToGoogleDrive } from "../lib/googleDrive";
 import { soundFx } from "../lib/audio";
+import {
+  CloudSyncConfig,
+  loadCloudSyncConfig,
+  saveCloudSyncConfig,
+  testCloudConnection,
+  pushFramesToCloud,
+  fetchFramesFromCloud,
+  SUPABASE_SQL_SETUP,
+} from "../lib/cloudSync";
 
 interface AdminModalProps {
   isOpen: boolean;
@@ -46,7 +58,7 @@ interface AdminModalProps {
   onSaveFrameSlots: (slots: FrameSlot[]) => void;
 }
 
-type TabType = "wedding" | "drive" | "booth" | "templates" | "history";
+type TabType = "wedding" | "templates" | "cloud" | "drive" | "booth" | "history";
 
 const AdminFrameCardItem: React.FC<{
   slot: FrameSlot;
@@ -229,6 +241,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Cloud Sync State
+  const [cloudConfig, setCloudConfig] = useState<CloudSyncConfig>(loadCloudSyncConfig());
+  const [cloudTesting, setCloudTesting] = useState(false);
+  const [cloudPushing, setCloudPushing] = useState(false);
+  const [cloudPulling, setCloudPulling] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
+
   // Sync props when modal opens
   useEffect(() => {
     if (isOpen) {
@@ -236,6 +255,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setDriveForm(driveConfig);
       setBoothForm(boothSettings);
       setSlotsForm(frameSlots);
+      setCloudConfig(loadCloudSyncConfig());
       loadMediaDevices();
       loadHistory();
     } else {
@@ -245,6 +265,55 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       setStudioTargetFrame(null);
     }
   }, [isOpen, weddingConfig, driveConfig, boothSettings, frameSlots]);
+
+  // Test Supabase connection
+  const handleTestCloud = async () => {
+    setCloudTesting(true);
+    const res = await testCloudConnection(cloudConfig.supabaseUrl, cloudConfig.supabaseAnonKey);
+    setCloudTesting(false);
+    if (res.success) {
+      showToast(res.message);
+    } else {
+      alert(res.message);
+    }
+  };
+
+  // Push frames to Supabase
+  const handlePushFramesToCloud = async () => {
+    setCloudPushing(true);
+    saveCloudSyncConfig(cloudConfig);
+    const res = await pushFramesToCloud(slotsForm, cloudConfig);
+    setCloudPushing(false);
+    if (res.success) {
+      showToast("✓ Seluruh bingkai berhasil di-upload ke Supabase Cloud!");
+      setCloudConfig(loadCloudSyncConfig());
+    } else {
+      alert(`Gagal upload ke cloud: ${res.message}`);
+    }
+  };
+
+  // Pull frames from Supabase
+  const handlePullFramesFromCloud = async () => {
+    setCloudPulling(true);
+    const res = await fetchFramesFromCloud(cloudConfig);
+    setCloudPulling(false);
+    if (res.success && res.frames) {
+      setSlotsForm(res.frames);
+      onSaveFrameSlots(res.frames);
+      showToast("✓ Seluruh bingkai dari Supabase Cloud berhasil ditarik ke perangkat ini!");
+      setCloudConfig(loadCloudSyncConfig());
+    } else {
+      alert(`Gagal menarik dari cloud: ${res.message}`);
+    }
+  };
+
+  // Copy SQL script to clipboard
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(SUPABASE_SQL_SETUP);
+    setCopiedSql(true);
+    showToast("✓ Script SQL berhasil disalin ke papan klip!");
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
 
   const loadMediaDevices = async () => {
     try {
@@ -271,6 +340,62 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     } else {
       setPinError(true);
     }
+  };
+
+  // Export & Import Configurations (Backup & Cross-Device Sync)
+  const handleExportConfig = () => {
+    const backupData = {
+      version: "1.0",
+      exportDate: new Date().toISOString(),
+      frameSlots: slotsForm,
+      weddingConfig: weddingForm,
+      driveConfig: driveForm,
+      boothSettings: boothForm,
+    };
+    const jsonStr = JSON.stringify(backupData, null, 2);
+    const blob = new Blob([jsonStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `yodha-photobooth-backup-${weddingForm.brideName.toLowerCase()}-${weddingForm.groomName.toLowerCase()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("✓ Berkas cadangan pengaturan & bingkai berhasil diunduh!");
+  };
+
+  const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const parsed = JSON.parse(event.target?.result as string);
+        if (parsed.frameSlots && Array.isArray(parsed.frameSlots)) {
+          setSlotsForm(parsed.frameSlots);
+          onSaveFrameSlots(parsed.frameSlots);
+        }
+        if (parsed.weddingConfig) {
+          setWeddingForm(parsed.weddingConfig);
+          onSaveWeddingConfig(parsed.weddingConfig);
+        }
+        if (parsed.driveConfig) {
+          setDriveForm(parsed.driveConfig);
+          onSaveDriveConfig(parsed.driveConfig);
+        }
+        if (parsed.boothSettings) {
+          setBoothForm(parsed.boothSettings);
+          onSaveBoothSettings(parsed.boothSettings);
+        }
+        showToast("✓ Seluruh bingkai & pengaturan berhasil disinkronkan ke perangkat ini!");
+      } catch (err) {
+        alert("Gagal membaca file JSON. Pastikan file backup valid.");
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   // Layout counts for filter pills (matching yodhabooth)
@@ -470,6 +595,23 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               </button>
 
               <button
+                onClick={() => setActiveTab("cloud")}
+                className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === "cloud"
+                    ? "bg-amber-400 text-stone-950 font-semibold shadow-md"
+                    : "text-stone-300 hover:bg-white/5"
+                }`}
+              >
+                <Database size={14} />
+                <span>Cloud Sync Frame</span>
+                {cloudConfig.enabled ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse ml-0.5" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-stone-500 ml-0.5" />
+                )}
+              </button>
+
+              <button
                 onClick={() => setActiveTab("drive")}
                 className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "drive"
@@ -596,17 +738,43 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       </p>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => {
-                        soundFx.playChime();
-                        setStudioTargetFrame("new");
-                      }}
-                      className="btn-gold px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shrink-0"
-                    >
-                      <Plus size={16} />
-                      <span>+ Tambah Bingkai Baru</span>
-                    </button>
+                    <div className="flex items-center flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={handleExportConfig}
+                        title="Unduh seluruh data bingkai ke file JSON untuk dipindahkan ke laptop / tablet lain"
+                        className="px-3.5 py-2.5 rounded-xl border border-amber-400/40 bg-stone-900/80 hover:bg-stone-800 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Download size={14} />
+                        <span>Ekspor JSON (Sync)</span>
+                      </button>
+
+                      <label
+                        title="Unggah file JSON cadangan dari laptop / perangkat lain agar bingkai sama persis"
+                        className="px-3.5 py-2.5 rounded-xl border border-amber-400/40 bg-stone-900/80 hover:bg-stone-800 text-amber-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <Upload size={14} />
+                        <span>Impor JSON</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={handleImportConfig}
+                        />
+                      </label>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundFx.playChime();
+                          setStudioTargetFrame("new");
+                        }}
+                        className="btn-gold px-4 py-2.5 rounded-xl font-semibold flex items-center justify-center gap-2 shadow-lg text-xs sm:text-sm cursor-pointer transition-all active:scale-95 shrink-0"
+                      >
+                        <Plus size={16} />
+                        <span>+ Tambah Bingkai Baru</span>
+                      </button>
+                    </div>
                   </div>
 
                   {/* Filter Pills */}
@@ -653,6 +821,167 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {/* Tab: Cloud Database Frame (Supabase Sync) */}
+              {activeTab === "cloud" && (
+                <div className="space-y-5 max-w-2xl">
+                  {/* Notice banner ensuring guest photos in Google Drive are untouched */}
+                  <div className="p-4 rounded-xl bg-amber-400/10 border border-amber-400/30 text-amber-200 text-xs leading-relaxed space-y-1">
+                    <p className="font-semibold text-amber-300 flex items-center gap-2 text-sm">
+                      <Database size={16} />
+                      <span>Sinkronisasi Otomatis Khusus Bingkai (Frame)</span>
+                    </p>
+                    <p className="text-stone-300">
+                      Dengan menghubungkan ke database Supabase (gratis), setiap kali Anda menambah,
+                      mengedit tata letak lubang foto, atau menghapus bingkai di salah satu laptop,
+                      semua laptop / tablet lain akan <strong>otomatis terupdate secara realtime</strong>.
+                    </p>
+                    <p className="text-emerald-400 font-medium pt-1">
+                      🔒 <strong>Foto Tamu Aman:</strong> Foto hasil photobooth tetap otomatis terunggah ke Google Drive Anda dan tidak diutak-atik sama sekali.
+                    </p>
+                  </div>
+
+                  {/* Cloud Connection Form */}
+                  <div className="bg-stone-900/60 p-5 rounded-2xl border border-amber-400/25 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-serif text-amber-200 font-semibold flex items-center gap-2">
+                        <span>Konfigurasi Supabase</span>
+                        {cloudConfig.enabled && (
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-sans">
+                            Aktif
+                          </span>
+                        )}
+                      </h3>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={cloudConfig.enabled}
+                          onChange={(e) => {
+                            const updated = { ...cloudConfig, enabled: e.target.checked };
+                            setCloudConfig(updated);
+                            saveCloudSyncConfig(updated);
+                            showToast(
+                              updated.enabled
+                                ? "✓ Sinkronisasi cloud frame diaktifkan"
+                                : "Sinkronisasi cloud dinonaktifkan"
+                            );
+                          }}
+                          className="rounded text-amber-400 focus:ring-amber-400 bg-stone-900 border-stone-700 w-4 h-4 cursor-pointer"
+                        />
+                        <span className="text-xs font-medium text-amber-200">
+                          Aktifkan Auto-Sync Cloud
+                        </span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-amber-200 mb-1">
+                        Supabase Project URL
+                      </label>
+                      <input
+                        type="url"
+                        placeholder="https://xyzcompany.supabase.co"
+                        value={cloudConfig.supabaseUrl}
+                        onChange={(e) =>
+                          setCloudConfig({ ...cloudConfig, supabaseUrl: e.target.value })
+                        }
+                        className="w-full bg-stone-900 border border-amber-400/20 rounded-xl px-3.5 py-2.5 text-xs text-stone-200 focus:outline-none focus:border-amber-400 font-mono"
+                      />
+                      <span className="text-[10px] text-stone-400 block mt-1">
+                        Dapat dilihat di Project Settings → API pada dashboard Supabase Anda.
+                      </span>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-amber-200 mb-1">
+                        Supabase Public Anon Key
+                      </label>
+                      <input
+                        type="password"
+                        placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                        value={cloudConfig.supabaseAnonKey}
+                        onChange={(e) =>
+                          setCloudConfig({ ...cloudConfig, supabaseAnonKey: e.target.value })
+                        }
+                        className="w-full bg-stone-900 border border-amber-400/20 rounded-xl px-3.5 py-2.5 text-xs text-stone-200 focus:outline-none focus:border-amber-400 font-mono"
+                      />
+                      <span className="text-[10px] text-stone-400 block mt-1">
+                        Dapat dilihat di Project Settings → API → Project API Keys (anon public).
+                      </span>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          saveCloudSyncConfig(cloudConfig);
+                          showToast("✓ Pengaturan Supabase berhasil disimpan!");
+                        }}
+                        className="btn-gold px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <Save size={14} />
+                        <span>Simpan Pengaturan</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={cloudTesting}
+                        onClick={handleTestCloud}
+                        className="px-4 py-2 rounded-xl border border-amber-400/30 bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <RefreshCw size={14} className={cloudTesting ? "animate-spin" : ""} />
+                        <span>{cloudTesting ? "Memeriksa..." : "Tes Koneksi Supabase"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={cloudPushing}
+                        onClick={handlePushFramesToCloud}
+                        className="px-4 py-2 rounded-xl border border-emerald-500/30 bg-emerald-950/40 hover:bg-emerald-900/50 text-emerald-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Upload size={14} className={cloudPushing ? "animate-bounce" : ""} />
+                        <span>{cloudPushing ? "Mengunggah..." : "Upload Frame ke Cloud"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        disabled={cloudPulling}
+                        onClick={handlePullFramesFromCloud}
+                        className="px-4 py-2 rounded-xl border border-sky-500/30 bg-sky-950/40 hover:bg-sky-900/50 text-sky-300 text-xs font-medium flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        <Download size={14} className={cloudPulling ? "animate-bounce" : ""} />
+                        <span>{cloudPulling ? "Mengunduh..." : "Tarik Frame dari Cloud"}</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* SQL Setup Instructions Box */}
+                  <div className="bg-stone-900/40 p-5 rounded-2xl border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-semibold text-amber-300">
+                        ⚡ Cara Buat Tabel di Supabase (Hanya Sekali & Cuma 30 Detik)
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={handleCopySql}
+                        className="px-3 py-1 rounded-lg bg-amber-400/20 hover:bg-amber-400/30 text-amber-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                      >
+                        <Copy size={12} />
+                        <span>{copiedSql ? "Tersalin!" : "Salin Script SQL"}</span>
+                      </button>
+                    </div>
+                    <ol className="text-[11px] text-stone-400 list-decimal pl-4 space-y-1">
+                      <li>Buka dashboard proyek Anda di <a href="https://supabase.com" target="_blank" rel="noreferrer" className="text-amber-400 underline">supabase.com</a>.</li>
+                      <li>Klik menu <strong>SQL Editor</strong> di sebelah kiri.</li>
+                      <li>Klik <strong>New Query</strong>, tempel (paste) kode SQL di bawah ini, lalu klik tombol <strong>RUN</strong>.</li>
+                    </ol>
+                    <pre className="bg-black/60 p-3 rounded-xl border border-white/5 text-[10px] font-mono text-amber-200/90 overflow-x-auto whitespace-pre">
+                      {SUPABASE_SQL_SETUP}
+                    </pre>
+                  </div>
                 </div>
               )}
 
@@ -879,6 +1208,43 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <Save size={14} />
                     <span>Simpan Pengaturan Booth</span>
                   </button>
+
+                  {/* Cross-device Sync & Backup Card */}
+                  <div className="p-4 rounded-xl bg-stone-900/90 border border-amber-400/30 space-y-3 mt-8">
+                    <h3 className="text-sm font-semibold text-amber-300 flex items-center gap-2">
+                      <Download size={16} />
+                      <span>Sinkronisasi Antar Perangkat & Cadangan Data</span>
+                    </h3>
+                    <p className="text-xs text-stone-300 leading-relaxed">
+                      Data bingkai dan konfigurasi disimpan di memori peramban (localStorage) perangkat ini.
+                      Jika Anda ingin bingkai di <strong>laptop / tablet / HP lain</strong> sama persis dengan yang ada di sini:
+                    </p>
+                    <ol className="text-xs text-stone-400 list-decimal pl-4 space-y-1">
+                      <li>Klik <strong>"Unduh Cadangan Semua Bingkai (.json)"</strong> di perangkat ini.</li>
+                      <li>Kirim berkas .json tersebut ke perangkat tujuan (lewat WA, Flashdisk, Drive, dll).</li>
+                      <li>Buka Admin di perangkat tujuan lalu klik <strong>"Impor Cadangan Bingkai"</strong>.</li>
+                    </ol>
+                    <div className="flex flex-wrap gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleExportConfig}
+                        className="btn-gold px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 cursor-pointer"
+                      >
+                        <Download size={14} />
+                        <span>Unduh Cadangan Semua Bingkai (.json)</span>
+                      </button>
+                      <label className="px-4 py-2 rounded-xl border border-amber-400/40 bg-stone-800 hover:bg-stone-700 text-amber-300 text-xs font-semibold flex items-center gap-2 cursor-pointer">
+                        <Upload size={14} />
+                        <span>Impor Cadangan Bingkai (.json)</span>
+                        <input
+                          type="file"
+                          accept=".json"
+                          className="hidden"
+                          onChange={handleImportConfig}
+                        />
+                      </label>
+                    </div>
+                  </div>
                 </div>
               )}
 

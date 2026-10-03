@@ -12,6 +12,7 @@ import {
   DEFAULT_FRAME_SLOTS,
   DEFAULT_WEDDING_CONFIG,
 } from "../config";
+import { pushFramesToCloud } from "./cloudSync";
 
 const KEYS = {
   WEDDING: "yodha_wedding_config",
@@ -120,6 +121,7 @@ export function saveFrameSlots(slots: FrameSlot[]): void {
   try {
     localStorage.setItem(KEYS.SLOTS, JSON.stringify(slots));
     pushToServer({ frameSlots: slots }).catch(() => {});
+    pushFramesToCloud(slots).catch(() => {});
   } catch (e) {
     console.error("Failed to save frame slots:", e);
   }
