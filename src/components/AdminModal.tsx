@@ -101,7 +101,7 @@ const AdminFrameCardItem: React.FC<{
             <img
               src={slot.customImage}
               alt={slot.name}
-              className="w-full h-full object-fill drop-shadow"
+              className="w-full h-full object-contain drop-shadow"
               onLoad={(e) => {
                 const img = e.currentTarget;
                 if (img.naturalWidth && img.naturalHeight) {

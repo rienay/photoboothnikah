@@ -73,7 +73,7 @@ const SelectableFrameCard: React.FC<{
           <img
             src={slot.customImage}
             alt={slot.name}
-            className="w-full h-full object-fill pointer-events-none drop-shadow-md"
+            className="w-full h-full object-contain pointer-events-none drop-shadow-md"
             onLoad={(e) => {
               const img = e.currentTarget;
               if (img.naturalWidth && img.naturalHeight) {

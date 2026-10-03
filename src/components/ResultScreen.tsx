@@ -212,24 +212,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   return (
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 overflow-y-auto lg:overflow-hidden min-h-0">
       {/* Hidden Print Target for CSS @media print */}
-      <div id="print-target" className="hidden">
-        {printImageSrc && (
-          <div className="w-full flex items-center justify-center p-0 m-0">
-            {Array.from({ length: printCopies }).map((_, cIdx) => (
-              <img
-                key={cIdx}
-                src={printImageSrc}
-                alt="Print Photobooth"
-                style={{
-                  width: "100%",
-                  maxHeight: "100vh",
-                  objectFit: "contain",
-                  pageBreakAfter: cIdx < printCopies - 1 ? "always" : "auto",
-                }}
-              />
-            ))}
-          </div>
-        )}
+      <div id="print-target">
+        {printImageSrc &&
+          Array.from({ length: printCopies }).map((_, cIdx) => (
+            <img
+              key={cIdx}
+              src={printImageSrc}
+              alt="Print Photobooth"
+            />
+          ))}
       </div>
 
       {/* Screen Title */}

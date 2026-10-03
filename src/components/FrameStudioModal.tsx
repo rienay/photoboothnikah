@@ -1513,7 +1513,7 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                     <img
                       src={activeCanvasData}
                       alt="Frame Preview"
-                      className="w-full h-full block object-fill"
+                      className="w-full h-full block object-contain"
                     />
                   </div>
                 ) : (
