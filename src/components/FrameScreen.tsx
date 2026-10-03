@@ -161,28 +161,7 @@ const SelectableFrameCard: React.FC<{
         {slot.name || `Desain ${index + 1}`}
       </div>
 
-      {/* Top Right: Selected Checkmark */}
-      {isSelected && (
-        <div className="absolute top-2.5 right-2.5 z-20 w-6 h-6 rounded-full bg-amber-400 text-stone-950 flex items-center justify-center shadow-lg font-bold animate-in zoom-in-75 duration-200">
-          <Check size={14} strokeWidth={3} />
-        </div>
-      )}
-
-      {/* Bottom Left: Layout & Photo Count Badge */}
-      <div className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-0.5 rounded-full bg-black/85 border border-amber-400/40 text-[10px] font-mono text-amber-300 font-bold shadow-md">
-        {slot.layoutId.toUpperCase()} • {layout.totalPhotos} Foto{layout.isMirrored ? " (Mirror)" : ""}
-      </div>
-
-      {/* Bottom Right: Quick action when selected */}
-      {isSelected && (
-        <div className="absolute bottom-2.5 right-2.5 z-20">
-          <span className="btn-gold py-1 px-3 rounded-full text-[11px] font-bold shadow-lg flex items-center gap-1 animate-pulse">
-            <Camera size={12} />
-            <span>Mulai Foto</span>
-          </span>
-        </div>
-      )}
-    </button>
+          </button>
   );
 };
 
