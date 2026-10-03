@@ -240,6 +240,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     printStyle.id = "yodha-print-style";
     printStyle.innerHTML = `
       @media print {
+        *, *:before, *:after {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+          box-sizing: border-box !important;
+        }
         body > *:not(#yodha-print-section) {
           display: none !important;
         }
@@ -247,32 +252,32 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           background: white !important;
           margin: 0 !important;
           padding: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
+          width: 100mm !important;
+          height: 150mm !important;
           overflow: hidden !important;
         }
         #yodha-print-section {
           display: block !important;
-          position: absolute !important;
+          position: fixed !important;
           left: 0 !important;
           top: 0 !important;
-          width: 100% !important;
-          height: 100% !important;
+          width: 100mm !important;
+          height: 150mm !important;
           margin: 0 !important;
           padding: 0 !important;
         }
         @page {
-          size: ${sheetWidth}cm ${sheetHeight}cm;
-          margin: 0 !important;
+          size: 100mm 150mm;
+          margin: 0mm !important;
         }
         .page {
-          width: ${sheetWidth}cm !important;
-          height: ${sheetHeight}cm !important;
+          width: 100mm !important;
+          height: 150mm !important;
           position: relative !important;
           page-break-after: always !important;
           break-after: page !important;
           display: block !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
           padding: 0 !important;
           background: white !important;
           overflow: hidden !important;
@@ -285,22 +290,19 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           position: absolute !important;
           top: 0 !important;
           left: 0 !important;
-          width: ${sheetWidth}cm !important;
-          height: ${sheetHeight}cm !important;
+          width: 100mm !important;
+          height: 150mm !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: hidden !important;
-          box-sizing: border-box !important;
         }
         .print-sheet-img {
-          width: 100% !important;
-          height: 100% !important;
+          width: 100mm !important;
+          height: 150mm !important;
           display: block !important;
           object-fit: fill !important;
           margin: 0 !important;
           padding: 0 !important;
-          -webkit-print-color-adjust: exact !important;
-          print-color-adjust: exact !important;
         }
       }
     `;
