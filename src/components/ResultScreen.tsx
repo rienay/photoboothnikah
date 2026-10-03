@@ -355,17 +355,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     }
   }, [renderedStrip, layout, printCopies, printMarginX, printMarginY]);
 
-  // Auto-Print trigger when strip is ready
-  useEffect(() => {
-    if (renderedStrip && !autoPrintTriggeredRef.current && autoPrint) {
-      autoPrintTriggeredRef.current = true;
-      const timer = setTimeout(() => {
-        printPhoto();
-      }, 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [renderedStrip, autoPrint, printPhoto]);
-
   // Restore fullscreen on afterprint
   useEffect(() => {
     const handleAfterPrint = () => {
