@@ -95,6 +95,8 @@ export interface BoothSettings {
   autoPrint?: boolean;
   screenRotation?: 0 | 90 | 180 | 270;
   cameraRotation?: 0 | 90 | 180 | 270;
+  printMarginX?: number; // mm (margin aman kanan-kiri kertas print)
+  printMarginY?: number; // mm (margin aman atas-bawah kertas print)
 }
 
 export interface CustomTemplate {

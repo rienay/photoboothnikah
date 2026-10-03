@@ -29,6 +29,8 @@ interface ResultScreenProps {
   autoResetDuration: number;
   defaultPrintCopies: number;
   autoPrint?: boolean;
+  printMarginX?: number;
+  printMarginY?: number;
   onHome: () => void;
 }
 
@@ -57,6 +59,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   autoResetDuration,
   defaultPrintCopies,
   autoPrint = true,
+  printMarginX = 5,
+  printMarginY = 3,
   onHome,
 }) => {
   const [renderedStrip, setRenderedStrip] = useState<string | null>(null);
@@ -202,6 +206,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     const blobUrl = URL.createObjectURL(blob);
 
     let pagesContent = "";
+    const safeMarginX = typeof printMarginX === "number" ? printMarginX : 5;
+    const safeMarginY = typeof printMarginY === "number" ? printMarginY : 3;
 
     if (isStrip) {
       // Untuk strip 5cm: cetak sesuai jumlah rangkap (printCopies) di mana satu lembar 10x15cm memuat maksimal 2 strip
@@ -213,8 +219,12 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           pagesContent += `
             <div class="page">
               <div class="print-container">
-                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
-                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
+                <div class="strip-item">
+                  <img src="${blobUrl}" />
+                </div>
+                <div class="strip-item">
+                  <img src="${blobUrl}" />
+                </div>
               </div>
             </div>
           `;
@@ -224,8 +234,10 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           pagesContent += `
             <div class="page">
               <div class="print-container">
-                <div style="width:50%; height:100%;"></div>
-                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
+                <div class="strip-item"></div>
+                <div class="strip-item">
+                  <img src="${blobUrl}" />
+                </div>
               </div>
             </div>
           `;
@@ -238,7 +250,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         pagesContent += `
           <div class="page">
             <div class="print-container">
-              <img src="${blobUrl}" style="width:100%;height:100%;display:block;object-fit:contain;" />
+              <div class="grid-item">
+                <img src="${blobUrl}" />
+              </div>
             </div>
           </div>
         `;
@@ -263,6 +277,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           background: white !important;
           margin: 0 !important;
           padding: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
         }
         #yodha-print-section {
           display: block !important;
@@ -286,6 +302,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           align-items: center !important;
           justify-content: center !important;
           background: white !important;
+          overflow: hidden !important;
         }
         .page:last-child {
           page-break-after: avoid !important;
@@ -294,7 +311,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         .print-container {
           position: absolute !important;
           top: 0 !important;
+          left: 0 !important;
           right: 0 !important;
+          margin: 0 auto !important;
           width: ${sheetWidth}cm !important;
           height: ${sheetHeight}cm !important;
           display: flex !important;
@@ -302,8 +321,45 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           align-items: center !important;
           justify-content: center !important;
           overflow: hidden !important;
-          padding: 0.25cm !important;
+          padding: ${safeMarginY}mm ${safeMarginX}mm !important;
           box-sizing: border-box !important;
+        }
+        .strip-item {
+          width: 50% !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+          padding: 0 1.5mm !important;
+        }
+        .strip-item img {
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: auto !important;
+          height: 100% !important;
+          display: block !important;
+          object-fit: contain !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+        .grid-item {
+          width: 100% !important;
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+        }
+        .grid-item img {
+          max-width: 100% !important;
+          max-height: 100% !important;
+          width: auto !important;
+          height: 100% !important;
+          display: block !important;
+          object-fit: contain !important;
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
         }
         img {
           -webkit-print-color-adjust: exact !important;
@@ -360,7 +416,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         }
       });
     }
-  }, [renderedStrip, layout, printCopies]);
+  }, [renderedStrip, layout, printCopies, printMarginX, printMarginY]);
 
   // Auto-Print trigger when strip is ready
   useEffect(() => {

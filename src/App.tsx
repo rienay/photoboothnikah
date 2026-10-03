@@ -352,6 +352,8 @@ export const App: React.FC = () => {
             autoResetDuration={boothSettings.autoResetDuration}
             defaultPrintCopies={boothSettings.defaultPrintCopies}
             autoPrint={boothSettings.autoPrint ?? true}
+            printMarginX={boothSettings.printMarginX ?? 5}
+            printMarginY={boothSettings.printMarginY ?? 3}
             onHome={resetToHome}
           />
         )}

@@ -36,6 +36,8 @@ export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
   autoPrint: false,
   screenRotation: 0,
   cameraRotation: 0,
+  printMarginX: 5, // mm (jarak aman kanan-kiri kertas print)
+  printMarginY: 3, // mm (jarak aman atas-bawah kertas print)
 };
 
 export const LAYOUTS: LayoutConfig[] = [

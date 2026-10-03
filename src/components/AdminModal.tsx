@@ -17,6 +17,7 @@ import {
   Database,
   RefreshCw,
   Copy,
+  Printer,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -1246,6 +1247,77 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <label htmlFor="autoPrintToggle" className="text-xs text-amber-200 font-semibold cursor-pointer">
                       🖨️ Cetak Otomatis (Auto-Print 10×15 cm 4R) saat Selesai Foto
                     </label>
+                  </div>
+
+                  {/* Margin Cetak Kertas 4R */}
+                  <div className="p-3.5 rounded-xl bg-stone-900/80 border border-amber-400/20 space-y-3 mt-2">
+                    <div>
+                      <h4 className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                        <Printer size={14} />
+                        <span>Margin Kertas Cetak 4R (Anti-Potong Tepi Kiri/Kanan)</span>
+                      </h4>
+                      <p className="text-[11px] text-stone-400 mt-0.5">
+                        Atur jarak aman dari tepi kertas fisik printer agar garis bingkai foto tidak terpotong.
+                      </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs text-amber-200">
+                            Margin Kanan & Kiri
+                          </label>
+                          <span className="text-xs font-mono font-bold text-amber-400">
+                            {boothForm.printMarginX ?? 5} mm
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={15}
+                          step={1}
+                          value={boothForm.printMarginX ?? 5}
+                          onChange={(e) =>
+                            setBoothForm({
+                              ...boothForm,
+                              printMarginX: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                        <span className="text-[10px] text-stone-500 block mt-0.5">
+                          Standar aman: 5 - 6 mm
+                        </span>
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-xs text-amber-200">
+                            Margin Atas & Bawah
+                          </label>
+                          <span className="text-xs font-mono font-bold text-amber-400">
+                            {boothForm.printMarginY ?? 3} mm
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={15}
+                          step={1}
+                          value={boothForm.printMarginY ?? 3}
+                          onChange={(e) =>
+                            setBoothForm({
+                              ...boothForm,
+                              printMarginY: parseInt(e.target.value) || 0,
+                            })
+                          }
+                          className="w-full accent-amber-400 cursor-pointer"
+                        />
+                        <span className="text-[10px] text-stone-500 block mt-0.5">
+                          Standar aman: 3 - 5 mm
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
                   <button
