@@ -178,10 +178,12 @@ export const App: React.FC = () => {
   };
 
   // Find active frame slot, layout, and preset theme
-  const activeSlot = frameSlots.find((s) => s.id === selectedSlotId) || frameSlots[0];
+  const fallbackSlot = DEFAULT_FRAME_SLOTS[0];
+  const activeSlot = frameSlots.find((s) => s.id === selectedSlotId) || frameSlots[0] || fallbackSlot;
   const currentLayoutConfig = getEffectiveLayout(activeSlot, LAYOUTS);
   const currentPreset =
-    WEDDING_PRESETS.find((p) => p.id === activeSlot.presetThemeId) || WEDDING_PRESETS[0];
+    (activeSlot?.presetThemeId && WEDDING_PRESETS.find((p) => p.id === activeSlot.presetThemeId)) ||
+    WEDDING_PRESETS[0];
 
   // Find filter CSS
   const activeFilter = PHOTO_FILTERS.find((f) => f.id === selectedFilterId);
