@@ -240,7 +240,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
   }, [isShooting, cameraError, startShootSequence]);
 
   return (
-    <div className="flex-1 flex flex-col max-w-[1750px] mx-auto w-full px-3 sm:px-6 py-1 relative h-full max-h-[calc(100vh-100px)] min-h-0">
+    <div className="flex-1 flex flex-col max-w-[1750px] mx-auto w-full px-2 sm:px-6 py-1 relative h-full overflow-y-auto lg:overflow-hidden min-h-0">
       {/* Shutter Flash Overlay */}
       {isFlashing && <div className="camera-flash" />}
 
@@ -275,7 +275,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           {/* Main Camera Viewport Area */}
           <div className="flex-1 min-h-0 flex items-center justify-center p-0.5 sm:p-1 relative w-full overflow-hidden">
             <div
-              className="h-full w-auto max-h-[76vh] xl:max-h-[80vh] 2xl:max-h-[83vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
+              className="h-full w-auto max-h-[48vh] sm:max-h-[58vh] lg:max-h-[78vh] xl:max-h-[82vh] 2xl:max-h-[85vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
               style={{
                 aspectRatio: `${targetPhotoRatio}`,
               }}
@@ -364,7 +364,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           <div className="flex-1 flex items-center justify-center min-h-0 py-1">
             {customOverlayUrl ? (
               /* Custom Uploaded Frame Overlay Mockup */
-              <div className="relative h-full max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
+              <div className="relative h-full max-h-[220px] sm:max-h-[300px] lg:max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
                 {/* Photo Boxes beneath custom overlay */}
                 <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
                   {(photoBoxes && photoBoxes.length > 0
@@ -419,7 +419,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                 <img
                   src={customOverlayUrl}
                   alt="Bingkai Kustom"
-                  className="h-full w-auto max-h-[46vh] xl:max-h-[50vh] block pointer-events-none z-20 drop-shadow"
+                  className="h-full w-auto max-h-[220px] sm:max-h-[300px] lg:max-h-[46vh] xl:max-h-[50vh] block pointer-events-none z-20 drop-shadow"
                   onLoad={(e) => {
                     const img = e.currentTarget;
                     if (img.naturalWidth && img.naturalHeight) {
@@ -432,8 +432,8 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
               /* Built-in Preset Frame Mockup */
               <div
                 className={`w-full ${
-                  layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
-                } h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
+                  layout.cols === 1 ? "max-w-[150px] sm:max-w-[190px] xl:max-w-[210px]" : "max-w-[190px] sm:max-w-[230px] xl:max-w-[260px]"
+                } h-full max-h-[220px] sm:max-h-[300px] lg:max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
                 style={{
                   aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
                   background: preset.bgColor,

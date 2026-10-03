@@ -221,7 +221,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-4 py-3">
+    <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 overflow-y-auto lg:overflow-hidden min-h-0">
       {/* Hidden Print Target for CSS @media print */}
       <div id="print-target" className="hidden">
         {printImageSrc && (
@@ -244,19 +244,19 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       </div>
 
       {/* Screen Title */}
-      <div className="text-center mb-4">
-        <h2 className="font-serif text-3xl sm:text-4xl text-gold-gradient font-normal mt-0.5">
+      <div className="text-center mb-2 sm:mb-4 shrink-0">
+        <h2 className="font-serif text-2xl sm:text-4xl text-gold-gradient font-normal mt-0.5">
           Hasil Foto Pernikahan
         </h2>
       </div>
 
       {/* Main Content: Left Strip Preview, Right Google Drive & Print Actions */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center">
         {/* Left: Rendered Strip Preview */}
         <div className="md:col-span-5 flex flex-col items-center justify-center">
-          <div className="relative p-2.5 rounded-2xl glass-gold-card shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-amber-400/40 max-h-[65vh] flex items-center justify-center overflow-hidden">
+          <div className="relative p-2.5 rounded-2xl glass-gold-card shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-amber-400/40 max-h-[44vh] md:max-h-[65vh] flex items-center justify-center overflow-hidden">
             {isComposing || !renderedStrip ? (
-              <div className="w-64 h-96 flex flex-col items-center justify-center text-amber-200/80 gap-3">
+              <div className="w-48 sm:w-64 h-72 sm:h-96 flex flex-col items-center justify-center text-amber-200/80 gap-3">
                 <RotateCw size={36} className="animate-spin text-amber-400" />
                 <span className="font-cinzel text-xs tracking-wider">Menyusun Foto Elegan...</span>
               </div>
@@ -264,7 +264,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               <img
                 src={renderedStrip}
                 alt="Wedding Strip"
-                className="max-h-[60vh] w-auto object-contain rounded-lg shadow-lg"
+                className="max-h-[40vh] md:max-h-[60vh] w-auto object-contain rounded-lg shadow-lg"
               />
             )}
           </div>

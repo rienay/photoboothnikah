@@ -214,7 +214,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="h-screen max-h-screen w-screen flex flex-col justify-between relative overflow-hidden bg-[#0c0e12]">
+    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden bg-[#0c0e12]">
       {/* Top Header */}
       <Header
         weddingConfig={weddingConfig}
@@ -312,10 +312,11 @@ export const App: React.FC = () => {
       </main>
 
       {/* Footer subtle brand */}
-      <footer className="w-full py-2.5 px-6 flex items-center justify-between text-[11px] text-amber-200/40 select-none z-10 border-t border-amber-400/5">
-        <span>{weddingConfig.hashtag}</span>
-        <span className="font-serif italic">{weddingConfig.footerText}</span>
-        <span>Yodha Wedding Photobooth</span>
+      {/* Footer Info */}
+      <footer className="w-full py-2 px-3 sm:px-6 flex items-center justify-between text-[10px] sm:text-[11px] text-amber-200/40 select-none z-10 border-t border-amber-400/5">
+        <span className="hidden sm:inline">{weddingConfig.hashtag}</span>
+        <span className="font-serif italic text-center truncate mx-auto px-2 max-w-[280px] sm:max-w-none">{weddingConfig.footerText}</span>
+        <span className="hidden sm:inline">Yodha Wedding Photobooth</span>
       </footer>
 
       {/* Admin Settings Modal */}

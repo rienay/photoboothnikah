@@ -186,7 +186,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   // ================= FULL-SCREEN RETAKE VIEW (Matches ShootScreen) =================
   if (retakeIdx !== null) {
     return (
-      <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-2 sm:px-5 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
+      <div className="flex-1 flex flex-col max-w-[1750px] mx-auto w-full px-2 sm:px-6 py-1 relative h-full overflow-y-auto lg:overflow-hidden min-h-0">
         {/* Shutter Flash Overlay */}
         {isRetakeFlashing && <div className="camera-flash" />}
 
@@ -195,21 +195,32 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           {/* ================= LEFT COLUMN: Camera Feed & Controls ================= */}
           <div className="lg:col-span-8 xl:col-span-9 flex flex-col justify-between min-h-0">
             {/* Left Header */}
-            <div className="flex items-center justify-between mb-1.5 px-1">
+            <div className="flex items-center justify-between mb-1.5 px-1 shrink-0">
               <div className="flex items-center gap-2 sm:gap-3">
+                <button
+                  onClick={() => {
+                    soundFx.playChime();
+                    setRetakeIdx(null);
+                  }}
+                  disabled={retakeCountdown !== null}
+                  className="btn-gold-outline px-3 py-1 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform flex items-center gap-1 font-medium"
+                >
+                  <span>←</span>
+                  <span>Batal</span>
+                </button>
                 <span className="font-cinzel text-xs sm:text-sm tracking-wider text-amber-300 uppercase font-semibold">
                   Foto Ulang: Foto #{retakeIdx + 1}
                 </span>
-                <span className="text-xs text-stone-400">
+                <span className="text-xs text-stone-400 hidden sm:inline">
                   • Posisikan diri Anda, lalu tekan tombol Ambil Foto Ulang
                 </span>
               </div>
             </div>
 
             {/* Main Camera Viewport Area */}
-            <div className="flex-1 min-h-0 flex items-center justify-center p-1 sm:p-2 relative w-full overflow-hidden">
+            <div className="flex-1 min-h-0 flex items-center justify-center p-0.5 sm:p-1 relative w-full overflow-hidden">
               <div
-                className="h-full max-h-[64vh] xl:max-h-[68vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
+                className="h-full w-auto max-h-[48vh] sm:max-h-[58vh] lg:max-h-[78vh] xl:max-h-[82vh] 2xl:max-h-[85vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
                 style={{
                   aspectRatio: `${targetPhotoRatio}`,
                 }}
@@ -231,11 +242,6 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
                 <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
                 <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
-
-                {/* Target Photo Hole indicator */}
-                <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 border border-amber-400/30 text-[10px] font-mono text-amber-200 backdrop-blur-sm pointer-events-none z-10 whitespace-nowrap">
-                  Proporsi Bidikan: {targetPhotoRatio >= 1.2 ? "Landscape" : targetPhotoRatio <= 0.85 ? "Portrait" : "Persegi"} (Sesuai Lubang Frame)
-                </div>
 
                 {/* Countdown Overlay */}
                 {retakeCountdown !== null && (
@@ -484,13 +490,13 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   }
 
   return (
-    <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full px-3 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
+    <div className="flex-1 flex flex-col items-center justify-center max-w-5xl mx-auto w-full px-2 sm:px-4 py-1 relative h-full overflow-y-auto lg:overflow-hidden min-h-0">
       {/* Centered Main 2-Column Split */}
-      <div className="w-full flex flex-col lg:flex-row items-center justify-center gap-5 lg:gap-8 flex-1 min-h-0 max-h-[520px]">
+      <div className="w-full flex flex-col lg:flex-row items-center justify-center gap-4 lg:gap-8 flex-1 min-h-0 max-h-none lg:max-h-[520px]">
         {/* ================= LEFT: Live Frame / Strip Mockup ================= */}
         {customOverlayUrl ? (
           /* Custom Uploaded Frame Overlay Mockup */
-          <div className="relative h-full max-h-[480px] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
+          <div className="relative h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950 shrink-0">
             {/* Interactive Photo Boxes beneath custom overlay */}
             <div className="absolute inset-0 w-full h-full z-10 pointer-events-auto">
               {(photoBoxes && photoBoxes.length > 0
@@ -543,7 +549,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
             <img
               src={customOverlayUrl}
               alt="Bingkai Kustom"
-              className="h-full w-auto max-h-[480px] block pointer-events-none z-20 drop-shadow"
+              className="h-full w-auto max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] block pointer-events-none z-20 drop-shadow"
               onLoad={(e) => {
                 const img = e.currentTarget;
                 if (img.naturalWidth && img.naturalHeight) {
@@ -556,8 +562,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           /* Built-in Preset Theme Mockup */
           <div
             className={`w-full ${
-              layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
-            } h-full max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0 select-none`}
+              layout.cols === 1 ? "max-w-[150px] sm:max-w-[190px] xl:max-w-[210px]" : "max-w-[190px] sm:max-w-[230px] xl:max-w-[260px]"
+            } h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0 select-none`}
             style={{
               aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
               background: preset.bgColor,
