@@ -16,6 +16,8 @@ export interface LayoutConfig {
   rows: number;
   cols: number;
   totalPhotos: number;
+  totalBoxes?: number;
+  isMirrored?: boolean;
   paperSizeLabel: string;
   badge: string;
   aspectRatio: string;

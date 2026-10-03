@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ArrowLeft, Check, Camera, Image as ImageIcon } from "lucide-react";
 import { WEDDING_PRESETS, LAYOUTS } from "../config";
+import { getBoxShotIndex } from "../lib/frameLayouts";
 import { FrameSlot, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
@@ -124,20 +125,23 @@ const SelectableFrameCard: React.FC<{
                 gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
               }}
             >
-              {Array.from({ length: layout.totalPhotos }).map((_, bIdx) => (
-                <div
-                  key={bIdx}
-                  className="w-full h-full min-h-5 rounded border opacity-60 flex items-center justify-center"
-                  style={{
-                    background: "rgba(255,255,255,0.06)",
-                    borderColor: preset.borderColor,
-                  }}
-                >
-                  <span className="text-[8px] text-stone-400 font-mono">
-                    #{bIdx + 1}
-                  </span>
-                </div>
-              ))}
+              {Array.from({ length: layout.totalBoxes || (layout.rows * layout.cols) }).map((_, bIdx) => {
+                const shotIdx = getBoxShotIndex(bIdx, [], layout);
+                return (
+                  <div
+                    key={bIdx}
+                    className="w-full h-full min-h-5 rounded border opacity-60 flex items-center justify-center"
+                    style={{
+                      background: "rgba(255,255,255,0.06)",
+                      borderColor: preset.borderColor,
+                    }}
+                  >
+                    <span className="text-[8px] text-stone-400 font-mono">
+                      #{shotIdx + 1}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
 
             {/* Footer */}
@@ -166,7 +170,7 @@ const SelectableFrameCard: React.FC<{
 
       {/* Bottom Left: Layout & Photo Count Badge */}
       <div className="absolute bottom-2.5 left-2.5 z-20 px-2.5 py-0.5 rounded-full bg-black/85 border border-amber-400/40 text-[10px] font-mono text-amber-300 font-bold shadow-md">
-        {slot.layoutId.toUpperCase()} • {layout.totalPhotos} Foto
+        {slot.layoutId.toUpperCase()} • {layout.totalPhotos} Foto{layout.isMirrored ? " (Mirror)" : ""}
       </div>
 
       {/* Bottom Right: Quick action when selected */}

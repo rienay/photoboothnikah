@@ -1274,11 +1274,11 @@ export const FrameStudioModal: React.FC<FrameStudioModalProps> = ({
                   {/* 1-Click Layout Grid Presets */}
                   <div className="grid grid-cols-3 gap-1.5">
                     {[
-                      { id: "2x2", label: "4 Foto (Grid 2×2)", count: 4 },
+                      { id: "2x2", label: "4 Frame (Mirror 2 Foto)", count: 4 },
                       { id: "3x1", label: "3 Foto (Strip 3×1)", count: 3 },
                       { id: "2x1", label: "2 Foto (Strip 2×1)", count: 2 },
-                      { id: "3x2", label: "6 Foto (Grid 3×2)", count: 6 },
-                      { id: "4x2", label: "8 Foto (Grid 4×2)", count: 8 },
+                      { id: "3x2", label: "6 Frame (Mirror 3 Foto)", count: 6 },
+                      { id: "4x2", label: "8 Frame (Mirror 4 Foto)", count: 8 },
                       { id: "1x1", label: "1 Foto (Polaroid 1×1)", count: 1 },
                     ].map((item) => (
                       <button

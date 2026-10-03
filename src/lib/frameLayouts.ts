@@ -251,21 +251,92 @@ export function punchBoxesOnCanvas(
  * Derives the active layout configuration dynamically based on the frame slot.
  * If the frame has custom photo boxes, totalPhotos and grid dimensions will adapt automatically.
  */
+/**
+ * Maps a photo box index (0 .. totalBoxes - 1) to its corresponding captured shot index (0 .. totalPhotos - 1).
+ * In a mirrored layout, pairs the left box and right box for each row so they share the exact same photo.
+ * For example in 4-frame (2x2):
+ * Row 1 Left (box 0) -> Shot 0
+ * Row 1 Right (box 1) -> Shot 0
+ * Row 2 Left (box 2) -> Shot 1
+ * Row 2 Right (box 3) -> Shot 1
+ */
+export function getBoxShotIndex(
+  boxIndex: number,
+  boxes?: PhotoBox[] | null,
+  layout?: LayoutConfig | null
+): number {
+  const isMirrored = layout?.isMirrored ?? (layout?.cols === 2);
+  if (!isMirrored) {
+    return boxIndex;
+  }
+
+  const activeBoxes =
+    boxes && boxes.length > 0
+      ? boxes
+      : layout
+      ? getDefaultBoxesForLayout(layout.id)
+      : [];
+
+  if (activeBoxes.length > 0) {
+    const leftBoxes = activeBoxes
+      .map((b, idx) => ({ ...b, origIdx: idx, cx: b.x + b.w / 2 }))
+      .filter((b) => b.cx < 50)
+      .sort((a, b) => a.y - b.y);
+
+    const rightBoxes = activeBoxes
+      .map((b, idx) => ({ ...b, origIdx: idx, cx: b.x + b.w / 2 }))
+      .filter((b) => b.cx >= 50)
+      .sort((a, b) => a.y - b.y);
+
+    if (leftBoxes.length > 0 && leftBoxes.length === rightBoxes.length) {
+      const leftIdx = leftBoxes.findIndex((b) => b.origIdx === boxIndex);
+      if (leftIdx !== -1) return leftIdx;
+
+      const rightIdx = rightBoxes.findIndex((b) => b.origIdx === boxIndex);
+      if (rightIdx !== -1) return rightIdx;
+    }
+  }
+
+  // Fallback for standard 2-column grid row-major
+  const cols = layout?.cols || 2;
+  return Math.floor(boxIndex / cols);
+}
+
 export function getEffectiveLayout(slot: FrameSlot, allLayouts: LayoutConfig[]): LayoutConfig {
   const baseLayout =
     allLayouts.find((l) => l.id === slot.layoutId) ||
     allLayouts.find((l) => l.id === "3x1") ||
     allLayouts[0];
 
-  const boxCount =
+  const boxes =
     slot.photoBoxes && slot.photoBoxes.length > 0
-      ? slot.photoBoxes.length
-      : baseLayout.totalPhotos;
+      ? slot.photoBoxes
+      : getDefaultBoxesForLayout(slot.layoutId);
+
+  const boxCount = boxes.length;
+
+  const leftBoxes = boxes.filter((b) => b.x + b.w / 2 < 50);
+  const rightBoxes = boxes.filter((b) => b.x + b.w / 2 >= 50);
+
+  // Layout is mirrored if baseLayout is 2 columns OR if boxes are symmetrically placed in 2 columns
+  const isMirrored =
+    Boolean(baseLayout.isMirrored) ||
+    baseLayout.cols === 2 ||
+    (leftBoxes.length > 0 && leftBoxes.length === rightBoxes.length);
+
+  // If mirrored, the number of photos to shoot is cut in half (e.g. 4 boxes = 2 shots, 6 boxes = 3 shots, 8 boxes = 4 shots)
+  const shotCount = isMirrored
+    ? (leftBoxes.length > 0 && leftBoxes.length === rightBoxes.length
+        ? leftBoxes.length
+        : Math.max(1, Math.ceil(boxCount / 2)))
+    : boxCount;
 
   return {
     ...baseLayout,
     name: slot.name || baseLayout.name,
-    totalPhotos: boxCount,
+    totalPhotos: shotCount,
+    totalBoxes: boxCount,
+    isMirrored,
   };
 }
 

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Camera, FlipHorizontal, RefreshCw, RotateCw, Sparkles, CheckCircle2 } from "lucide-react";
 import { LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
-import { calculateTargetPhotoRatio, getDefaultBoxesForLayout } from "../lib/frameLayouts";
+import { calculateTargetPhotoRatio, getDefaultBoxesForLayout, getBoxShotIndex } from "../lib/frameLayouts";
 
 interface ShootScreenProps {
   layout: LayoutConfig;
@@ -70,7 +70,10 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
 
   // Identify current targeted photo box
   const activeBoxes = photoBoxes && photoBoxes.length > 0 ? photoBoxes : getDefaultBoxesForLayout(layout.id);
-  const currentTargetBox = activeBoxes[Math.min(Math.max(0, currentShotIndex - 1), activeBoxes.length - 1)] || activeBoxes[0];
+  const currentTargetBox =
+    activeBoxes.find((_, idx) => getBoxShotIndex(idx, activeBoxes, layout) === Math.max(0, currentShotIndex - 1)) ||
+    activeBoxes[Math.min(Math.max(0, currentShotIndex - 1), activeBoxes.length - 1)] ||
+    activeBoxes[0];
 
   // Viewfinder and capture aspect ratio (width / height)
   const targetPhotoRatio = useMemo(() => {
@@ -281,7 +284,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                 {layout.name}
               </span>
               <span className="text-xs text-stone-400">
-                • {isShooting ? `Mengambil Foto ${currentShotIndex} dari ${layout.totalPhotos}` : `${layout.totalPhotos} Jepretan`}
+                • {isShooting ? `Mengambil Foto ${currentShotIndex} dari ${layout.totalPhotos}` : `${layout.totalPhotos} Jepretan${layout.isMirrored ? " (Mirror)" : ""}`}
               </span>
             </div>
           </div>
@@ -412,8 +415,9 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                     ? photoBoxes
                     : getDefaultBoxesForLayout(layout.id)
                   ).map((box, slotIdx) => {
-                    const shotPhoto = capturedPhotos[slotIdx];
-                    const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
+                    const shotIdx = getBoxShotIndex(slotIdx, activeBoxes, layout);
+                    const shotPhoto = capturedPhotos[shotIdx];
+                    const isCurrentTarget = shotIdx === currentShotIndex - 1 && isShooting;
 
                     return (
                       <div
@@ -436,7 +440,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                           <div className="w-full h-full relative">
                             <img
                               src={shotPhoto}
-                              alt={`Shot ${slotIdx + 1}`}
+                              alt={`Shot ${shotIdx + 1}`}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
@@ -446,10 +450,10 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                         ) : isCurrentTarget ? (
                           <div className="flex flex-col items-center gap-0.5 text-amber-300">
                             <Camera size={14} className="animate-bounce text-amber-400" />
-                            <span className="text-[8px] font-bold text-amber-300 uppercase">#{slotIdx + 1}</span>
+                            <span className="text-[8px] font-bold text-amber-300 uppercase">#{shotIdx + 1}</span>
                           </div>
                         ) : (
-                          <span className="text-[9px] font-mono text-stone-400 font-bold">#{slotIdx + 1}</span>
+                          <span className="text-[9px] font-mono text-stone-400 font-bold">#{shotIdx + 1}</span>
                         )}
                       </div>
                     );
@@ -510,9 +514,10 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                     gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
                   }}
                 >
-                  {Array.from({ length: layout.totalPhotos }).map((_, slotIdx) => {
-                    const shotPhoto = capturedPhotos[slotIdx];
-                    const isCurrentTarget = slotIdx === currentShotIndex - 1 && isShooting;
+                  {Array.from({ length: layout.totalBoxes || (layout.rows * layout.cols) }).map((_, slotIdx) => {
+                    const shotIdx = getBoxShotIndex(slotIdx, [], layout);
+                    const shotPhoto = capturedPhotos[shotIdx];
+                    const isCurrentTarget = shotIdx === currentShotIndex - 1 && isShooting;
 
                     return (
                       <div
@@ -532,7 +537,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                           <div className="w-full h-full relative">
                             <img
                               src={shotPhoto}
-                              alt={`Shot ${slotIdx + 1}`}
+                              alt={`Shot ${shotIdx + 1}`}
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
@@ -543,7 +548,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                           <div className="flex flex-col items-center gap-0.5 text-amber-300">
                             <Camera size={14} className="animate-bounce" />
                             <span className="text-[8px] font-cinzel uppercase tracking-wider">
-                              Jepret #{slotIdx + 1}
+                              Jepret #{shotIdx + 1}
                             </span>
                           </div>
                         ) : (
@@ -551,7 +556,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                             className="text-[8px] font-mono opacity-50"
                             style={{ color: preset.secondaryTextColor }}
                           >
-                            Foto {slotIdx + 1}
+                            Foto {shotIdx + 1}
                           </span>
                         )}
                       </div>

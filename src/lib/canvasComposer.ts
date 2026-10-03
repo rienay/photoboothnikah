@@ -1,5 +1,5 @@
 import { LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
-import { getDefaultBoxesForLayout } from "./frameLayouts";
+import { getDefaultBoxesForLayout, getBoxShotIndex } from "./frameLayouts";
 
 export interface ComposeOptions {
   photos: string[]; // data URLs
@@ -99,15 +99,16 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
           : getDefaultBoxesForLayout(layout.id);
 
       // 3. Draw each photo in its designated box (under the frame overlay)
-      const totalPhotosToDraw = Math.min(layout.totalPhotos, targetBoxes.length);
-      for (let i = 0; i < totalPhotosToDraw; i++) {
+      const totalBoxesToDraw = targetBoxes.length;
+      for (let i = 0; i < totalBoxesToDraw; i++) {
         const box = targetBoxes[i];
         const bx = Math.round((box.x / 100) * W);
         const by = Math.round((box.y / 100) * H);
         const bw = Math.round((box.w / 100) * W);
         const bh = Math.round((box.h / 100) * H);
 
-        const img = loadedPhotos[i];
+        const shotIdx = getBoxShotIndex(i, targetBoxes, layout);
+        const img = loadedPhotos[shotIdx];
         if (img) {
           ctx.save();
           if (filterCss && filterCss !== "none") {
@@ -251,14 +252,16 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   const photoBoxW = (availableGridWidth - (cols - 1) * gapX) / cols;
   const photoBoxH = (availableGridHeight - (rows - 1) * gapY) / rows;
 
-  for (let i = 0; i < layout.totalPhotos; i++) {
+  const totalBoxesToDraw = layout.totalBoxes || (rows * cols);
+  for (let i = 0; i < totalBoxesToDraw; i++) {
     const colIdx = i % cols;
     const rowIdx = Math.floor(i / cols);
 
     const x = innerMargin + 15 + colIdx * (photoBoxW + gapX);
     const y = gridTop + rowIdx * (photoBoxH + gapY);
 
-    const img = loadedPhotos[i];
+    const shotIdx = getBoxShotIndex(i, [], layout);
+    const img = loadedPhotos[shotIdx];
 
     // Photo frame container border
     ctx.fillStyle = preset.id === "minimal_ivory" ? "#ECE8DF" : "#1B1E26";

@@ -3,7 +3,7 @@ import { Check, Camera, RefreshCw, RotateCw, FlipHorizontal, CheckCircle2 } from
 import { PHOTO_FILTERS } from "../config";
 import { CameraFilter, LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
-import { calculateTargetPhotoRatio, getDefaultBoxesForLayout } from "../lib/frameLayouts";
+import { calculateTargetPhotoRatio, getDefaultBoxesForLayout, getBoxShotIndex } from "../lib/frameLayouts";
 
 interface ReviewScreenProps {
   photos: string[];
@@ -71,7 +71,12 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
   // Target photo box for retake
   const activeBoxes = photoBoxes && photoBoxes.length > 0 ? photoBoxes : getDefaultBoxesForLayout(layout.id);
-  const retakeTargetBox = retakeIdx !== null ? activeBoxes[retakeIdx] || activeBoxes[0] : activeBoxes[0];
+  const retakeTargetBox =
+    retakeIdx !== null
+      ? activeBoxes.find((_, idx) => getBoxShotIndex(idx, activeBoxes, layout) === retakeIdx) ||
+        activeBoxes[retakeIdx] ||
+        activeBoxes[0]
+      : activeBoxes[0];
 
   // Viewfinder and capture aspect ratio for retake
   const targetPhotoRatio = useMemo(() => {
@@ -348,8 +353,9 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       ? photoBoxes
                       : getDefaultBoxesForLayout(layout.id)
                     ).map((box, slotIdx) => {
-                      const isRetakeTarget = slotIdx === retakeIdx;
-                      const photoSrc = photos[slotIdx];
+                      const shotIdx = getBoxShotIndex(slotIdx, activeBoxes, layout);
+                      const isRetakeTarget = shotIdx === retakeIdx;
+                      const photoSrc = photos[shotIdx];
 
                       return (
                         <div
@@ -372,14 +378,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             <div className="flex flex-col items-center gap-0.5 text-amber-300">
                               <Camera size={14} className="animate-bounce text-amber-400" />
                               <span className="text-[8px] font-bold text-amber-300 uppercase">
-                                Ulang #{slotIdx + 1}
+                                Ulang #{shotIdx + 1}
                               </span>
                             </div>
                           ) : photoSrc ? (
                             <div className="w-full h-full relative">
                               <img
                                 src={photoSrc}
-                                alt={`Foto ${slotIdx + 1}`}
+                                alt={`Foto ${shotIdx + 1}`}
                                 className="w-full h-full object-cover"
                                 style={{ filter: currentFilterObj?.css || "none" }}
                               />
@@ -389,7 +395,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             </div>
                           ) : (
                             <span className="text-[8px] font-mono text-stone-400 font-bold">
-                              #{slotIdx + 1}
+                              #{shotIdx + 1}
                             </span>
                           )}
                         </div>
@@ -451,9 +457,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       gridTemplateRows: `repeat(${layout.rows}, minmax(0, 1fr))`,
                     }}
                   >
-                    {Array.from({ length: layout.totalPhotos }).map((_, slotIdx) => {
-                      const isRetakeTarget = slotIdx === retakeIdx;
-                      const photoSrc = photos[slotIdx];
+                    {Array.from({ length: layout.totalBoxes || (layout.rows * layout.cols) }).map((_, slotIdx) => {
+                      const shotIdx = getBoxShotIndex(slotIdx, [], layout);
+                      const isRetakeTarget = shotIdx === retakeIdx;
+                      const photoSrc = photos[shotIdx];
 
                       return (
                         <div
@@ -473,14 +480,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                             <div className="flex flex-col items-center gap-0.5 text-amber-300">
                               <Camera size={14} className="animate-bounce" />
                               <span className="text-[8px] font-cinzel uppercase tracking-wider font-semibold">
-                                Ulang #{slotIdx + 1}
+                                Ulang #{shotIdx + 1}
                               </span>
                             </div>
                           ) : photoSrc ? (
                             <div className="w-full h-full relative">
                               <img
                                 src={photoSrc}
-                                alt={`Foto ${slotIdx + 1}`}
+                                alt={`Foto ${shotIdx + 1}`}
                                 className="w-full h-full object-cover"
                                 style={{
                                   filter: currentFilterObj?.css || "none",
@@ -495,7 +502,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                               className="text-[8px] font-mono opacity-50"
                               style={{ color: preset.secondaryTextColor }}
                             >
-                              Foto {slotIdx + 1}
+                              Foto {shotIdx + 1}
                             </span>
                           )}
                         </div>

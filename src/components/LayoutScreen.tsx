@@ -3,6 +3,7 @@ import { ArrowLeft, Check, Sparkles } from "lucide-react";
 import { LAYOUTS } from "../config";
 import { LayoutConfig, LayoutId } from "../types";
 import { soundFx } from "../lib/audio";
+import { getBoxShotIndex } from "../lib/frameLayouts";
 
 interface LayoutScreenProps {
   selectedLayoutId: LayoutId;
@@ -70,18 +71,21 @@ export const LayoutScreen: React.FC<LayoutScreenProps> = ({
                     gridTemplateRows: `repeat(${item.rows}, minmax(0, 1fr))`,
                   }}
                 >
-                  {Array.from({ length: item.totalPhotos }).map((_, idx) => (
-                    <div
-                      key={idx}
-                      className={`rounded-sm border flex items-center justify-center ${
-                        isSelected
-                          ? "bg-amber-400/20 border-amber-400/60 text-amber-200"
-                          : "bg-white/5 border-white/10 text-stone-500"
-                      }`}
-                    >
-                      <span className="text-[9px] font-mono font-medium">{idx + 1}</span>
-                    </div>
-                  ))}
+                  {Array.from({ length: item.totalBoxes || (item.rows * item.cols) }).map((_, idx) => {
+                    const shotIdx = getBoxShotIndex(idx, [], item);
+                    return (
+                      <div
+                        key={idx}
+                        className={`rounded-sm border flex items-center justify-center ${
+                          isSelected
+                            ? "bg-amber-400/20 border-amber-400/60 text-amber-200"
+                            : "bg-white/5 border-white/10 text-stone-500"
+                        }`}
+                      >
+                        <span className="text-[9px] font-mono font-medium">{shotIdx + 1}</span>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
