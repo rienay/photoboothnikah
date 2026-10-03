@@ -240,7 +240,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
   }, [isShooting, cameraError, startShootSequence]);
 
   return (
-    <div className="flex-1 flex flex-col max-w-7xl mx-auto w-full px-2 sm:px-5 py-1 relative h-full max-h-[calc(100vh-115px)] min-h-0">
+    <div className="flex-1 flex flex-col max-w-[1750px] mx-auto w-full px-3 sm:px-6 py-1 relative h-full max-h-[calc(100vh-100px)] min-h-0">
       {/* Shutter Flash Overlay */}
       {isFlashing && <div className="camera-flash" />}
 
@@ -248,9 +248,21 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 lg:gap-5 flex-1 items-stretch min-h-0">
         {/* ================= LEFT COLUMN: Camera Feed & Controls ================= */}
         <div className="lg:col-span-8 xl:col-span-9 flex flex-col justify-between min-h-0">
-          {/* Left Header */}
-          <div className="flex items-center justify-between mb-1.5 px-1">
+          {/* Left Header with title, shot count, and back button */}
+          <div className="flex items-center justify-between mb-1 px-1 shrink-0">
             <div className="flex items-center gap-2 sm:gap-3">
+              {!isShooting && (
+                <button
+                  onClick={() => {
+                    soundFx.playChime();
+                    onBack();
+                  }}
+                  className="btn-gold-outline px-3.5 py-1 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform flex items-center gap-1 font-medium"
+                >
+                  <span>←</span>
+                  <span>Kembali</span>
+                </button>
+              )}
               <span className="font-cinzel text-xs sm:text-sm tracking-wider text-amber-300 uppercase font-semibold">
                 {layout.name}
               </span>
@@ -261,9 +273,9 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           </div>
 
           {/* Main Camera Viewport Area */}
-          <div className="flex-1 min-h-0 flex items-center justify-center p-1 sm:p-2 relative w-full overflow-hidden">
+          <div className="flex-1 min-h-0 flex items-center justify-center p-0.5 sm:p-1 relative w-full overflow-hidden">
             <div
-              className="h-full max-h-[64vh] xl:max-h-[68vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_20px_50px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
+              className="h-full w-auto max-h-[76vh] xl:max-h-[80vh] 2xl:max-h-[83vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
               style={{
                 aspectRatio: `${targetPhotoRatio}`,
               }}
@@ -300,11 +312,6 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                   <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
                   <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
 
-                  {/* Target Photo Hole indicator */}
-                  <div className="absolute top-2.5 left-1/2 -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-black/60 border border-amber-400/30 text-[10px] font-mono text-amber-200 backdrop-blur-sm pointer-events-none z-10 whitespace-nowrap">
-                    Proporsi Bidikan: {targetPhotoRatio >= 1.2 ? "Landscape" : targetPhotoRatio <= 0.85 ? "Portrait" : "Persegi"} (Sesuai Lubang Frame)
-                  </div>
-
                   {/* Countdown Overlay */}
                   {countdown !== null && (
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
@@ -329,21 +336,6 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                 </>
               )}
             </div>
-          </div>
-
-          {/* Left Column Bottom Bar: Kembali Button */}
-          <div className="flex items-center justify-start mt-2 px-1">
-            {!isShooting && (
-              <button
-                onClick={() => {
-                  soundFx.playChime();
-                  onBack();
-                }}
-                className="btn-gold-outline px-5 py-2 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform"
-              >
-                Kembali
-              </button>
-            )}
           </div>
         </div>
 
