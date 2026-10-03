@@ -54,8 +54,10 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ weddingConfig, onStart }
       </div>
 
       {/* Couple Names: Bride first then Groom */}
-      <h1 className="font-script text-6xl sm:text-7xl md:text-8xl text-gold-gradient py-2 my-1 drop-shadow-[0_4px_16px_rgba(212,175,55,0.3)]">
-        {weddingConfig.brideName} <span className="font-serif text-4xl sm:text-5xl text-amber-300/80 font-normal">&</span> {weddingConfig.groomName}
+      <h1 className="font-script text-6xl sm:text-7xl md:text-8xl text-gold-gradient py-3 px-6 my-1 drop-shadow-[0_4px_16px_rgba(212,175,55,0.3)] overflow-visible leading-tight inline-block">
+        <span>{weddingConfig.brideName}</span>{" "}
+        <span className="font-serif text-4xl sm:text-5xl text-amber-300/80 font-normal align-middle mx-1">&</span>{" "}
+        <span className="inline-block pr-4">{weddingConfig.groomName}</span>
       </h1>
 
       {/* Date */}
