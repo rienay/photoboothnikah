@@ -93,6 +93,8 @@ export interface BoothSettings {
   selectedCameraId?: string;
   kioskFullscreen: boolean;
   autoPrint?: boolean;
+  screenRotation?: 0 | 90 | 180 | 270;
+  cameraRotation?: 0 | 90 | 180 | 270;
 }
 
 export interface CustomTemplate {

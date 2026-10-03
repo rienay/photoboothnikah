@@ -213,8 +213,38 @@ export const App: React.FC = () => {
     setCurrentScreen("home");
   };
 
+  const screenRot = boothSettings.screenRotation || 0;
+  const isRotated90or270 = screenRot === 90 || screenRot === 270;
+
+  const appRotationStyle: React.CSSProperties = isRotated90or270
+    ? {
+        position: "fixed",
+        width: "100vh",
+        height: "100vw",
+        left: "calc(50vw - 50vh)",
+        top: "calc(50vh - 50vw)",
+        transform: `rotate(${screenRot}deg)`,
+        transformOrigin: "center center",
+        overflow: "hidden",
+      }
+    : screenRot === 180
+    ? {
+        position: "fixed",
+        width: "100vw",
+        height: "100vh",
+        left: 0,
+        top: 0,
+        transform: "rotate(180deg)",
+        transformOrigin: "center center",
+        overflow: "hidden",
+      }
+    : {};
+
   return (
-    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden bg-[#0c0e12]">
+    <div
+      style={appRotationStyle}
+      className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden bg-[#0c0e12]"
+    >
       {/* Top Header */}
       <Header
         weddingConfig={weddingConfig}
@@ -224,6 +254,14 @@ export const App: React.FC = () => {
         }
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
+        screenRotation={screenRot}
+        onRotateScreen={() => {
+          const current = boothSettings.screenRotation || 0;
+          // Rotate 0 -> 270 (common for vertical screen with ports at bottom) -> 90 -> 180 -> 0
+          const next: 0 | 90 | 180 | 270 =
+            current === 0 ? 270 : current === 270 ? 90 : current === 90 ? 180 : 0;
+          handleSaveBooth({ ...boothSettings, screenRotation: next });
+        }}
         onOpenAdmin={() => setIsAdminOpen(true)}
       />
 
@@ -257,6 +295,10 @@ export const App: React.FC = () => {
             countdownDuration={boothSettings.countdownDuration}
             mirrorCamera={boothSettings.mirrorCamera}
             selectedCameraId={boothSettings.selectedCameraId}
+            cameraRotation={boothSettings.cameraRotation || 0}
+            onChangeCameraRotation={(r) =>
+              handleSaveBooth({ ...boothSettings, cameraRotation: r })
+            }
             preset={currentPreset}
             customOverlayUrl={activeSlot.customImage}
             photoBoxes={activeSlot.photoBoxes}
@@ -289,6 +331,10 @@ export const App: React.FC = () => {
             onConfirm={() => setCurrentScreen("result")}
             mirrorCamera={boothSettings.mirrorCamera}
             selectedCameraId={boothSettings.selectedCameraId}
+            cameraRotation={boothSettings.cameraRotation || 0}
+            onChangeCameraRotation={(r) =>
+              handleSaveBooth({ ...boothSettings, cameraRotation: r })
+            }
           />
         )}
 

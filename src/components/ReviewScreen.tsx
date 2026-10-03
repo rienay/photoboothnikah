@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import { Check, Camera, RefreshCw, FlipHorizontal, CheckCircle2 } from "lucide-react";
+import { Check, Camera, RefreshCw, RotateCw, FlipHorizontal, CheckCircle2 } from "lucide-react";
 import { PHOTO_FILTERS } from "../config";
 import { CameraFilter, LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
@@ -19,6 +19,8 @@ interface ReviewScreenProps {
   onConfirm: () => void;
   mirrorCamera: boolean;
   selectedCameraId?: string;
+  cameraRotation?: 0 | 90 | 180 | 270;
+  onChangeCameraRotation?: (r: 0 | 90 | 180 | 270) => void;
 }
 
 export const ReviewScreen: React.FC<ReviewScreenProps> = ({
@@ -34,6 +36,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   onConfirm,
   mirrorCamera,
   selectedCameraId,
+  cameraRotation = 0,
+  onChangeCameraRotation,
 }) => {
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [retakeIdx, setRetakeIdx] = useState<number | null>(null);
@@ -137,41 +141,52 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
     if (video && video.videoWidth > 0) {
       const vw = video.videoWidth;
       const vh = video.videoHeight;
-      const videoRatio = vw / vh;
+      const isRot90or270 = cameraRotation === 90 || cameraRotation === 270;
 
-      let cropW = vw;
-      let cropH = vh;
-      let cropX = 0;
-      let cropY = 0;
+      const effW = isRot90or270 ? vh : vw;
+      const effH = isRot90or270 ? vw : vh;
+      const effRatio = effW / effH;
 
-      if (videoRatio > targetPhotoRatio) {
-        cropW = vh * targetPhotoRatio;
-        cropX = (vw - cropW) / 2;
+      let cropEffW = effW;
+      let cropEffH = effH;
+
+      if (effRatio > targetPhotoRatio) {
+        cropEffW = effH * targetPhotoRatio;
       } else {
-        cropH = vw / targetPhotoRatio;
-        cropY = (vh - cropH) / 2;
+        cropEffH = effW / targetPhotoRatio;
       }
 
+      const cropSrcW = isRot90or270 ? cropEffH : cropEffW;
+      const cropSrcH = isRot90or270 ? cropEffW : cropEffH;
+      const cropX = (vw - cropSrcW) / 2;
+      const cropY = (vh - cropSrcH) / 2;
+
       const canvas = document.createElement("canvas");
-      canvas.width = Math.round(cropW);
-      canvas.height = Math.round(cropH);
+      canvas.width = Math.round(cropEffW);
+      canvas.height = Math.round(cropEffH);
       const ctx = canvas.getContext("2d");
       if (ctx) {
+        ctx.save();
+        ctx.translate(canvas.width / 2, canvas.height / 2);
         if (mirror) {
-          ctx.translate(canvas.width, 0);
           ctx.scale(-1, 1);
+        }
+        if (cameraRotation !== 0) {
+          ctx.rotate((cameraRotation * Math.PI) / 180);
         }
         ctx.drawImage(
           video,
           cropX,
           cropY,
-          cropW,
-          cropH,
-          0,
-          0,
-          canvas.width,
-          canvas.height
+          cropSrcW,
+          cropSrcH,
+          -cropSrcW / 2,
+          -cropSrcH / 2,
+          cropSrcW,
+          cropSrcH
         );
+        ctx.restore();
+
         const newPhotoData = canvas.toDataURL("image/jpeg", 0.95);
         onUpdatePhoto(retakeIdx, newPhotoData);
       }
@@ -179,7 +194,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
     // Close retake
     setRetakeIdx(null);
-  }, [retakeIdx, retakeCountdown, mirror, targetPhotoRatio, onUpdatePhoto]);
+  }, [retakeIdx, retakeCountdown, mirror, targetPhotoRatio, onUpdatePhoto, cameraRotation]);
 
   const currentFilterObj = PHOTO_FILTERS.find((f) => f.id === selectedFilterId);
 
@@ -230,10 +245,18 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                   autoPlay
                   playsInline
                   muted
-                  className="w-full h-full object-cover"
+                  className="w-full h-full object-cover transition-transform duration-300"
                   style={{
                     filter: currentFilterObj?.css || "none",
-                    transform: mirror ? "scaleX(-1)" : "none",
+                    transform: `${mirror ? "scaleX(-1)" : ""} ${cameraRotation ? `rotate(${cameraRotation}deg)` : ""}`.trim() || undefined,
+                    ...(cameraRotation === 90 || cameraRotation === 270
+                      ? {
+                          position: "absolute",
+                          width: "180%",
+                          height: "180%",
+                          objectFit: "cover",
+                        }
+                      : {}),
                   }}
                 />
 
@@ -276,8 +299,27 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
 
           {/* ================= RIGHT COLUMN: Live Strip Preview & Ambil Foto ================= */}
           <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-between min-h-0 bg-stone-900/30 border border-amber-400/15 rounded-2xl p-2.5 sm:p-3 backdrop-blur-sm shadow-xl">
-            {/* Top Bar of Right Column: Mirror Toggle */}
-            <div className="flex items-center justify-end mb-1.5">
+            {/* Top Bar of Right Column: Camera Rotate Toggle & Mirror Toggle */}
+            <div className="flex items-center justify-end gap-2 mb-1.5">
+              {onChangeCameraRotation && (
+                <button
+                  onClick={() => {
+                    soundFx.playChime();
+                    const next = (cameraRotation === 0 ? 90 : cameraRotation === 90 ? 180 : cameraRotation === 180 ? 270 : 0) as 0 | 90 | 180 | 270;
+                    onChangeCameraRotation(next);
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
+                    cameraRotation !== 0
+                      ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                      : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
+                  }`}
+                  title="Putar Orientasi Kamera (0° / 90° / 180° / 270°)"
+                >
+                  <RotateCw size={13} />
+                  <span>Rotasi {cameraRotation}°</span>
+                </button>
+              )}
+
               <button
                 onClick={() => {
                   soundFx.playChime();

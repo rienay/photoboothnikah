@@ -32,6 +32,19 @@ interface ResultScreenProps {
   onHome: () => void;
 }
 
+// Convert base64 data URL to Blob URL to ensure fast loading/rendering
+function dataURLtoBlob(dataurl: string): Blob {
+  const arr = dataurl.split(",");
+  const mime = arr[0].match(/:(.*?);/)?.[1] || "image/png";
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
 export const ResultScreen: React.FC<ResultScreenProps> = ({
   photos,
   layout,
@@ -47,7 +60,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   onHome,
 }) => {
   const [renderedStrip, setRenderedStrip] = useState<string | null>(null);
-  const [printImageSrc, setPrintImageSrc] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">(
     "idle"
@@ -80,32 +92,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         if (!active) return;
         setRenderedStrip(stripUrl);
 
-        // Check the natural aspect ratio of the composed strip:
-        // A single vertical strip has aspect ratio < 0.48 (e.g. 5x15cm, ratio ~0.33).
-        // If it's a single narrow strip, duplicate side-by-side onto 4R (10x15cm) paper.
-        // If it's ALREADY 10x15cm (ratio >= 0.5, e.g. 2:3 or 10:15), print directly 1:1 on 10x15cm!
-        const checkImg = new Image();
-        checkImg.src = stripUrl;
-        await new Promise((res) => {
-          if (checkImg.complete && checkImg.naturalWidth) return res(null);
-          checkImg.onload = () => res(null);
-          checkImg.onerror = () => res(null);
-        });
-
-        const imgRatio =
-          checkImg.naturalWidth && checkImg.naturalHeight
-            ? checkImg.naturalWidth / checkImg.naturalHeight
-            : layout.cols === 1
-            ? 0.33
-            : 0.67;
-
-        if (imgRatio < 0.48 && layout.cols === 1) {
-          const dualUrl = await createDualStripCanvas(stripUrl);
-          if (active) setPrintImageSrc(dualUrl);
-        } else {
-          if (active) setPrintImageSrc(stripUrl);
-        }
-
         // Fire celebratory wedding confetti!
         fireWeddingConfetti();
 
@@ -133,7 +119,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     };
   }, [photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss]);
 
-
   // 2. Generate Google Drive QR Code
   useEffect(() => {
     if (!driveConfig.driveFolderUrl) return;
@@ -142,7 +127,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     });
   }, [driveConfig.driveFolderUrl]);
 
-  // 3. Automatic upload to Google Drive via Apps Script (as in booth)
+  // 3. Automatic upload to Google Drive via Apps Script
   const performDriveUpload = async (stripBase64: string) => {
     if (!driveConfig.autoUpload || !driveConfig.appsScriptUrl) {
       setUploadStatus("idle");
@@ -203,26 +188,215 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     document.body.removeChild(a);
   };
 
-  // 6. Direct Print
-  const handlePrint = () => {
+  // 6. Direct Print with exact physical 4R dimensions (same as booth/src/routes/index.tsx)
+  const printPhoto = useCallback(() => {
+    if (!renderedStrip) return;
     soundFx.playChime();
-    window.print();
-  };
+
+    const isStrip = layout.cols === 1 || layout.id === "3x1" || layout.id === "2x1";
+    const sheetWidth = 10;
+    const sheetHeight = 15;
+
+    // Convert base64 data URL to Blob URL to ensure fast loading/rendering
+    const blob = dataURLtoBlob(renderedStrip);
+    const blobUrl = URL.createObjectURL(blob);
+
+    let pagesContent = "";
+
+    if (isStrip) {
+      // Untuk strip 5cm: cetak sesuai jumlah rangkap (printCopies) di mana satu lembar 10x15cm memuat maksimal 2 strip
+      const totalSheets = Math.ceil(printCopies / 2);
+      let remainingCopies = printCopies;
+
+      for (let s = 0; s < totalSheets; s++) {
+        if (remainingCopies >= 2) {
+          pagesContent += `
+            <div class="page">
+              <div class="print-container">
+                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
+                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
+              </div>
+            </div>
+          `;
+          remainingCopies -= 2;
+        } else {
+          // Hanya ada 1 rangkap tersisa untuk lembar ini: taruh di sebelah kanan agar sejajar baki kertas printer
+          pagesContent += `
+            <div class="page">
+              <div class="print-container">
+                <div style="width:50%; height:100%;"></div>
+                <img src="${blobUrl}" style="width:50%;height:100%;display:block;object-fit:contain;" />
+              </div>
+            </div>
+          `;
+          remainingCopies -= 1;
+        }
+      }
+    } else {
+      // Untuk grid (2x2, 3x2, 4x2) dan foto tunggal (1x1): cetak 1 gambar per halaman (lebar 10cm, tinggi 15cm)
+      for (let c = 0; c < printCopies; c++) {
+        pagesContent += `
+          <div class="page">
+            <div class="print-container">
+              <img src="${blobUrl}" style="width:100%;height:100%;display:block;object-fit:contain;" />
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    // Create container element in the main document for printing
+    const printDiv = document.createElement("div");
+    printDiv.id = "yodha-print-section";
+    printDiv.innerHTML = pagesContent;
+    document.body.appendChild(printDiv);
+
+    // Inject print styles dynamically
+    const printStyle = document.createElement("style");
+    printStyle.id = "yodha-print-style";
+    printStyle.innerHTML = `
+      @media print {
+        body > *:not(#yodha-print-section) {
+          display: none !important;
+        }
+        html, body {
+          background: white !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        #yodha-print-section {
+          display: block !important;
+          position: absolute !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 100% !important;
+          height: 100% !important;
+        }
+        @page {
+          size: ${sheetWidth}cm ${sheetHeight}cm;
+          margin: 0;
+        }
+        .page {
+          width: 100vw !important;
+          height: 100vh !important;
+          position: relative !important;
+          page-break-after: always !important;
+          break-after: page !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          background: white !important;
+        }
+        .page:last-child {
+          page-break-after: avoid !important;
+          break-after: avoid !important;
+        }
+        .print-container {
+          position: absolute !important;
+          top: 0 !important;
+          right: 0 !important;
+          width: ${sheetWidth}cm !important;
+          height: ${sheetHeight}cm !important;
+          display: flex !important;
+          flex-direction: row !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: hidden !important;
+          padding: 0.25cm !important;
+          box-sizing: border-box !important;
+        }
+        img {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+      }
+    `;
+    document.head.appendChild(printStyle);
+
+    // Function to cleanup print elements and styles
+    const cleanup = () => {
+      if (document.getElementById("yodha-print-section")) {
+        document.body.removeChild(printDiv);
+      }
+      if (document.getElementById("yodha-print-style")) {
+        document.head.removeChild(printStyle);
+      }
+      URL.revokeObjectURL(blobUrl);
+    };
+
+    // Wait for the images to decode and yield thread before printing
+    const imgs = Array.from(printDiv.querySelectorAll("img"));
+    if (imgs.length === 0) {
+      window.print();
+      cleanup();
+    } else {
+      let loadedCount = 0;
+      const triggerPrint = () => {
+        loadedCount++;
+        if (loadedCount === imgs.length) {
+          Promise.all(
+            imgs.map((img) => {
+              if (img.decode) {
+                return img.decode().catch(() => {});
+              }
+              return Promise.resolve();
+            })
+          ).then(() => {
+            // Give 500ms for browser to render
+            setTimeout(() => {
+              window.print();
+              cleanup();
+            }, 500);
+          });
+        }
+      };
+
+      imgs.forEach((img) => {
+        if (img.complete) {
+          triggerPrint();
+        } else {
+          img.onload = triggerPrint;
+          img.onerror = triggerPrint;
+        }
+      });
+    }
+  }, [renderedStrip, layout, printCopies]);
+
+  // Auto-Print trigger when strip is ready
+  useEffect(() => {
+    if (renderedStrip && !autoPrintTriggeredRef.current && autoPrint) {
+      autoPrintTriggeredRef.current = true;
+      const timer = setTimeout(() => {
+        printPhoto();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [renderedStrip, autoPrint, printPhoto]);
+
+  // Restore fullscreen on afterprint
+  useEffect(() => {
+    const handleAfterPrint = () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {
+          const restore = () => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            }
+            window.removeEventListener("click", restore);
+            window.removeEventListener("touchstart", restore);
+          };
+          window.addEventListener("click", restore, { passive: true });
+          window.addEventListener("touchstart", restore, { passive: true });
+        });
+      }
+    };
+
+    window.addEventListener("afterprint", handleAfterPrint);
+    return () => window.removeEventListener("afterprint", handleAfterPrint);
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 overflow-y-auto lg:overflow-hidden min-h-0">
-      {/* Hidden Print Target for CSS @media print */}
-      <div id="print-target">
-        {printImageSrc &&
-          Array.from({ length: printCopies }).map((_, cIdx) => (
-            <img
-              key={cIdx}
-              src={printImageSrc}
-              alt="Print Photobooth"
-            />
-          ))}
-      </div>
-
       {/* Screen Title */}
       <div className="text-center mb-2 sm:mb-4 shrink-0">
         <h2 className="font-serif text-2xl sm:text-4xl text-gold-gradient font-normal mt-0.5">
@@ -337,7 +511,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
             {/* Action Buttons Row */}
             <div className="grid grid-cols-2 gap-3 mt-1">
               <button
-                onClick={handlePrint}
+                onClick={printPhoto}
                 disabled={isComposing || !renderedStrip}
                 className="btn-gold shimmer-glow py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer shadow-lg"
               >

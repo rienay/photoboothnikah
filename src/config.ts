@@ -34,6 +34,8 @@ export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
   defaultPrintCopies: 1,
   kioskFullscreen: false,
   autoPrint: false,
+  screenRotation: 0,
+  cameraRotation: 0,
 };
 
 export const LAYOUTS: LayoutConfig[] = [

@@ -1168,6 +1168,56 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     </div>
                   </div>
 
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-medium text-amber-200 mb-1">
+                        🔄 Orientasi Layar (Kiosk Rotation)
+                      </label>
+                      <select
+                        value={boothForm.screenRotation ?? 0}
+                        onChange={(e) =>
+                          setBoothForm({
+                            ...boothForm,
+                            screenRotation: (parseInt(e.target.value) || 0) as 0 | 90 | 180 | 270,
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-xs"
+                      >
+                        <option value={0}>0° - Normal Landscape (Standar)</option>
+                        <option value={270}>270° - Monitor Vertikal (Kabel USB Bawah / Win 7)</option>
+                        <option value={90}>90° - Monitor Vertikal (Kabel USB Atas)</option>
+                        <option value={180}>180° - Terbalik (Flipped)</option>
+                      </select>
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        Gunakan 270° jika layar 11 inch dipasang vertikal tapi tampilan Windows masih miring.
+                      </p>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-amber-200 mb-1">
+                        📷 Orientasi Kamera (Camera Rotation)
+                      </label>
+                      <select
+                        value={boothForm.cameraRotation ?? 0}
+                        onChange={(e) =>
+                          setBoothForm({
+                            ...boothForm,
+                            cameraRotation: (parseInt(e.target.value) || 0) as 0 | 90 | 180 | 270,
+                          })
+                        }
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-amber-400/30 text-white text-xs"
+                      >
+                        <option value={0}>0° - Normal</option>
+                        <option value={90}>90° - Putar 90° Searah Jarum Jam</option>
+                        <option value={180}>180° - Putar 180°</option>
+                        <option value={270}>270° - Putar 270°</option>
+                      </select>
+                      <p className="text-[10px] text-stone-400 mt-1">
+                        Gunakan jika posisi kamera webcam terpasang miring/sideways.
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="flex items-center gap-2 pt-2">
                     <input
                       type="checkbox"
