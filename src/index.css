@@ -171,8 +171,8 @@ html, body {
 /* Print CSS for Wedding Photobooth (10x15 cm / 4R Photo Paper) */
 @media print {
   @page {
-    margin: 0;
-    size: 100mm 150mm;
+    margin: 0 !important;
+    size: auto;
   }
   
   html, body {
@@ -180,8 +180,8 @@ html, body {
     padding: 0 !important;
     background: #FFFFFF !important;
     color: #000000 !important;
-    width: 100mm !important;
-    height: 150mm !important;
+    width: 100% !important;
+    height: 100% !important;
     overflow: hidden !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
@@ -199,8 +199,8 @@ html, body {
     position: fixed !important;
     left: 0 !important;
     top: 0 !important;
-    width: 100mm !important;
-    height: 150mm !important;
+    width: 100vw !important;
+    height: 100vh !important;
     margin: 0 !important;
     padding: 0 !important;
     display: flex !important;
@@ -209,18 +209,16 @@ html, body {
     justify-content: center !important;
     background: #FFFFFF !important;
     z-index: 99999 !important;
-    page-break-after: avoid;
-    page-break-inside: avoid;
   }
 
   #print-target img {
-    width: 100mm !important;
-    height: 150mm !important;
-    max-width: 100mm !important;
-    max-height: 150mm !important;
-    object-fit: fill !important;
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
+    object-fit: contain !important;
     display: block !important;
-    margin: 0 !important;
+    margin: auto !important;
     padding: 0 !important;
     page-break-inside: avoid;
     page-break-after: always;
