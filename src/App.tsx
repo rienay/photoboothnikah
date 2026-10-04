@@ -30,7 +30,11 @@ import {
   syncChannel,
   initFrameSlots,
   getLastLocalFrameUpdate,
+  setLastLocalFrameUpdate,
+  getCachedMemorySlots,
+  setCachedMemorySlots,
 } from "./lib/storage";
+import { saveFramesToIndexedDB } from "./lib/frameDB";
 import { fetchFramesFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
 
@@ -42,7 +46,7 @@ export const App: React.FC = () => {
   const [weddingConfig, setWeddingConfig] = useState<WeddingConfig>(loadWeddingConfig);
   const [driveConfig, setDriveConfig] = useState<DriveConfig>(loadDriveConfig);
   const [boothSettings, setBoothSettings] = useState<BoothSettings>(loadBoothSettings);
-  const [frameSlots, setFrameSlots] = useState<FrameSlot[]>(loadFrameSlots);
+  const [frameSlots, setFrameSlots] = useState<FrameSlot[]>(() => getCachedMemorySlots() || loadFrameSlots());
 
   // Active session selection state
   const [selectedSlotId, setSelectedSlotId] = useState<string>(() => frameSlots[0]?.id || "slot_1");
@@ -63,6 +67,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     initFrameSlots().then((slots) => {
       if (slots && slots.length > 0) {
+        setCachedMemorySlots(slots);
         setFrameSlots(slots);
       }
     });
@@ -81,15 +86,17 @@ export const App: React.FC = () => {
         const cloud = await fetchFramesFromCloud();
         if (cloud.success && cloud.frames && cloud.frames.length > 0) {
           if (!mounted || isAdminOpenRef.current) return;
-          setFrameSlots((prev) => {
-            if (JSON.stringify(prev) !== JSON.stringify(cloud.frames)) {
-              try {
-                localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
-              } catch (_) {}
-              return cloud.frames!;
-            }
-            return prev;
-          });
+          const cloudTs = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
+          const localTs = getLastLocalFrameUpdate();
+          if (cloudTs >= localTs) {
+            setLastLocalFrameUpdate(cloudTs);
+            setCachedMemorySlots(cloud.frames);
+            saveFramesToIndexedDB(cloud.frames, cloudTs).catch(() => {});
+            setFrameSlots(cloud.frames);
+            try {
+              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
+            } catch (_) {}
+          }
         }
       } catch (_) {}
 
@@ -99,15 +106,16 @@ export const App: React.FC = () => {
 
       if (serverData && Object.keys(serverData).length > 0) {
         if (serverData.frameSlots && Array.isArray(serverData.frameSlots) && serverData.frameSlots.length > 0) {
-          setFrameSlots((prev) => {
-            if (JSON.stringify(prev) !== JSON.stringify(serverData.frameSlots)) {
-              try {
-                localStorage.setItem("yodha_frame_slots", JSON.stringify(serverData.frameSlots));
-              } catch (_) {}
-              return serverData.frameSlots!;
-            }
-            return prev;
-          });
+          const sTs = serverData.updatedAt || 0;
+          if (sTs >= getLastLocalFrameUpdate()) {
+            setLastLocalFrameUpdate(sTs);
+            setCachedMemorySlots(serverData.frameSlots);
+            saveFramesToIndexedDB(serverData.frameSlots, sTs).catch(() => {});
+            setFrameSlots(serverData.frameSlots);
+            try {
+              localStorage.setItem("yodha_frame_slots", JSON.stringify(serverData.frameSlots));
+            } catch (_) {}
+          }
         }
         if (serverData.weddingConfig) {
           setWeddingConfig((prev) => {
@@ -135,13 +143,17 @@ export const App: React.FC = () => {
         }
       } else {
         // If server is currently empty, push current device's configuration to server
-        // so other connected devices automatically receive it
-        pushToServer({
-          frameSlots: loadFrameSlots(),
-          weddingConfig: loadWeddingConfig(),
-          driveConfig: loadDriveConfig(),
-          boothSettings: loadBoothSettings(),
-        }).catch(() => {});
+        // ONLY if we have valid non-default frames loaded
+        const currentSlots = getCachedMemorySlots() || frameSlots;
+        if (currentSlots && currentSlots.length > 0 && currentSlots !== DEFAULT_FRAME_SLOTS) {
+          pushToServer({
+            frameSlots: currentSlots,
+            weddingConfig: loadWeddingConfig(),
+            driveConfig: loadDriveConfig(),
+            boothSettings: loadBoothSettings(),
+            updatedAt: getLastLocalFrameUpdate(),
+          }).catch(() => {});
+        }
       }
     };
 
@@ -167,7 +179,12 @@ export const App: React.FC = () => {
         const d = e.data.data;
         const localTs = getLastLocalFrameUpdate();
         if (d.updatedAt && d.updatedAt < localTs) return;
-        if (d.frameSlots) setFrameSlots(d.frameSlots);
+        if (d.frameSlots && Array.isArray(d.frameSlots) && d.frameSlots.length > 0) {
+          setLastLocalFrameUpdate(d.updatedAt || Date.now());
+          setCachedMemorySlots(d.frameSlots);
+          saveFramesToIndexedDB(d.frameSlots, d.updatedAt).catch(() => {});
+          setFrameSlots(d.frameSlots);
+        }
         if (d.weddingConfig) setWeddingConfig(d.weddingConfig);
         if (d.driveConfig) setDriveConfig(d.driveConfig);
         if (d.boothSettings) setBoothSettings(d.boothSettings);

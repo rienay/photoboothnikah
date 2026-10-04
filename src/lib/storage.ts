@@ -68,7 +68,7 @@ function getStorageEndpoints(): string[] {
   return list;
 }
 
-let lastLocalFrameUpdate: number = Date.now();
+let lastLocalFrameUpdate: number = 0;
 
 export function getLastLocalFrameUpdate(): number {
   return lastLocalFrameUpdate;
@@ -78,12 +78,25 @@ export function setLastLocalFrameUpdate(ts: number): void {
   lastLocalFrameUpdate = ts;
 }
 
+let cachedMemorySlots: FrameSlot[] | null = null;
+
+export function getCachedMemorySlots(): FrameSlot[] | null {
+  return cachedMemorySlots;
+}
+
+export function setCachedMemorySlots(slots: FrameSlot[]): void {
+  if (Array.isArray(slots) && slots.length > 0) {
+    cachedMemorySlots = slots;
+  }
+}
+
 // Check and push changes to server storage so other devices get them
 export async function pushToServer(partialData: Partial<ServerSharedConfig>): Promise<boolean> {
   try {
     const timestamp = partialData.updatedAt || Date.now();
+    const slotsToPush = partialData.frameSlots || cachedMemorySlots || loadFrameSlots();
     const payload: ServerSharedConfig = {
-      frameSlots: partialData.frameSlots || loadFrameSlots(),
+      frameSlots: slotsToPush,
       weddingConfig: partialData.weddingConfig || loadWeddingConfig(),
       driveConfig: partialData.driveConfig || loadDriveConfig(),
       boothSettings: partialData.boothSettings || loadBoothSettings(),
@@ -136,6 +149,7 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
               // Only overwrite local frames if server is newer or equal
               if (serverUpdatedAt >= lastLocalFrameUpdate) {
                 lastLocalFrameUpdate = serverUpdatedAt;
+                cachedMemorySlots = data.frameSlots;
                 saveFramesToIndexedDB(data.frameSlots, serverUpdatedAt).catch(() => {});
                 try {
                   localStorage.setItem(KEYS.SLOTS, JSON.stringify(data.frameSlots));
@@ -187,9 +201,18 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
 }
 
 export function loadFrameSlots(): FrameSlot[] {
+  if (cachedMemorySlots && cachedMemorySlots.length > 0) {
+    return cachedMemorySlots;
+  }
   try {
     const raw = localStorage.getItem(KEYS.SLOTS);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        cachedMemorySlots = parsed;
+        return parsed;
+      }
+    }
   } catch (e) {
     console.warn("Failed to load frame slots:", e);
   }
@@ -205,8 +228,9 @@ export async function initFrameSlots(): Promise<FrameSlot[]> {
     const idbResult = await loadFramesFromIndexedDB();
     if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
       if (idbResult.updatedAt) {
-        lastLocalFrameUpdate = idbResult.updatedAt;
+        lastLocalFrameUpdate = Math.max(lastLocalFrameUpdate, idbResult.updatedAt);
       }
+      cachedMemorySlots = idbResult.slots;
       return idbResult.slots;
     }
   } catch (err) {
@@ -215,12 +239,16 @@ export async function initFrameSlots(): Promise<FrameSlot[]> {
 
   // Fallback to localStorage or defaults
   const localSlots = loadFrameSlots();
-  saveFramesToIndexedDB(localSlots, lastLocalFrameUpdate).catch(() => {});
+  if (localSlots && localSlots.length > 0 && localSlots !== DEFAULT_FRAME_SLOTS) {
+    cachedMemorySlots = localSlots;
+    saveFramesToIndexedDB(localSlots, lastLocalFrameUpdate).catch(() => {});
+  }
   return localSlots;
 }
 
 export function saveFrameSlots(slots: FrameSlot[], timestamp: number = Date.now()): void {
-  lastLocalFrameUpdate = timestamp;
+  lastLocalFrameUpdate = Math.max(lastLocalFrameUpdate, timestamp);
+  cachedMemorySlots = slots;
 
   // 1. Always save to IndexedDB (safe from quota limits)
   saveFramesToIndexedDB(slots, timestamp).catch((err) => {
