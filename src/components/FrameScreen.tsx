@@ -17,11 +17,12 @@ interface FrameScreenProps {
 const SelectableFrameCard: React.FC<{
   slot: FrameSlot;
   index: number;
+  totalCount: number;
   isSelected: boolean;
   weddingConfig: WeddingConfig;
   onSelect: () => void;
   onConfirm: () => void;
-}> = ({ slot, index, isSelected, weddingConfig, onSelect, onConfirm }) => {
+}> = ({ slot, index, totalCount, isSelected, weddingConfig, onSelect, onConfirm }) => {
   const preset =
     WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
   const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
@@ -38,6 +39,12 @@ const SelectableFrameCard: React.FC<{
 
   const [aspectRatio, setAspectRatio] = useState<number>(defaultRatio);
 
+  // Compute maximum width so all cards fit within the screen width on widened displays
+  const maxCardWidthStyle =
+    totalCount <= 5
+      ? `calc((100% - ${(totalCount - 1) * 16}px) / ${totalCount})`
+      : undefined;
+
   return (
     <button
       type="button"
@@ -49,13 +56,14 @@ const SelectableFrameCard: React.FC<{
           onSelect();
         }
       }}
-      className={`relative h-[290px] sm:h-[330px] md:h-[370px] lg:h-[46vh] xl:h-[50vh] 2xl:h-[53vh] max-h-[55vh] shrink-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
+      className={`relative h-[270px] sm:h-[310px] md:h-[350px] lg:h-[44vh] xl:h-[47vh] 2xl:h-[49vh] max-h-[52vh] shrink min-w-[160px] sm:min-w-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
         isSelected
-          ? "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.03] z-20"
-          : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.015] shadow-xl opacity-85 hover:opacity-100"
+          ? "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.02] z-20"
+          : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
       }`}
       style={{
         aspectRatio: `${aspectRatio}`,
+        maxWidth: maxCardWidthStyle,
       }}
     >
       {/* Frame Visual: Takes 100% of the card with NO outer dark box */}
@@ -181,21 +189,22 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
     displaySlots.find((s) => s.id === selectedSlotId) || displaySlots[0];
 
   return (
-    <div className="flex-1 flex flex-col max-w-[98vw] 2xl:max-w-[1850px] mx-auto w-full px-2 sm:px-4 py-1.5 sm:py-2.5 justify-between min-h-0 h-full overflow-hidden">
+    <div className="flex-1 flex flex-col max-w-full mx-auto w-full px-2 sm:px-4 md:px-6 py-1 sm:py-2 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
-      <div className="text-center mb-1.5 sm:mb-2 shrink-0">
+      <div className="text-center mb-1 sm:mb-2 shrink-0">
         <h2 className="font-serif text-2xl sm:text-3xl text-gold-gradient font-normal mt-0">
           Pilih Desain Bingkai
         </h2>
       </div>
 
       {/* Frame Slots: Clean flex row with no artificial outer box */}
-      <div className="flex flex-nowrap items-center justify-center gap-2.5 sm:gap-3.5 md:gap-4 lg:gap-5 flex-1 min-h-0 mx-auto w-full my-auto py-1 px-1 overflow-x-auto overflow-y-hidden scrollbar-none">
+      <div className="flex flex-nowrap items-center justify-start md:justify-center gap-2 sm:gap-3 md:gap-3.5 lg:gap-4 flex-1 min-h-0 mx-auto w-full my-auto py-3 px-3 overflow-x-auto overflow-y-hidden scrollbar-none">
         {displaySlots.map((slot, index) => (
           <SelectableFrameCard
             key={slot.id}
             slot={slot}
             index={index}
+            totalCount={displaySlots.length}
             isSelected={currentSelectedSlot?.id === slot.id}
             weddingConfig={weddingConfig}
             onSelect={() => onSelectSlot(slot)}
