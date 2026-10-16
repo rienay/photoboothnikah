@@ -637,22 +637,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       setBoothForm(updated);
                       onSaveBoothSettings(updated);
                       setSelectedFrameThemeMode("party");
-                      showToast("✓ Mode Photobooth diubah ke: Bebas / Colorful Party");
+                      showToast("✓ Mode Photobooth diubah ke: JOTA-JOTI 2026 (Scouts & Digital Event)");
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       boothForm.themeMode === "party"
-                        ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md font-bold"
+                        ? "bg-gradient-to-r from-purple-700 via-pink-600 to-amber-500 text-white shadow-md font-bold"
                         : "text-stone-400 hover:text-stone-200"
                     }`}
                   >
-                    🎉 Bebas / Party (Colorful)
+                    🏕️ JOTA-JOTI 2026 (Scouts)
                   </button>
                 </div>
               </div>
 
               <div className="text-[11px] text-stone-400">
-                Mode saat ini: <strong className={boothForm.themeMode === "party" ? "text-pink-400" : "text-amber-300"}>
-                  {boothForm.themeMode === "party" ? "Bebas / Colorful Party" : "Wedding Elegan"}
+                Mode saat ini: <strong className={boothForm.themeMode === "party" ? "text-amber-300" : "text-amber-300"}>
+                  {boothForm.themeMode === "party" ? "JOTA-JOTI 2026 (Scouts)" : "Wedding Elegan"}
                 </strong>
               </div>
             </div>
@@ -675,12 +675,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab("party")}
                 className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "party"
-                    ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold shadow-md"
+                    ? "bg-gradient-to-r from-purple-700 via-pink-600 to-amber-500 text-white font-semibold shadow-md"
                     : "text-stone-300 hover:bg-white/5"
                 }`}
               >
-                <PartyPopper size={14} className={activeTab === "party" ? "text-white" : "text-pink-400"} />
-                <span>Acara Bebas/Party</span>
+                <PartyPopper size={14} className={activeTab === "party" ? "text-amber-300" : "text-amber-400"} />
+                <span>Acara JOTA-JOTI</span>
               </button>
 
               <button
@@ -973,20 +973,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           }}
                           className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                             isPartyFrames
-                              ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md font-bold"
+                              ? "bg-gradient-to-r from-purple-700 via-pink-600 to-amber-500 text-white shadow-md font-bold"
                               : "text-stone-400 hover:text-stone-200"
                           }`}
                         >
                           <PartyPopper size={13} />
-                          <span>🎉 Bingkai Bebas / Party ({slotsPartyForm.length})</span>
+                          <span>🏕️ Bingkai JOTA-JOTI ({slotsPartyForm.length})</span>
                         </button>
                       </div>
                     </div>
 
                     <div className="text-[11px] text-stone-400 flex items-center gap-1.5">
                       <span>Sedang mengedit bingkai untuk:</span>
-                      <span className={`px-2 py-0.5 rounded-full font-bold ${isPartyFrames ? "bg-pink-500/20 text-pink-300 border border-pink-500/40" : "bg-amber-400/20 text-amber-300 border border-amber-400/40"}`}>
-                        {isPartyFrames ? "🎉 Bebas / Party" : "💍 Wedding Elegan"}
+                      <span className={`px-2 py-0.5 rounded-full font-bold ${isPartyFrames ? "bg-amber-400/20 text-amber-300 border border-amber-400/40" : "bg-amber-400/20 text-amber-300 border border-amber-400/40"}`}>
+                        {isPartyFrames ? "🏕️ JOTA-JOTI 2026" : "💍 Wedding Elegan"}
                       </span>
                     </div>
                   </div>
@@ -996,14 +996,14 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <div>
                       <h2 className={`text-xl sm:text-2xl font-serif font-medium tracking-wide ${
                         isPartyFrames
-                          ? "bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-300 bg-clip-text text-transparent"
+                          ? "bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent"
                           : "text-gold-gradient"
                       }`}>
-                        {isPartyFrames ? "Manajemen Bingkai: Bebas / Party" : "Manajemen Bingkai: Wedding"}
+                        {isPartyFrames ? "Manajemen Bingkai: JOTA-JOTI 2026" : "Manajemen Bingkai: Wedding"}
                       </h2>
                       <p className="text-xs sm:text-sm text-stone-400 mt-1">
                         {isPartyFrames
-                          ? "Kelola template bingkai warna-warni untuk photobooth bertema pesta / bebas."
+                          ? "Kelola template bingkai resmi JOTA-JOTI 2026 (Festival Waves, Digital Explorer, Cyber Scout, Double Strip, dll)."
                           : "Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru."}
                       </p>
                     </div>

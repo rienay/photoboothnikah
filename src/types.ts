@@ -36,6 +36,7 @@ export type FrameThemeId =
   | "retro_vibes"
   | "cyber_glow"
   | "sunset_vibes"
+  | "scout_purple"
   | "custom";
 
 export interface WeddingFramePreset {

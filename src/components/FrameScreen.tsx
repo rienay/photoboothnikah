@@ -206,7 +206,7 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
       {/* Title */}
       <div className="text-center mb-1 sm:mb-2 shrink-0">
         <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-extrabold text-party-gradient" : "font-serif text-gold-gradient font-normal"}`}>
-          {isParty ? "Pilih Desain Bingkai Seru" : "Pilih Desain Bingkai"}
+          {isParty ? "Pilih Bingkai JOTA-JOTI 2026" : "Pilih Desain Bingkai"}
         </h2>
       </div>
 

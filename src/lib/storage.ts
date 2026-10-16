@@ -341,6 +341,11 @@ export function loadPartyFrameSlots(): FrameSlot[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        // If it still has the old placeholder slots without custom cutout frames, upgrade to JOTA-JOTI
+        if (parsed.some((s) => s.id && s.id.startsWith("party_slot_"))) {
+          cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
+          return DEFAULT_PARTY_FRAME_SLOTS;
+        }
         cachedPartyMemorySlots = parsed;
         return parsed;
       }
@@ -355,11 +360,14 @@ export async function initPartyFrameSlots(): Promise<FrameSlot[]> {
   try {
     const idbResult = await loadFramesFromIndexedDB("party_frame_slots");
     if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
-      if (idbResult.updatedAt) {
-        lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, idbResult.updatedAt);
+      // Check if it's the old placeholder
+      if (!idbResult.slots.some((s) => s.id && s.id.startsWith("party_slot_"))) {
+        if (idbResult.updatedAt) {
+          lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, idbResult.updatedAt);
+        }
+        cachedPartyMemorySlots = idbResult.slots;
+        return idbResult.slots;
       }
-      cachedPartyMemorySlots = idbResult.slots;
-      return idbResult.slots;
     }
   } catch (err) {
     console.warn("Failed loading party frames from IndexedDB:", err);
@@ -367,10 +375,8 @@ export async function initPartyFrameSlots(): Promise<FrameSlot[]> {
 
   // Fallback to localStorage or defaults
   const localSlots = loadPartyFrameSlots();
-  if (localSlots && localSlots.length > 0 && localSlots !== DEFAULT_PARTY_FRAME_SLOTS) {
-    cachedPartyMemorySlots = localSlots;
-    saveFramesToIndexedDB(localSlots, lastLocalPartyFrameUpdate, "party_frame_slots").catch(() => {});
-  }
+  cachedPartyMemorySlots = localSlots;
+  saveFramesToIndexedDB(localSlots, Date.now(), "party_frame_slots").catch(() => {});
   return localSlots;
 }
 
@@ -435,6 +441,9 @@ export function loadPartyConfig(): PartyConfig {
     const raw = localStorage.getItem(KEYS.PARTY);
     if (raw) {
       const parsed = JSON.parse(raw);
+      if (parsed.title === "PHOTOBOOTH PARTY" || parsed.eventName === "Yodha Party & Celebration") {
+        return DEFAULT_PARTY_CONFIG;
+      }
       return { ...DEFAULT_PARTY_CONFIG, ...parsed };
     }
   } catch (e) {

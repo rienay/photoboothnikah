@@ -48,15 +48,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="absolute w-[680px] h-[680px] rounded-full border border-cyan-400/15 pointer-events-none" />
         <div className="absolute w-[360px] h-[360px] rounded-full bg-gradient-to-tr from-purple-600/10 via-pink-600/10 to-cyan-500/10 blur-3xl pointer-events-none" />
 
-        {/* Party Badge Seal */}
+        {/* JOTA-JOTI / Party Badge Seal */}
         <div className="relative mb-6">
-          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-[3px] bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 shadow-[0_0_40px_rgba(255,0,127,0.45)]">
-            <div className="w-full h-full rounded-full bg-stone-950 flex items-center justify-center border border-white/20">
-              <PartyPopper size={44} className="text-pink-400 drop-shadow-[0_0_15px_rgba(255,0,127,0.7)] animate-bounce" />
+          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-[3px] bg-gradient-to-tr from-amber-400 via-purple-600 to-cyan-400 shadow-[0_0_45px_rgba(98,37,153,0.55)]">
+            <div className="w-full h-full rounded-full bg-white p-2 flex items-center justify-center overflow-hidden border border-white/40 shadow-inner">
+              <img
+                src="/frames/jotajoti/JOTA-JOTI-2026_Badge-To-Pablo.png"
+                alt="JOTA-JOTI 2026 Official Badge"
+                className="w-full h-full object-contain hover:scale-105 transition-transform"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
             </div>
           </div>
-          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#0d0718] px-3 py-0.5 rounded-full border border-cyan-400/50 flex items-center gap-1 shadow-[0_0_12px_rgba(0,240,255,0.4)]">
-            <Sparkles size={12} className="text-cyan-300 animate-spin" />
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#2E0E4C] px-3.5 py-0.5 rounded-full border border-amber-400 flex items-center gap-1.5 shadow-[0_0_15px_rgba(249,183,8,0.5)]">
+            <Sparkles size={12} className="text-amber-300 animate-spin" />
+            <span className="text-[10px] font-black tracking-widest text-amber-300 uppercase">JOTA-JOTI 2026</span>
           </div>
         </div>
 

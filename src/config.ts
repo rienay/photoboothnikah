@@ -20,12 +20,12 @@ export const DEFAULT_WEDDING_CONFIG: WeddingConfig = {
 };
 
 export const DEFAULT_PARTY_CONFIG: PartyConfig = {
-  title: "PHOTOBOOTH PARTY",
-  subtitle: "STRIKE A POSE & HAVE FUN!",
-  eventName: "Yodha Party & Celebration",
-  eventDate: "16 Oktober 2026",
-  hashtag: "#PartyWithYodha",
-  footerText: "Yodha Party Photobooth • 2026",
+  title: "JOTA-JOTI 2026",
+  subtitle: "KWARTIR CABANG CILACAP • YD2ABJ",
+  eventName: "JOTA-JOTI 2026 CILACAP",
+  eventDate: "16 - 18 Oktober 2026",
+  hashtag: "#JOTAJOTI2026 #Scouts #YD2ABJ",
+  footerText: "WORLD SCOUTING EVENT • YODHA PHOTOBOOTH",
 };
 
 export const DEFAULT_DRIVE_CONFIG: DriveConfig = {
@@ -267,6 +267,19 @@ export const PARTY_PRESETS: WeddingFramePreset[] = [
     headerStyle: "flourish",
     previewClass: "border-rose-500 bg-fuchsia-950",
   },
+  {
+    id: "scout_purple",
+    name: "JOTA-JOTI Official Scout",
+    description: "Palet resmi WOSM Scout Purple, Amber Gold, dan River Blue",
+    bgGradient: "linear-gradient(180deg, #2E0E4C 0%, #170726 100%)",
+    bgColor: "#2E0E4C",
+    borderColor: "#F9B708",
+    accentColor: "#82E6DE",
+    textColor: "#FFFFFF",
+    secondaryTextColor: "#F9B708",
+    headerStyle: "minimal",
+    previewClass: "border-amber-400 bg-purple-950",
+  },
 ];
 
 export const ALL_FRAME_PRESETS: WeddingFramePreset[] = [
@@ -349,21 +362,73 @@ export const DEFAULT_FRAME_SLOTS: FrameSlot[] = [
 
 export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
   {
-    id: "party_slot_1",
-    name: "Cyber Neon Party",
+    id: "jota_slot_1",
+    name: "Festival Waves (3 Strip)",
     layoutId: "3x1",
-    presetThemeId: "party_neon",
+    presetThemeId: "scout_purple",
+    customImage: "/frames/jotajoti/Desain_1_FestivalWaves_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 8.33, y: 19.17, w: 83.33, h: 19.58 },
+      { id: "box_2", x: 8.33, y: 40.83, w: 83.33, h: 19.58 },
+      { id: "box_3", x: 8.33, y: 62.50, w: 83.33, h: 19.58 },
+    ],
   },
   {
-    id: "party_slot_2",
-    name: "Candy Pop & Pastel",
-    layoutId: "3x1",
-    presetThemeId: "candy_pop",
-  },
-  {
-    id: "party_slot_3",
-    name: "Retro 90s Vibes",
-    layoutId: "3x1",
+    id: "jota_slot_2",
+    name: "Digital Explorer (2 Strip)",
+    layoutId: "2x1",
     presetThemeId: "retro_vibes",
+    customImage: "/frames/jotajoti/Desain_2_DigitalExplorer_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 6.67, y: 19.17, w: 86.67, h: 30.42 },
+      { id: "box_2", x: 6.67, y: 52.50, w: 86.67, h: 30.42 },
+    ],
+  },
+  {
+    id: "jota_slot_3",
+    name: "Cyber Scout (3 Strip)",
+    layoutId: "3x1",
+    presetThemeId: "cyber_glow",
+    customImage: "/frames/jotajoti/Desain_3_CyberScout_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 8.33, y: 14.17, w: 83.33, h: 19.79 },
+      { id: "box_2", x: 8.33, y: 36.04, w: 83.33, h: 19.79 },
+      { id: "box_3", x: 8.33, y: 57.92, w: 83.33, h: 19.79 },
+    ],
+  },
+  {
+    id: "jota_slot_4",
+    name: "Double Strip 10x15 (4R)",
+    layoutId: "3x2",
+    presetThemeId: "scout_purple",
+    customImage: "/frames/jotajoti/Frame_10x15_DoubleStrip_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 3.75, y: 7.50, w: 42.50, h: 18.33 },
+      { id: "box_2", x: 53.75, y: 7.50, w: 42.50, h: 18.33 },
+      { id: "box_3", x: 3.75, y: 26.94, w: 42.50, h: 18.33 },
+      { id: "box_4", x: 53.75, y: 26.94, w: 42.50, h: 18.33 },
+      { id: "box_5", x: 3.75, y: 46.39, w: 42.50, h: 18.33 },
+      { id: "box_6", x: 53.75, y: 46.39, w: 42.50, h: 18.33 },
+    ],
+  },
+  {
+    id: "jota_slot_5",
+    name: "Landscape Widescreen 15x10",
+    layoutId: "1x1",
+    presetThemeId: "sunset_vibes",
+    customImage: "/frames/jotajoti/Frame_15x10_Landscape_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 2.50, y: 12.08, w: 65.56, h: 82.50 },
+    ],
+  },
+  {
+    id: "jota_slot_6",
+    name: "Single Photo 10x15 (Portrait)",
+    layoutId: "1x1",
+    presetThemeId: "candy_pop",
+    customImage: "/frames/jotajoti/Frame_10x15_SinglePhoto_Cutout.png",
+    photoBoxes: [
+      { id: "box_1", x: 5.00, y: 8.89, w: 90.00, h: 55.00 },
+    ],
   },
 ];

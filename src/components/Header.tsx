@@ -32,17 +32,22 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
         {isParty ? (
           <>
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 shadow-[0_0_15px_rgba(255,0,127,0.35)] shrink-0">
-              <div className="w-full h-full rounded-full bg-stone-950 flex items-center justify-center">
-                <Sparkles size={16} className="text-cyan-300" />
-              </div>
+            <div className="h-8 sm:h-9 px-2 rounded-lg bg-white flex items-center justify-center shadow-[0_0_15px_rgba(130,230,222,0.35)] shrink-0 border border-amber-400">
+              <img
+                src="/frames/jotajoti/JOTA-JOTI-Logo-Transparent.png"
+                alt="JOTA-JOTI"
+                className="h-5 sm:h-6 object-contain"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+              />
             </div>
             <div className="flex flex-col min-w-0">
-              <span className="font-bold tracking-[0.18em] text-[9px] sm:text-[11px] text-pink-400 uppercase truncate">
-                Photobooth Party
+              <span className="font-bold tracking-[0.18em] text-[9px] sm:text-[11px] text-amber-300 uppercase truncate">
+                JOTA-JOTI 2026 • PHOTOBOOTH
               </span>
               <span className="font-bold text-sm sm:text-base text-stone-100 leading-tight truncate max-w-[140px] sm:max-w-[280px] md:max-w-none">
-                {partyConfig?.eventName || "Party & Celebration"}
+                {partyConfig?.eventName || "JOTA-JOTI 2026 CILACAP"}
               </span>
             </div>
           </>
