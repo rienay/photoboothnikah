@@ -2,8 +2,10 @@ import {
   BoothSettings,
   CameraFilter,
   DriveConfig,
+  FrameSlot,
   LayoutConfig,
   LayoutId,
+  PartyConfig,
   WeddingConfig,
   WeddingFramePreset,
 } from "./types";
@@ -17,6 +19,15 @@ export const DEFAULT_WEDDING_CONFIG: WeddingConfig = {
   footerText: "The Wedding of Isna & Fadel • 04 Oktober 2026",
 };
 
+export const DEFAULT_PARTY_CONFIG: PartyConfig = {
+  title: "PHOTOBOOTH PARTY",
+  subtitle: "STRIKE A POSE & HAVE FUN!",
+  eventName: "Yodha Party & Celebration",
+  eventDate: "16 Oktober 2026",
+  hashtag: "#PartyWithYodha",
+  footerText: "Yodha Party Photobooth • 2026",
+};
+
 export const DEFAULT_DRIVE_CONFIG: DriveConfig = {
   appsScriptUrl:
     "https://script.google.com/macros/s/AKfycbz8FiHwttKR7_j_MZa_BdeUuyw32AfdDkAy71hi1jUq800qSH0jToyTl1g3XNR_nkBk/exec",
@@ -26,6 +37,7 @@ export const DEFAULT_DRIVE_CONFIG: DriveConfig = {
 };
 
 export const DEFAULT_BOOTH_SETTINGS: BoothSettings = {
+  themeMode: "wedding",
   countdownDuration: 3,
   autoResetDuration: 60,
   soundEnabled: true,
@@ -189,6 +201,79 @@ export const WEDDING_PRESETS: WeddingFramePreset[] = [
   },
 ];
 
+export const PARTY_PRESETS: WeddingFramePreset[] = [
+  {
+    id: "party_neon",
+    name: "Cyber Neon Party",
+    description: "Warna neon elektrik cyber magenta & cyan yang energetik dan menyala",
+    bgGradient: "linear-gradient(180deg, #15092A 0%, #0A0414 100%)",
+    bgColor: "#0E051D",
+    borderColor: "#00F0FF",
+    accentColor: "#FF007F",
+    textColor: "#FFFFFF",
+    secondaryTextColor: "#00F0FF",
+    headerStyle: "minimal",
+    previewClass: "border-cyan-400 bg-purple-950",
+  },
+  {
+    id: "candy_pop",
+    name: "Candy Pop & Pastel",
+    description: "Palet permen manis coral pink, kuning pastel, dan ungu ceria",
+    bgGradient: "linear-gradient(180deg, #240C3B 0%, #150624 100%)",
+    bgColor: "#1A082B",
+    borderColor: "#FF6584",
+    accentColor: "#FFD166",
+    textColor: "#FFF5F8",
+    secondaryTextColor: "#FF6584",
+    headerStyle: "flourish",
+    previewClass: "border-pink-400 bg-purple-900",
+  },
+  {
+    id: "retro_vibes",
+    name: "Retro 90s Vibes",
+    description: "Sentuhan retro pop art dengan kontras oranye membara dan ungu pop",
+    bgGradient: "linear-gradient(180deg, #160D2E 0%, #080517 100%)",
+    bgColor: "#0C071C",
+    borderColor: "#FF7700",
+    accentColor: "#9D4EDD",
+    textColor: "#FFF9F2",
+    secondaryTextColor: "#FF9E00",
+    headerStyle: "minimal",
+    previewClass: "border-amber-500 bg-indigo-950",
+  },
+  {
+    id: "cyber_glow",
+    name: "Acid Lime & Cyber Glow",
+    description: "Gaya futuristik modern dengan aksen acid green neon dan hitam pekat",
+    bgGradient: "linear-gradient(180deg, #091914 0%, #050E0B 100%)",
+    bgColor: "#06120E",
+    borderColor: "#00FF88",
+    accentColor: "#00E5FF",
+    textColor: "#F0FFF8",
+    secondaryTextColor: "#00FF88",
+    headerStyle: "minimal",
+    previewClass: "border-emerald-400 bg-stone-900",
+  },
+  {
+    id: "sunset_vibes",
+    name: "Sunset Fiesta Glow",
+    description: "Gradasi senja tropis hangat pink fuchsia, peach, dan emas cerah",
+    bgGradient: "linear-gradient(180deg, #250B1D 0%, #12040E 100%)",
+    bgColor: "#190614",
+    borderColor: "#FF2A6D",
+    accentColor: "#FFB800",
+    textColor: "#FFF4F7",
+    secondaryTextColor: "#FF758F",
+    headerStyle: "flourish",
+    previewClass: "border-rose-500 bg-fuchsia-950",
+  },
+];
+
+export const ALL_FRAME_PRESETS: WeddingFramePreset[] = [
+  ...WEDDING_PRESETS,
+  ...PARTY_PRESETS,
+];
+
 export const PHOTO_FILTERS: CameraFilter[] = [
   {
     id: "normal",
@@ -241,7 +326,7 @@ export const PHOTO_FILTERS: CameraFilter[] = [
   },
 ];
 
-export const DEFAULT_FRAME_SLOTS: import("./types").FrameSlot[] = [
+export const DEFAULT_FRAME_SLOTS: FrameSlot[] = [
   {
     id: "slot_1",
     name: "Desain Bingkai 1",
@@ -259,5 +344,26 @@ export const DEFAULT_FRAME_SLOTS: import("./types").FrameSlot[] = [
     name: "Desain Bingkai 3",
     layoutId: "3x1",
     presetThemeId: "minimal_ivory",
+  },
+];
+
+export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
+  {
+    id: "party_slot_1",
+    name: "Cyber Neon Party",
+    layoutId: "3x1",
+    presetThemeId: "party_neon",
+  },
+  {
+    id: "party_slot_2",
+    name: "Candy Pop & Pastel",
+    layoutId: "3x1",
+    presetThemeId: "candy_pop",
+  },
+  {
+    id: "party_slot_3",
+    name: "Retro 90s Vibes",
+    layoutId: "3x1",
+    presetThemeId: "retro_vibes",
   },
 ];

@@ -11,7 +11,7 @@ import {
   CloudUpload,
 } from "lucide-react";
 import { fireWeddingConfetti } from "../lib/confetti";
-import { DriveConfig, LayoutConfig, PhotoBox, SavedSession, WeddingConfig, WeddingFramePreset } from "../types";
+import { DriveConfig, LayoutConfig, PartyConfig, PhotoBox, SavedSession, ThemeMode, WeddingConfig, WeddingFramePreset } from "../types";
 import { composeWeddingStrip, createDualStripCanvas } from "../lib/canvasComposer";
 import { generateDriveQRCode, uploadToGoogleDrive } from "../lib/googleDrive";
 import { saveSessionHistory } from "../lib/storage";
@@ -24,7 +24,9 @@ interface ResultScreenProps {
   customOverlayUrl?: string;
   photoBoxes?: PhotoBox[];
   filterCss?: string;
+  themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   driveConfig: DriveConfig;
   autoResetDuration: number;
   defaultPrintCopies: number;
@@ -54,7 +56,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   customOverlayUrl,
   photoBoxes,
   filterCss,
+  themeMode = "wedding",
   weddingConfig,
+  partyConfig,
   driveConfig,
   autoResetDuration,
   defaultPrintCopies,
@@ -63,6 +67,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   printMarginY = 3,
   onHome,
 }) => {
+  const isParty = themeMode === "party";
   const [renderedStrip, setRenderedStrip] = useState<string | null>(null);
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>("");
   const [uploadStatus, setUploadStatus] = useState<"idle" | "uploading" | "success" | "error">(
@@ -89,7 +94,9 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           preset,
           customOverlayUrl,
           photoBoxes,
+          themeMode,
           weddingConfig,
+          partyConfig,
           filterCss,
         });
 
@@ -121,7 +128,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     return () => {
       active = false;
     };
-  }, [photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss]);
+  }, [photos, layout, preset, customOverlayUrl, photoBoxes, themeMode, weddingConfig, partyConfig, filterCss]);
 
   // 2. Generate Google Drive QR Code
   useEffect(() => {
@@ -383,8 +390,8 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     <div className="flex-1 flex flex-col max-w-6xl mx-auto w-full px-3 sm:px-4 py-2 sm:py-3 overflow-y-auto lg:overflow-hidden min-h-0">
       {/* Screen Title */}
       <div className="text-center mb-2 sm:mb-4 shrink-0">
-        <h2 className="font-serif text-2xl sm:text-4xl text-gold-gradient font-normal mt-0.5">
-          Hasil Foto Pernikahan
+        <h2 className={isParty ? "text-2xl sm:text-4xl text-party-gradient font-extrabold mt-0.5" : "font-serif text-2xl sm:text-4xl text-gold-gradient font-normal mt-0.5"}>
+          {isParty ? "Hasil Foto Seru & Meriah" : "Hasil Foto Pernikahan"}
         </h2>
       </div>
 
@@ -392,11 +399,11 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       <div className="flex-1 grid grid-cols-1 md:grid-cols-12 gap-4 sm:gap-6 items-center">
         {/* Left: Rendered Strip Preview */}
         <div className="md:col-span-5 flex flex-col items-center justify-center">
-          <div className="relative p-2.5 rounded-2xl glass-gold-card shadow-[0_20px_50px_rgba(0,0,0,0.8)] border border-amber-400/40 max-h-[44vh] md:max-h-[65vh] flex items-center justify-center overflow-hidden">
+          <div className={`relative p-2.5 rounded-2xl ${isParty ? "glass-party-card border border-pink-500/40 shadow-[0_20px_50px_rgba(255,0,127,0.25)]" : "glass-gold-card border border-amber-400/40 shadow-[0_20px_50px_rgba(0,0,0,0.8)]"} max-h-[44vh] md:max-h-[65vh] flex items-center justify-center overflow-hidden`}>
             {isComposing || !renderedStrip ? (
               <div className="w-48 sm:w-64 h-72 sm:h-96 flex flex-col items-center justify-center text-amber-200/80 gap-3">
-                <RotateCw size={36} className="animate-spin text-amber-400" />
-                <span className="font-cinzel text-xs tracking-wider">Menyusun Foto Elegan...</span>
+                <RotateCw size={36} className={`animate-spin ${isParty ? "text-pink-400" : "text-amber-400"}`} />
+                <span className="font-cinzel text-xs tracking-wider">{isParty ? "Menyusun Foto Seru..." : "Menyusun Foto Elegan..."}</span>
               </div>
             ) : (
               <img
@@ -411,20 +418,20 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         {/* Right: Google Drive QR Code, Upload Status, and Action Controls */}
         <div className="md:col-span-7 flex flex-col gap-4">
           {/* Card: Google Drive Storage & QR Code */}
-          <div className="glass-gold-card p-5 rounded-2xl border border-amber-400/30 flex flex-col items-center justify-center min-h-[220px]">
+          <div className={`${isParty ? "glass-party-card border border-pink-500/30" : "glass-gold-card border border-amber-400/30"} p-5 rounded-2xl flex flex-col items-center justify-center min-h-[220px]`}>
             {driveConfig.autoUpload && (uploadStatus === "uploading" || uploadStatus === "idle") ? (
               /* Loading State: Uploading to Google Drive (Clean, No Text) */
               <div className="flex flex-col items-center justify-center py-6 px-6 text-center gap-4">
                 <div className="relative flex items-center justify-center w-20 h-20">
-                  <div className="w-16 h-16 rounded-full border-2 border-amber-400/30 flex items-center justify-center bg-amber-400/10">
-                    <CloudUpload size={30} className="text-amber-400 animate-bounce" />
+                  <div className={`w-16 h-16 rounded-full border-2 ${isParty ? "border-pink-400/30 bg-pink-500/10" : "border-amber-400/30 bg-amber-400/10"} flex items-center justify-center`}>
+                    <CloudUpload size={30} className={isParty ? "text-pink-400 animate-bounce" : "text-amber-400 animate-bounce"} />
                   </div>
-                  <RotateCw size={80} className="absolute inset-0 text-amber-400/60 animate-spin" />
+                  <RotateCw size={80} className={`absolute inset-0 ${isParty ? "text-pink-400/60" : "text-amber-400/60"} animate-spin`} />
                 </div>
 
                 {/* Shimmer loading bar */}
                 <div className="w-44 h-2 rounded-full bg-white/10 overflow-hidden mt-1">
-                  <div className="h-full bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500 w-full animate-pulse" />
+                  <div className={`h-full ${isParty ? "bg-gradient-to-r from-pink-500 via-purple-400 to-cyan-400" : "bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500"} w-full animate-pulse`} />
                 </div>
               </div>
             ) : driveConfig.autoUpload && uploadStatus === "error" ? (
@@ -439,7 +446,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                     onClick={() => {
                       if (renderedStrip) performDriveUpload(renderedStrip);
                     }}
-                    className="btn-gold-outline px-4 py-1.5 rounded-full text-xs flex items-center gap-1.5 cursor-pointer"
+                    className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} px-4 py-1.5 rounded-full text-xs flex items-center gap-1.5 cursor-pointer`}
                   >
                     <RotateCw size={12} />
                     <span>Coba Lagi</span>
@@ -454,7 +461,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               </div>
             ) : (
               /* Success State: Show Clean QR Code */
-              <div className="p-3 rounded-2xl bg-white shadow-xl flex items-center justify-center border border-amber-400/20">
+              <div className={`p-3 rounded-2xl bg-white shadow-xl flex items-center justify-center border ${isParty ? "border-pink-500/30" : "border-amber-400/20"}`}>
                 {qrCodeDataUrl ? (
                   <img
                     src={qrCodeDataUrl}
@@ -471,21 +478,21 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
           </div>
 
           {/* Card: Printing and Action Buttons */}
-          <div className="glass-gold-card p-5 rounded-2xl border border-amber-400/30 flex flex-col gap-4">
+          <div className={`${isParty ? "glass-party-card border border-pink-500/30" : "glass-gold-card border border-amber-400/30"} p-5 rounded-2xl flex flex-col gap-4`}>
             <div className="flex items-center justify-end">
               {/* Copies Counter */}
-              <div className="flex items-center gap-2 bg-stone-900/80 px-3 py-1.5 rounded-xl border border-amber-400/30">
+              <div className={`flex items-center gap-2 bg-stone-900/80 px-3 py-1.5 rounded-xl border ${isParty ? "border-pink-500/30" : "border-amber-400/30"}`}>
                 <span className="text-xs text-stone-400">Salinan:</span>
                 <button
                   onClick={() => setPrintCopies(Math.max(1, printCopies - 1))}
-                  className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center font-bold text-sm"
+                  className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center font-bold text-sm"
                 >
                   -
                 </button>
-                <span className="text-sm font-semibold text-amber-300 px-1">{printCopies}</span>
+                <span className={`text-sm font-semibold ${isParty ? "text-pink-300" : "text-amber-300"} px-1`}>{printCopies}</span>
                 <button
                   onClick={() => setPrintCopies(Math.min(5, printCopies + 1))}
-                  className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center font-bold text-sm"
+                  className="w-6 h-6 rounded bg-white/10 hover:bg-white/20 text-stone-200 flex items-center justify-center font-bold text-sm"
                 >
                   +
                 </button>
@@ -497,7 +504,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               <button
                 onClick={printPhoto}
                 disabled={isComposing || !renderedStrip}
-                className="btn-gold shimmer-glow py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer shadow-lg"
+                className={`${isParty ? "btn-party shadow-[0_4px_25px_rgba(255,0,127,0.4)]" : "btn-gold shimmer-glow shadow-lg"} py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer`}
               >
                 <Printer size={18} />
                 <span>Cetak Foto</span>
@@ -506,7 +513,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               <button
                 onClick={handleDownload}
                 disabled={isComposing || !renderedStrip}
-                className="btn-gold-outline py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer"
+                className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 text-sm font-semibold cursor-pointer`}
               >
                 <Download size={18} />
                 <span>Unduh File PNG</span>
@@ -521,7 +528,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
                 soundFx.playChime();
                 onHome();
               }}
-              className="btn-gold-outline px-4 py-2 rounded-full flex items-center gap-1.5 text-xs text-amber-200 hover:text-white"
+              className={`${isParty ? "btn-party-outline text-pink-300" : "btn-gold-outline text-amber-200"} px-4 py-2 rounded-full flex items-center gap-1.5 text-xs hover:text-white cursor-pointer`}
             >
               <Home size={14} />
               <span>Selesai / Sesi Baru</span>

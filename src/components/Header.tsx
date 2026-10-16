@@ -1,10 +1,12 @@
 import React from "react";
-import { Maximize2, Minimize2, Settings, Volume2, VolumeX } from "lucide-react";
-import { WeddingConfig } from "../types";
+import { Maximize2, Minimize2, Settings, Volume2, VolumeX, Sparkles } from "lucide-react";
+import { PartyConfig, ThemeMode, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
 interface HeaderProps {
+  themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   soundEnabled: boolean;
   onToggleSound: () => void;
   isFullscreen: boolean;
@@ -13,30 +15,54 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({
+  themeMode = "wedding",
   weddingConfig,
+  partyConfig,
   soundEnabled,
   onToggleSound,
   isFullscreen,
   onToggleFullscreen,
   onOpenAdmin,
 }) => {
+  const isParty = themeMode === "party";
+
   return (
     <header className="w-full px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between z-30 select-none shrink-0 gap-2">
-      {/* Left: Couple Branding */}
+      {/* Left: Branding */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-amber-400/50 flex items-center justify-center bg-amber-950/30 shadow-[0_0_12px_rgba(212,175,55,0.2)] shrink-0">
-          <span className="font-script text-lg sm:text-xl text-amber-300">
-            {weddingConfig.brideName.charAt(0)}&{weddingConfig.groomName.charAt(0)}
-          </span>
-        </div>
-        <div className="flex flex-col min-w-0">
-          <span className="font-cinzel tracking-[0.15em] sm:tracking-[0.2em] text-[9px] sm:text-[11px] text-amber-200/70 uppercase truncate">
-            Wedding Photobooth
-          </span>
-          <span className="font-script text-base sm:text-xl text-amber-100 leading-tight truncate max-w-[140px] sm:max-w-[280px] md:max-w-none">
-            {weddingConfig.brideName} & {weddingConfig.groomName}
-          </span>
-        </div>
+        {isParty ? (
+          <>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full p-[2px] bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 shadow-[0_0_15px_rgba(255,0,127,0.35)] shrink-0">
+              <div className="w-full h-full rounded-full bg-stone-950 flex items-center justify-center">
+                <Sparkles size={16} className="text-cyan-300" />
+              </div>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-bold tracking-[0.18em] text-[9px] sm:text-[11px] text-pink-400 uppercase truncate">
+                Photobooth Party
+              </span>
+              <span className="font-bold text-sm sm:text-base text-stone-100 leading-tight truncate max-w-[140px] sm:max-w-[280px] md:max-w-none">
+                {partyConfig?.eventName || "Party & Celebration"}
+              </span>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full border border-amber-400/50 flex items-center justify-center bg-amber-950/30 shadow-[0_0_12px_rgba(212,175,55,0.2)] shrink-0">
+              <span className="font-script text-lg sm:text-xl text-amber-300">
+                {weddingConfig.brideName.charAt(0)}&{weddingConfig.groomName.charAt(0)}
+              </span>
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="font-cinzel tracking-[0.15em] sm:tracking-[0.2em] text-[9px] sm:text-[11px] text-amber-200/70 uppercase truncate">
+                Wedding Photobooth
+              </span>
+              <span className="font-script text-base sm:text-xl text-amber-100 leading-tight truncate max-w-[140px] sm:max-w-[280px] md:max-w-none">
+                {weddingConfig.brideName} & {weddingConfig.groomName}
+              </span>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Right: Quick Controls */}
@@ -47,10 +73,18 @@ export const Header: React.FC<HeaderProps> = ({
             soundFx.playChime();
             onToggleSound();
           }}
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20 transition-all cursor-pointer"
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            isParty
+              ? "text-pink-300 hover:text-white hover:bg-white/10 border border-pink-500/30 shadow-[0_0_10px_rgba(255,0,127,0.15)]"
+              : "text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20"
+          }`}
           title={soundEnabled ? "Mute Suara" : "Aktifkan Suara"}
         >
-          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} className="text-stone-500" />}
+          {soundEnabled ? (
+            <Volume2 size={16} className={isParty ? "text-cyan-300" : undefined} />
+          ) : (
+            <VolumeX size={16} className="text-stone-500" />
+          )}
         </button>
 
         {/* Fullscreen toggle */}
@@ -59,7 +93,11 @@ export const Header: React.FC<HeaderProps> = ({
             soundFx.playChime();
             onToggleFullscreen();
           }}
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20 transition-all cursor-pointer"
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            isParty
+              ? "text-cyan-300 hover:text-white hover:bg-white/10 border border-cyan-400/30 shadow-[0_0_10px_rgba(0,240,255,0.15)]"
+              : "text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20"
+          }`}
           title={isFullscreen ? "Keluar Layar Penuh" : "Layar Penuh"}
         >
           {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
@@ -71,7 +109,11 @@ export const Header: React.FC<HeaderProps> = ({
             soundFx.playChime();
             onOpenAdmin();
           }}
-          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20 transition-all cursor-pointer"
+          className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all cursor-pointer ${
+            isParty
+              ? "text-stone-200 hover:text-white hover:bg-white/10 border border-purple-400/40 shadow-[0_0_10px_rgba(157,78,221,0.2)]"
+              : "text-amber-200/70 hover:text-amber-100 hover:bg-white/5 border border-amber-400/20"
+          }`}
           title="Pengaturan Admin"
         >
           <Settings size={16} />

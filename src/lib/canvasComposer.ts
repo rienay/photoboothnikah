@@ -1,4 +1,4 @@
-import { LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
+import { LayoutConfig, PartyConfig, PhotoBox, ThemeMode, WeddingConfig, WeddingFramePreset } from "../types";
 import { getDefaultBoxesForLayout, getBoxShotIndex } from "./frameLayouts";
 
 export interface ComposeOptions {
@@ -7,7 +7,9 @@ export interface ComposeOptions {
   preset: WeddingFramePreset;
   customOverlayUrl?: string;
   photoBoxes?: PhotoBox[];
+  themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   filterCss?: string;
 }
 
@@ -65,7 +67,8 @@ function drawImageCover(
  * Composes a full resolution wedding photobooth strip
  */
 export async function composeWeddingStrip(options: ComposeOptions): Promise<string> {
-  const { photos, layout, preset, customOverlayUrl, photoBoxes, weddingConfig, filterCss } = options;
+  const { photos, layout, preset, customOverlayUrl, photoBoxes, themeMode = "wedding", weddingConfig, partyConfig, filterCss } = options;
+  const isParty = themeMode === "party";
 
   // Load photos
   const loadedPhotos = await Promise.all(
@@ -150,6 +153,36 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   if (preset.id === "minimal_ivory") {
     ctx.fillStyle = "#FAF7F2";
     ctx.fillRect(0, 0, W, H);
+  } else if (preset.id === "party_neon") {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#19082B");
+    bgGrad.addColorStop(1, "#0A0312");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+  } else if (preset.id === "candy_pop") {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#290A3F");
+    bgGrad.addColorStop(1, "#140421");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+  } else if (preset.id === "retro_vibes") {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#170C31");
+    bgGrad.addColorStop(1, "#090518");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+  } else if (preset.id === "cyber_glow") {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#081813");
+    bgGrad.addColorStop(1, "#040D0A");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
+  } else if (preset.id === "sunset_vibes") {
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+    bgGrad.addColorStop(0, "#280A1F");
+    bgGrad.addColorStop(1, "#11030D");
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, W, H);
   } else if (preset.id === "botanical_sage") {
     const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
     bgGrad.addColorStop(0, "#131C16");
@@ -223,20 +256,37 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   const headerHeight = H * 0.11;
   const headerY = innerMargin + 10;
 
-  // Subtitle / "THE WEDDING OF"
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillStyle = preset.secondaryTextColor;
-  ctx.font = `600 ${Math.round(W * 0.024)}px 'Cinzel', serif`;
-  ctx.letterSpacing = "4px";
-  ctx.fillText("THE WEDDING OF", W / 2, headerY + headerHeight * 0.28);
+  if (isParty) {
+    // Subtitle / Party Tag
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = preset.secondaryTextColor;
+    ctx.font = `700 ${Math.round(W * 0.024)}px 'Montserrat', sans-serif`;
+    ctx.letterSpacing = "3px";
+    ctx.fillText((partyConfig?.title || "PHOTOBOOTH PARTY").toUpperCase(), W / 2, headerY + headerHeight * 0.3);
 
-  // Couple Names in Romantic Script Calligraphy
-  ctx.fillStyle = preset.textColor;
-  const coupleText = `${weddingConfig.brideName} & ${weddingConfig.groomName}`;
-  const scriptFontSize = Math.round(isStrip ? W * 0.095 : W * 0.065);
-  ctx.font = `${scriptFontSize}px 'Great Vibes', cursive`;
-  ctx.fillText(coupleText, W / 2, headerY + headerHeight * 0.68);
+    // Event Name in Bold Modern Sans
+    ctx.fillStyle = preset.textColor;
+    const eventText = partyConfig?.eventName || "Party & Celebration";
+    const eventFontSize = Math.round(isStrip ? W * 0.075 : W * 0.055);
+    ctx.font = `800 ${eventFontSize}px 'Montserrat', sans-serif`;
+    ctx.fillText(eventText, W / 2, headerY + headerHeight * 0.7);
+  } else {
+    // Subtitle / "THE WEDDING OF"
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = preset.secondaryTextColor;
+    ctx.font = `600 ${Math.round(W * 0.024)}px 'Cinzel', serif`;
+    ctx.letterSpacing = "4px";
+    ctx.fillText("THE WEDDING OF", W / 2, headerY + headerHeight * 0.28);
+
+    // Couple Names in Romantic Script Calligraphy
+    ctx.fillStyle = preset.textColor;
+    const coupleText = `${weddingConfig.brideName} & ${weddingConfig.groomName}`;
+    const scriptFontSize = Math.round(isStrip ? W * 0.095 : W * 0.065);
+    ctx.font = `${scriptFontSize}px 'Great Vibes', cursive`;
+    ctx.fillText(coupleText, W / 2, headerY + headerHeight * 0.68);
+  }
 
   // 5. Grid Photos Placement
   const footerHeight = H * 0.1;
@@ -290,7 +340,7 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   const footerY = gridBottom + 12;
   const footerCenterY = footerY + footerHeight / 2 - 8;
 
-  // Small romantic ornament divider
+  // Small divider
   ctx.strokeStyle = preset.accentColor;
   ctx.lineWidth = 1;
   const dividerW = W * 0.25;
@@ -307,13 +357,15 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
 
   // Date & Venue text
   ctx.fillStyle = preset.textColor;
-  ctx.font = `500 ${Math.round(W * 0.024)}px 'Montserrat', sans-serif`;
-  ctx.fillText(weddingConfig.weddingDate.toUpperCase(), W / 2, footerCenterY + 4);
+  ctx.font = `600 ${Math.round(W * 0.024)}px 'Montserrat', sans-serif`;
+  const dateStr = isParty ? (partyConfig?.eventDate || "16 OKTOBER 2026") : weddingConfig.weddingDate;
+  ctx.fillText(dateStr.toUpperCase(), W / 2, footerCenterY + 4);
 
   // Hashtag / Subtitle
   ctx.fillStyle = preset.secondaryTextColor;
-  ctx.font = `italic 400 ${Math.round(W * 0.02)}px 'Montserrat', sans-serif`;
-  ctx.fillText(weddingConfig.hashtag, W / 2, footerCenterY + 24);
+  ctx.font = `${isParty ? "600" : "italic 400"} ${Math.round(W * 0.02)}px 'Montserrat', sans-serif`;
+  const hashtagStr = isParty ? (partyConfig?.hashtag || "#PartyVibes") : weddingConfig.hashtag;
+  ctx.fillText(hashtagStr, W / 2, footerCenterY + 24);
 
   return canvas.toDataURL("image/png");
 }

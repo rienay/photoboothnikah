@@ -23,12 +23,19 @@ export interface LayoutConfig {
   aspectRatio: string;
 }
 
+export type ThemeMode = "wedding" | "party";
+
 export type FrameThemeId =
   | "royal_gold"
   | "rose_floral"
   | "botanical_sage"
   | "midnight_star"
   | "minimal_ivory"
+  | "party_neon"
+  | "candy_pop"
+  | "retro_vibes"
+  | "cyber_glow"
+  | "sunset_vibes"
   | "custom";
 
 export interface WeddingFramePreset {
@@ -79,6 +86,15 @@ export interface WeddingConfig {
   footerText: string;
 }
 
+export interface PartyConfig {
+  title: string;
+  subtitle: string;
+  eventName: string;
+  eventDate: string;
+  hashtag: string;
+  footerText: string;
+}
+
 export interface DriveConfig {
   appsScriptUrl: string;
   driveFolderUrl: string;
@@ -86,6 +102,7 @@ export interface DriveConfig {
 }
 
 export interface BoothSettings {
+  themeMode?: ThemeMode;
   countdownDuration: number;
   autoResetDuration: number;
   soundEnabled: boolean;

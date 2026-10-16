@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { ArrowLeft, Check, Camera, Image as ImageIcon } from "lucide-react";
-import { WEDDING_PRESETS, LAYOUTS } from "../config";
+import { ArrowLeft, Check, Camera, Image as ImageIcon, Sparkles } from "lucide-react";
+import { ALL_FRAME_PRESETS, LAYOUTS } from "../config";
 import { getBoxShotIndex } from "../lib/frameLayouts";
-import { FrameSlot, WeddingConfig } from "../types";
+import { FrameSlot, PartyConfig, ThemeMode, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
 interface FrameScreenProps {
+  themeMode?: ThemeMode;
   frameSlots: FrameSlot[];
   selectedSlotId: string;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   onSelectSlot: (slot: FrameSlot) => void;
   onBack: () => void;
   onNext: (slot: FrameSlot) => void;
@@ -19,12 +21,15 @@ const SelectableFrameCard: React.FC<{
   index: number;
   totalCount: number;
   isSelected: boolean;
+  themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   onSelect: () => void;
   onConfirm: () => void;
-}> = ({ slot, index, totalCount, isSelected, weddingConfig, onSelect, onConfirm }) => {
+}> = ({ slot, index, totalCount, isSelected, themeMode = "wedding", weddingConfig, partyConfig, onSelect, onConfirm }) => {
+  const isParty = themeMode === "party";
   const preset =
-    WEDDING_PRESETS.find((p) => p.id === slot.presetThemeId) || WEDDING_PRESETS[0];
+    ALL_FRAME_PRESETS.find((p) => p.id === slot.presetThemeId) || ALL_FRAME_PRESETS[0];
   const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
 
   // Default initial aspect ratio based on layout
@@ -58,7 +63,11 @@ const SelectableFrameCard: React.FC<{
       }}
       className={`relative h-[270px] sm:h-[310px] md:h-[350px] lg:h-[44vh] xl:h-[47vh] 2xl:h-[49vh] max-h-[52vh] shrink min-w-[160px] sm:min-w-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
         isSelected
-          ? "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.02] z-20"
+          ? isParty
+            ? "ring-4 ring-pink-500 shadow-[0_0_35px_rgba(255,0,127,0.6)] scale-[1.02] z-20"
+            : "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.02] z-20"
+          : isParty
+          ? "border-2 border-pink-500/30 hover:border-cyan-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
           : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
       }`}
       style={{
@@ -112,16 +121,16 @@ const SelectableFrameCard: React.FC<{
             {/* Header */}
             <div className="text-center z-10 pt-7 shrink-0">
               <div
-                className="text-[7.5px] tracking-[0.2em] font-cinzel uppercase"
+                className="text-[7.5px] tracking-[0.2em] font-bold uppercase"
                 style={{ color: preset.secondaryTextColor }}
               >
-                THE WEDDING OF
+                {isParty ? (partyConfig?.title || "PHOTOBOOTH PARTY") : "THE WEDDING OF"}
               </div>
               <div
-                className="font-script text-base sm:text-lg leading-tight mt-0.5"
+                className={isParty ? "font-bold text-sm sm:text-base leading-tight mt-0.5" : "font-script text-base sm:text-lg leading-tight mt-0.5"}
                 style={{ color: preset.textColor }}
               >
-                {weddingConfig.brideName} & {weddingConfig.groomName}
+                {isParty ? (partyConfig?.eventName || "Party & Celebration") : `${weddingConfig.brideName} & ${weddingConfig.groomName}`}
               </div>
             </div>
 
@@ -157,7 +166,7 @@ const SelectableFrameCard: React.FC<{
               className="text-[7.5px] font-sans tracking-wider z-10 pb-1 shrink-0"
               style={{ color: preset.secondaryTextColor }}
             >
-              {weddingConfig.weddingDate}
+              {isParty ? (partyConfig?.eventDate || "16 Oktober 2026") : weddingConfig.weddingDate}
             </div>
           </div>
         )}
@@ -165,22 +174,26 @@ const SelectableFrameCard: React.FC<{
 
       {/* Floating Badges Directly on the Frame */}
       {/* Top Left: Frame Name Pill */}
-      <div className="absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/85 border border-amber-400/50 text-[11px] font-cinzel text-amber-200 font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%]">
+      <div className={`absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/85 border text-[11px] font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%] ${
+        isParty ? "border-pink-500/50 text-pink-200" : "border-amber-400/50 font-cinzel text-amber-200"
+      }`}>
         {slot.name || `Desain ${index + 1}`}
       </div>
-
-          </button>
+    </button>
   );
 };
 
 export const FrameScreen: React.FC<FrameScreenProps> = ({
+  themeMode = "wedding",
   frameSlots,
   selectedSlotId,
   weddingConfig,
+  partyConfig,
   onSelectSlot,
   onBack,
   onNext,
 }) => {
+  const isParty = themeMode === "party";
   const activeSlots = frameSlots.filter((s) => s.enabled !== false);
   const displaySlots = activeSlots.length > 0 ? activeSlots : frameSlots;
 
@@ -192,8 +205,8 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
     <div className="flex-1 flex flex-col max-w-full mx-auto w-full px-2 sm:px-4 md:px-6 py-1 sm:py-2 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
       <div className="text-center mb-1 sm:mb-2 shrink-0">
-        <h2 className="font-serif text-2xl sm:text-3xl text-gold-gradient font-normal mt-0">
-          Pilih Desain Bingkai
+        <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-extrabold text-party-gradient" : "font-serif text-gold-gradient font-normal"}`}>
+          {isParty ? "Pilih Desain Bingkai Seru" : "Pilih Desain Bingkai"}
         </h2>
       </div>
 
@@ -206,7 +219,9 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
             index={index}
             totalCount={displaySlots.length}
             isSelected={currentSelectedSlot?.id === slot.id}
+            themeMode={themeMode}
             weddingConfig={weddingConfig}
+            partyConfig={partyConfig}
             onSelect={() => onSelectSlot(slot)}
             onConfirm={() => onNext(slot)}
           />
@@ -214,13 +229,13 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
       </div>
 
       {/* Navigation Buttons */}
-      <div className="flex items-center justify-between mt-2 sm:mt-3 pt-2.5 border-t border-amber-400/15 shrink-0">
+      <div className={`flex items-center justify-between mt-2 sm:mt-3 pt-2.5 border-t shrink-0 ${isParty ? "border-pink-500/20" : "border-amber-400/15"}`}>
         <button
           onClick={() => {
             soundFx.playChime();
             onBack();
           }}
-          className="btn-gold-outline px-5 py-2.5 rounded-full flex items-center gap-2 text-xs sm:text-sm cursor-pointer"
+          className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} px-5 py-2.5 rounded-full flex items-center gap-2 text-xs sm:text-sm cursor-pointer`}
         >
           <ArrowLeft size={15} />
           <span>Kembali ke Awal</span>
@@ -233,7 +248,7 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
               onNext(currentSelectedSlot);
             }
           }}
-          className="btn-gold px-7 py-2.5 rounded-full flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer shadow-[0_0_20px_rgba(212,175,55,0.3)]"
+          className={`${isParty ? "btn-party shadow-[0_0_25px_rgba(255,0,127,0.4)]" : "btn-gold shadow-[0_0_20px_rgba(212,175,55,0.3)]"} px-7 py-2.5 rounded-full flex items-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer`}
         >
           <Camera size={16} />
           <span>Mulai Pemotretan ({currentSelectedSlot?.name || "Pilih Bingkai"})</span>

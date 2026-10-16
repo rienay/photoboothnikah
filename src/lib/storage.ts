@@ -3,6 +3,7 @@ import {
   CustomTemplate,
   DriveConfig,
   FrameSlot,
+  PartyConfig,
   SavedSession,
   WeddingConfig,
 } from "../types";
@@ -10,6 +11,8 @@ import {
   DEFAULT_BOOTH_SETTINGS,
   DEFAULT_DRIVE_CONFIG,
   DEFAULT_FRAME_SLOTS,
+  DEFAULT_PARTY_CONFIG,
+  DEFAULT_PARTY_FRAME_SLOTS,
   DEFAULT_WEDDING_CONFIG,
 } from "../config";
 import {
@@ -25,20 +28,25 @@ import {
 
 const KEYS = {
   WEDDING: "yodha_wedding_config",
+  PARTY: "yodha_party_config",
   DRIVE: "yodha_drive_config",
   SETTINGS: "yodha_booth_settings",
   TEMPLATES: "yodha_custom_templates",
   HISTORY: "yodha_session_history",
   SLOTS: "yodha_frame_slots",
+  PARTY_SLOTS: "yodha_party_frame_slots",
 };
 
 export interface ServerSharedConfig {
   frameSlots?: FrameSlot[];
+  partyFrameSlots?: FrameSlot[];
   weddingConfig?: WeddingConfig;
+  partyConfig?: PartyConfig;
   driveConfig?: DriveConfig;
   boothSettings?: BoothSettings;
   cloudSyncConfig?: CloudSyncConfig;
   updatedAt?: number;
+  partyUpdatedAt?: number;
 }
 
 let cachedEndpoint: string | null = null;
@@ -69,6 +77,7 @@ function getStorageEndpoints(): string[] {
 }
 
 let lastLocalFrameUpdate: number = 0;
+let lastLocalPartyFrameUpdate: number = 0;
 
 export function getLastLocalFrameUpdate(): number {
   return lastLocalFrameUpdate;
@@ -78,7 +87,16 @@ export function setLastLocalFrameUpdate(ts: number): void {
   lastLocalFrameUpdate = ts;
 }
 
+export function getLastLocalPartyFrameUpdate(): number {
+  return lastLocalPartyFrameUpdate;
+}
+
+export function setLastLocalPartyFrameUpdate(ts: number): void {
+  lastLocalPartyFrameUpdate = ts;
+}
+
 let cachedMemorySlots: FrameSlot[] | null = null;
+let cachedPartyMemorySlots: FrameSlot[] | null = null;
 
 export function getCachedMemorySlots(): FrameSlot[] | null {
   return cachedMemorySlots;
@@ -90,18 +108,33 @@ export function setCachedMemorySlots(slots: FrameSlot[]): void {
   }
 }
 
+export function getCachedPartyMemorySlots(): FrameSlot[] | null {
+  return cachedPartyMemorySlots;
+}
+
+export function setCachedPartyMemorySlots(slots: FrameSlot[]): void {
+  if (Array.isArray(slots) && slots.length > 0) {
+    cachedPartyMemorySlots = slots;
+  }
+}
+
 // Check and push changes to server storage so other devices get them
 export async function pushToServer(partialData: Partial<ServerSharedConfig>): Promise<boolean> {
   try {
     const timestamp = partialData.updatedAt || Date.now();
+    const partyTimestamp = partialData.partyUpdatedAt || Date.now();
     const slotsToPush = partialData.frameSlots || cachedMemorySlots || loadFrameSlots();
+    const partySlotsToPush = partialData.partyFrameSlots || cachedPartyMemorySlots || loadPartyFrameSlots();
     const payload: ServerSharedConfig = {
       frameSlots: slotsToPush,
+      partyFrameSlots: partySlotsToPush,
       weddingConfig: partialData.weddingConfig || loadWeddingConfig(),
+      partyConfig: partialData.partyConfig || loadPartyConfig(),
       driveConfig: partialData.driveConfig || loadDriveConfig(),
       boothSettings: partialData.boothSettings || loadBoothSettings(),
       cloudSyncConfig: partialData.cloudSyncConfig || loadCloudSyncConfig(),
       updatedAt: timestamp,
+      partyUpdatedAt: partyTimestamp,
     };
 
     // Broadcast immediately to other tabs on the same machine
@@ -143,27 +176,46 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
           if (data && typeof data === "object" && Object.keys(data).length > 0) {
             cachedEndpoint = url;
 
-            // If server has frameSlots
+            // 1. Wedding frameSlots
             if (data.frameSlots && Array.isArray(data.frameSlots) && data.frameSlots.length > 0) {
               const serverUpdatedAt = data.updatedAt || 0;
-              // Only overwrite local frames if server is newer or equal
               if (serverUpdatedAt >= lastLocalFrameUpdate) {
                 lastLocalFrameUpdate = serverUpdatedAt;
                 cachedMemorySlots = data.frameSlots;
-                saveFramesToIndexedDB(data.frameSlots, serverUpdatedAt).catch(() => {});
+                saveFramesToIndexedDB(data.frameSlots, serverUpdatedAt, "current_frame_slots").catch(() => {});
                 try {
                   localStorage.setItem(KEYS.SLOTS, JSON.stringify(data.frameSlots));
                 } catch (_) {}
               } else {
-                // Local is newer than server! Keep local frames and update server
                 data.frameSlots = undefined;
                 pushToServer({ updatedAt: lastLocalFrameUpdate }).catch(() => {});
+              }
+            }
+
+            // 2. Party frameSlots
+            if (data.partyFrameSlots && Array.isArray(data.partyFrameSlots) && data.partyFrameSlots.length > 0) {
+              const serverPartyUpdatedAt = data.partyUpdatedAt || 0;
+              if (serverPartyUpdatedAt >= lastLocalPartyFrameUpdate) {
+                lastLocalPartyFrameUpdate = serverPartyUpdatedAt;
+                cachedPartyMemorySlots = data.partyFrameSlots;
+                saveFramesToIndexedDB(data.partyFrameSlots, serverPartyUpdatedAt, "party_frame_slots").catch(() => {});
+                try {
+                  localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(data.partyFrameSlots));
+                } catch (_) {}
+              } else {
+                data.partyFrameSlots = undefined;
+                pushToServer({ partyUpdatedAt: lastLocalPartyFrameUpdate }).catch(() => {});
               }
             }
 
             if (data.weddingConfig && data.weddingConfig.brideName) {
               try {
                 localStorage.setItem(KEYS.WEDDING, JSON.stringify(data.weddingConfig));
+              } catch (_) {}
+            }
+            if (data.partyConfig && data.partyConfig.eventName) {
+              try {
+                localStorage.setItem(KEYS.PARTY, JSON.stringify(data.partyConfig));
               } catch (_) {}
             }
             if (data.driveConfig) {
@@ -251,7 +303,7 @@ export function saveFrameSlots(slots: FrameSlot[], timestamp: number = Date.now(
   cachedMemorySlots = slots;
 
   // 1. Always save to IndexedDB (safe from quota limits)
-  saveFramesToIndexedDB(slots, timestamp).catch((err) => {
+  saveFramesToIndexedDB(slots, timestamp, "current_frame_slots").catch((err) => {
     console.error("Failed to save frame slots to IndexedDB:", err);
   });
 
@@ -275,6 +327,79 @@ export function saveFrameSlots(slots: FrameSlot[], timestamp: number = Date.now(
 
   // 5. Push to cloud database if configured
   pushFramesToCloud(slots).catch(() => {});
+}
+
+// ---------------------------------------------------------------------------
+// Party Frame Slots Management
+// ---------------------------------------------------------------------------
+export function loadPartyFrameSlots(): FrameSlot[] {
+  if (cachedPartyMemorySlots && cachedPartyMemorySlots.length > 0) {
+    return cachedPartyMemorySlots;
+  }
+  try {
+    const raw = localStorage.getItem(KEYS.PARTY_SLOTS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        cachedPartyMemorySlots = parsed;
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load party frame slots:", e);
+  }
+  return DEFAULT_PARTY_FRAME_SLOTS;
+}
+
+export async function initPartyFrameSlots(): Promise<FrameSlot[]> {
+  try {
+    const idbResult = await loadFramesFromIndexedDB("party_frame_slots");
+    if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
+      if (idbResult.updatedAt) {
+        lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, idbResult.updatedAt);
+      }
+      cachedPartyMemorySlots = idbResult.slots;
+      return idbResult.slots;
+    }
+  } catch (err) {
+    console.warn("Failed loading party frames from IndexedDB:", err);
+  }
+
+  // Fallback to localStorage or defaults
+  const localSlots = loadPartyFrameSlots();
+  if (localSlots && localSlots.length > 0 && localSlots !== DEFAULT_PARTY_FRAME_SLOTS) {
+    cachedPartyMemorySlots = localSlots;
+    saveFramesToIndexedDB(localSlots, lastLocalPartyFrameUpdate, "party_frame_slots").catch(() => {});
+  }
+  return localSlots;
+}
+
+export function savePartyFrameSlots(slots: FrameSlot[], timestamp: number = Date.now()): void {
+  lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, timestamp);
+  cachedPartyMemorySlots = slots;
+
+  // 1. Always save to IndexedDB
+  saveFramesToIndexedDB(slots, timestamp, "party_frame_slots").catch((err) => {
+    console.error("Failed to save party frame slots to IndexedDB:", err);
+  });
+
+  // 2. Try saving to localStorage safely
+  try {
+    localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(slots));
+  } catch (quotaErr) {
+    console.warn("localStorage quota exceeded for party frame slots:", quotaErr);
+  }
+
+  // 3. Broadcast to other tabs on same machine
+  try {
+    syncChannel?.postMessage({
+      type: "CONFIG_UPDATED",
+      data: { partyFrameSlots: slots, partyUpdatedAt: timestamp },
+    });
+  } catch (_) {}
+
+  // 4. Push to local server
+  pushToServer({ partyFrameSlots: slots, partyUpdatedAt: timestamp }).catch(() => {});
 }
 
 // ---------------------------------------------------------------------------
@@ -302,6 +427,28 @@ export function saveWeddingConfig(config: WeddingConfig): void {
     pushToServer({ weddingConfig: config }).catch(() => {});
   } catch (e) {
     console.error("Failed to save wedding config:", e);
+  }
+}
+
+export function loadPartyConfig(): PartyConfig {
+  try {
+    const raw = localStorage.getItem(KEYS.PARTY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_PARTY_CONFIG, ...parsed };
+    }
+  } catch (e) {
+    console.warn("Failed to load party config:", e);
+  }
+  return DEFAULT_PARTY_CONFIG;
+}
+
+export function savePartyConfig(config: PartyConfig): void {
+  try {
+    localStorage.setItem(KEYS.PARTY, JSON.stringify(config));
+    pushToServer({ partyConfig: config }).catch(() => {});
+  } catch (e) {
+    console.error("Failed to save party config:", e);
   }
 }
 

@@ -1,14 +1,21 @@
 import React, { useEffect } from "react";
-import { Camera, Heart } from "lucide-react";
-import { WeddingConfig } from "../types";
+import { Camera, Heart, Sparkles, PartyPopper } from "lucide-react";
+import { PartyConfig, ThemeMode, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
 interface HomeScreenProps {
+  themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
   onStart: () => void;
 }
 
-export const HomeScreen: React.FC<HomeScreenProps> = ({ weddingConfig, onStart }) => {
+export const HomeScreen: React.FC<HomeScreenProps> = ({
+  themeMode = "wedding",
+  weddingConfig,
+  partyConfig,
+  onStart,
+}) => {
   // Listen for Spacebar key to start
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -22,6 +29,77 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ weddingConfig, onStart }
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onStart]);
 
+  const handleStartClick = () => {
+    soundFx.playChime();
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(() => {});
+    }
+    onStart();
+  };
+
+  // ----------------------------------------------------
+  // TEMA BEBAS / COLORFUL PARTY
+  // ----------------------------------------------------
+  if (themeMode === "party") {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative text-center">
+        {/* Colorful Animated Background Rings */}
+        <div className="absolute w-[500px] h-[500px] rounded-full border border-pink-500/20 pointer-events-none animate-[pulse_4s_ease-in-out_infinite]" />
+        <div className="absolute w-[680px] h-[680px] rounded-full border border-cyan-400/15 pointer-events-none" />
+        <div className="absolute w-[360px] h-[360px] rounded-full bg-gradient-to-tr from-purple-600/10 via-pink-600/10 to-cyan-500/10 blur-3xl pointer-events-none" />
+
+        {/* Party Badge Seal */}
+        <div className="relative mb-6">
+          <div className="w-24 h-24 sm:w-28 sm:h-28 rounded-full p-[3px] bg-gradient-to-tr from-pink-500 via-purple-500 to-cyan-400 shadow-[0_0_40px_rgba(255,0,127,0.45)]">
+            <div className="w-full h-full rounded-full bg-stone-950 flex items-center justify-center border border-white/20">
+              <PartyPopper size={44} className="text-pink-400 drop-shadow-[0_0_15px_rgba(255,0,127,0.7)] animate-bounce" />
+            </div>
+          </div>
+          <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#0d0718] px-3 py-0.5 rounded-full border border-cyan-400/50 flex items-center gap-1 shadow-[0_0_12px_rgba(0,240,255,0.4)]">
+            <Sparkles size={12} className="text-cyan-300 animate-spin" />
+          </div>
+        </div>
+
+        {/* Subtitle with Colorful Glow */}
+        <div className="flex items-center gap-3 mb-2">
+          <div className="w-12 h-[1px] bg-gradient-to-r from-transparent to-pink-500" />
+          <span className="px-4 py-1 rounded-full bg-pink-500/15 border border-pink-500/40 text-pink-300 font-bold tracking-[0.22em] text-xs sm:text-sm uppercase shadow-[0_0_15px_rgba(255,0,127,0.25)]">
+            {partyConfig?.subtitle || "STRIKE A POSE & HAVE FUN!"}
+          </span>
+          <div className="w-12 h-[1px] bg-gradient-to-l from-transparent to-pink-500" />
+        </div>
+
+        {/* Event Name */}
+        <h1 className="font-sans font-extrabold text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-party-gradient py-2 px-6 my-1 drop-shadow-[0_4px_24px_rgba(255,0,127,0.4)] overflow-visible leading-tight tracking-tight">
+          {partyConfig?.eventName || "Party & Celebration"}
+        </h1>
+
+        {/* Date & Hashtag */}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm tracking-wider font-semibold text-stone-300 mt-2 mb-10">
+          <span className="px-3.5 py-1 rounded-full bg-cyan-950/50 border border-cyan-400/40 text-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.25)]">
+            {partyConfig?.eventDate || "16 Oktober 2026"}
+          </span>
+          <span className="text-stone-500">•</span>
+          <span className="px-3.5 py-1 rounded-full bg-purple-950/50 border border-purple-400/40 text-purple-300 shadow-[0_0_12px_rgba(157,78,221,0.25)]">
+            {partyConfig?.hashtag || "#PartyVibes"}
+          </span>
+        </div>
+
+        {/* Colorful Party Button */}
+        <button
+          onClick={handleStartClick}
+          className="btn-party px-12 py-5 sm:px-16 sm:py-6 rounded-full flex items-center justify-center gap-3 text-base sm:text-lg group cursor-pointer shadow-[0_4px_35px_rgba(255,0,127,0.5)]"
+        >
+          <Camera size={26} className="text-white group-hover:scale-115 transition-transform drop-shadow" />
+          <span>Sentuh Layar untuk Mulai</span>
+        </button>
+      </div>
+    );
+  }
+
+  // ----------------------------------------------------
+  // TEMA WEDDING (ELEGAN & EMAS)
+  // ----------------------------------------------------
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative text-center">
       {/* Background Decorative Rings */}
@@ -67,13 +145,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ weddingConfig, onStart }
 
       {/* Big Start Button */}
       <button
-        onClick={() => {
-          soundFx.playChime();
-          if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen().catch(() => {});
-          }
-          onStart();
-        }}
+        onClick={handleStartClick}
         className="btn-gold shimmer-glow px-12 py-5 sm:px-16 sm:py-6 rounded-full flex items-center justify-center gap-3 text-base sm:text-lg group cursor-pointer shadow-[0_4px_30px_rgba(212,175,55,0.4)]"
       >
         <Camera size={24} className="text-stone-900 group-hover:scale-110 transition-transform" />

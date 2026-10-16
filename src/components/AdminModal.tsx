@@ -18,6 +18,8 @@ import {
   RefreshCw,
   Copy,
   Printer,
+  PartyPopper,
+  Sparkles,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -25,10 +27,12 @@ import {
   FrameSlot,
   FrameThemeId,
   LayoutId,
+  PartyConfig,
   SavedSession,
+  ThemeMode,
   WeddingConfig,
 } from "../types";
-import { LAYOUTS, WEDDING_PRESETS } from "../config";
+import { LAYOUTS, WEDDING_PRESETS, ALL_FRAME_PRESETS } from "../config";
 import { FrameStudioModal } from "./FrameStudioModal";
 import {
   getSessionHistory,
@@ -51,15 +55,19 @@ interface AdminModalProps {
   onClose: () => void;
   weddingConfig: WeddingConfig;
   onSaveWeddingConfig: (cfg: WeddingConfig) => void;
+  partyConfig: PartyConfig;
+  onSavePartyConfig: (cfg: PartyConfig) => void;
   driveConfig: DriveConfig;
   onSaveDriveConfig: (cfg: DriveConfig) => void;
   boothSettings: BoothSettings;
   onSaveBoothSettings: (st: BoothSettings) => void;
   frameSlots: FrameSlot[];
   onSaveFrameSlots: (slots: FrameSlot[]) => void;
+  partyFrameSlots: FrameSlot[];
+  onSavePartyFrameSlots: (slots: FrameSlot[]) => void;
 }
 
-type TabType = "wedding" | "templates" | "cloud" | "drive" | "booth" | "history";
+type TabType = "wedding" | "party" | "templates" | "cloud" | "drive" | "booth" | "history";
 
 const AdminFrameCardItem: React.FC<{
   slot: FrameSlot;
@@ -207,12 +215,16 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onClose,
   weddingConfig,
   onSaveWeddingConfig,
+  partyConfig,
+  onSavePartyConfig,
   driveConfig,
   onSaveDriveConfig,
   boothSettings,
   onSaveBoothSettings,
   frameSlots,
   onSaveFrameSlots,
+  partyFrameSlots,
+  onSavePartyFrameSlots,
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -224,11 +236,29 @@ export const AdminModal: React.FC<AdminModalProps> = ({
 
   // Form States
   const [weddingForm, setWeddingForm] = useState<WeddingConfig>(weddingConfig);
+  const [partyForm, setPartyForm] = useState<PartyConfig>(partyConfig);
   const [driveForm, setDriveForm] = useState<DriveConfig>(driveConfig);
   const [boothForm, setBoothForm] = useState<BoothSettings>(boothSettings);
-  const [slotsForm, setSlotsForm] = useState<FrameSlot[]>(frameSlots);
+  const [slotsWeddingForm, setSlotsWeddingForm] = useState<FrameSlot[]>(frameSlots);
+  const [slotsPartyForm, setSlotsPartyForm] = useState<FrameSlot[]>(partyFrameSlots);
+  const [selectedFrameThemeMode, setSelectedFrameThemeMode] = useState<ThemeMode>(
+    boothSettings.themeMode || "wedding"
+  );
   const [studioTargetFrame, setStudioTargetFrame] = useState<FrameSlot | null | "new">(null);
   const [activeLayoutFilter, setActiveLayoutFilter] = useState<string>("all");
+
+  const isPartyFrames = selectedFrameThemeMode === "party";
+  const slotsForm = isPartyFrames ? slotsPartyForm : slotsWeddingForm;
+
+  const updateActiveSlots = (updated: FrameSlot[]) => {
+    if (isPartyFrames) {
+      setSlotsPartyForm(updated);
+      onSavePartyFrameSlots(updated);
+    } else {
+      setSlotsWeddingForm(updated);
+      onSaveFrameSlots(updated);
+    }
+  };
 
   // Hardware Camera List
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
@@ -254,9 +284,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   useEffect(() => {
     if (isOpen && !wasOpenRef.current) {
       setWeddingForm(weddingConfig);
+      setPartyForm(partyConfig);
       setDriveForm(driveConfig);
       setBoothForm(boothSettings);
-      setSlotsForm(frameSlots);
+      setSlotsWeddingForm(frameSlots);
+      setSlotsPartyForm(partyFrameSlots);
+      setSelectedFrameThemeMode(boothSettings.themeMode || "wedding");
       setCloudConfig(loadCloudSyncConfig());
       loadMediaDevices();
       loadHistory();
@@ -301,8 +334,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const res = await fetchFramesFromCloud(cloudConfig);
     setCloudPulling(false);
     if (res.success && res.frames) {
-      setSlotsForm(res.frames);
-      onSaveFrameSlots(res.frames);
+      updateActiveSlots(res.frames);
       showToast("✓ Seluruh bingkai dari Supabase Cloud berhasil ditarik ke perangkat ini!");
       setCloudConfig(loadCloudSyncConfig());
     } else {
@@ -348,10 +380,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Export & Import Configurations (Backup & Cross-Device Sync)
   const handleExportConfig = () => {
     const backupData = {
-      version: "1.0",
+      version: "1.1",
       exportDate: new Date().toISOString(),
-      frameSlots: slotsForm,
+      frameSlots: slotsWeddingForm,
+      partyFrameSlots: slotsPartyForm,
       weddingConfig: weddingForm,
+      partyConfig: partyForm,
       driveConfig: driveForm,
       boothSettings: boothForm,
     };
@@ -360,12 +394,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `yodha-photobooth-backup-${weddingForm.brideName.toLowerCase()}-${weddingForm.groomName.toLowerCase()}.json`;
+    a.download = `yodha-photobooth-backup-${Date.now()}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    showToast("✓ Berkas cadangan pengaturan & bingkai berhasil diunduh!");
+    showToast("✓ Berkas cadangan seluruh pengaturan & bingkai berhasil diunduh!");
   };
 
   const handleImportConfig = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -377,12 +411,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       try {
         const parsed = JSON.parse(event.target?.result as string);
         if (parsed.frameSlots && Array.isArray(parsed.frameSlots)) {
-          setSlotsForm(parsed.frameSlots);
+          setSlotsWeddingForm(parsed.frameSlots);
           onSaveFrameSlots(parsed.frameSlots);
+        }
+        if (parsed.partyFrameSlots && Array.isArray(parsed.partyFrameSlots)) {
+          setSlotsPartyForm(parsed.partyFrameSlots);
+          onSavePartyFrameSlots(parsed.partyFrameSlots);
         }
         if (parsed.weddingConfig) {
           setWeddingForm(parsed.weddingConfig);
           onSaveWeddingConfig(parsed.weddingConfig);
+        }
+        if (parsed.partyConfig) {
+          setPartyForm(parsed.partyConfig);
+          onSavePartyConfig(parsed.partyConfig);
         }
         if (parsed.driveConfig) {
           setDriveForm(parsed.driveConfig);
@@ -444,8 +486,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
       }
       return s;
     });
-    setSlotsForm(updated);
-    onSaveFrameSlots(updated);
+    updateActiveSlots(updated);
     const target = updated.find((s) => s.id === id);
     showToast(
       target?.enabled !== false
@@ -462,8 +503,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     }
     if (window.confirm(`Yakin ingin menghapus bingkai "${name}"?`)) {
       const updated = slotsForm.filter((s) => s.id !== id);
-      setSlotsForm(updated);
-      onSaveFrameSlots(updated);
+      updateActiveSlots(updated);
       showToast(`Bingkai "${name}" berhasil dihapus.`);
     }
   };
@@ -567,7 +607,56 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           </div>
         ) : (
           /* Authenticated Dashboard Tabs */
-          <div className="flex-1 flex flex-col pt-4 overflow-hidden">
+          <div className="flex-1 flex flex-col pt-3 overflow-hidden">
+            {/* Active Theme Mode Bar */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-2 border-b border-amber-400/15">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-xs text-stone-300 font-semibold">Mode Photobooth:</span>
+                <div className="flex items-center gap-1.5 p-1 bg-stone-900/90 rounded-xl border border-amber-400/30">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...boothForm, themeMode: "wedding" as const };
+                      setBoothForm(updated);
+                      onSaveBoothSettings(updated);
+                      setSelectedFrameThemeMode("wedding");
+                      showToast("✓ Mode Photobooth diubah ke: Wedding Elegan");
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      boothForm.themeMode !== "party"
+                        ? "bg-amber-400 text-stone-950 shadow-md font-bold"
+                        : "text-stone-400 hover:text-stone-200"
+                    }`}
+                  >
+                    💍 Wedding (Elegan & Emas)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = { ...boothForm, themeMode: "party" as const };
+                      setBoothForm(updated);
+                      onSaveBoothSettings(updated);
+                      setSelectedFrameThemeMode("party");
+                      showToast("✓ Mode Photobooth diubah ke: Bebas / Colorful Party");
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      boothForm.themeMode === "party"
+                        ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md font-bold"
+                        : "text-stone-400 hover:text-stone-200"
+                    }`}
+                  >
+                    🎉 Bebas / Party (Colorful)
+                  </button>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-stone-400">
+                Mode saat ini: <strong className={boothForm.themeMode === "party" ? "text-pink-400" : "text-amber-300"}>
+                  {boothForm.themeMode === "party" ? "Bebas / Colorful Party" : "Wedding Elegan"}
+                </strong>
+              </div>
+            </div>
+
             {/* Tabs Navigation */}
             <div className="flex items-center gap-2 border-b border-amber-400/15 pb-2 overflow-x-auto">
               <button
@@ -579,7 +668,19 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 }`}
               >
                 <Heart size={14} />
-                <span>Acara Pernikahan</span>
+                <span>Acara Wedding</span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab("party")}
+                className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+                  activeTab === "party"
+                    ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white font-semibold shadow-md"
+                    : "text-stone-300 hover:bg-white/5"
+                }`}
+              >
+                <PartyPopper size={14} className={activeTab === "party" ? "text-white" : "text-pink-400"} />
+                <span>Acara Bebas/Party</span>
               </button>
 
               <button
@@ -726,18 +827,184 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 </div>
               )}
 
+              {/* Tab: Party Config */}
+              {activeTab === "party" && (
+                <div className="space-y-4 max-w-2xl bg-stone-900/60 p-5 rounded-2xl border border-pink-500/30 shadow-xl backdrop-blur-md">
+                  <div className="flex items-center gap-3 pb-3 border-b border-pink-500/20">
+                    <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-pink-500 to-purple-500 flex items-center justify-center text-white shadow-lg">
+                      <PartyPopper size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-bold bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-300 bg-clip-text text-transparent">
+                        Pengaturan Tema Bebas / Colorful Party
+                      </h2>
+                      <p className="text-xs text-stone-400">
+                        Atur nama acara, tanggal, dan teks untuk photobooth bertema pesta, ulang tahun, gathering, dll.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                    <div>
+                      <label className="block text-xs font-medium text-pink-300 mb-1">
+                        Judul Utama (Title)
+                      </label>
+                      <input
+                        type="text"
+                        value={partyForm.title}
+                        onChange={(e) => setPartyForm({ ...partyForm, title: e.target.value })}
+                        placeholder="Contoh: PHOTOBOOTH PARTY"
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-pink-500/30 text-white text-sm focus:border-pink-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-pink-300 mb-1">
+                        Sub-Judul (Subtitle)
+                      </label>
+                      <input
+                        type="text"
+                        value={partyForm.subtitle}
+                        onChange={(e) => setPartyForm({ ...partyForm, subtitle: e.target.value })}
+                        placeholder="Contoh: LET'S CELEBRATE & HAVE FUN!"
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-pink-500/30 text-white text-sm focus:border-pink-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-purple-300 mb-1">
+                      Nama Acara / Event Name
+                    </label>
+                    <input
+                      type="text"
+                      value={partyForm.eventName}
+                      onChange={(e) => setPartyForm({ ...partyForm, eventName: e.target.value })}
+                      placeholder="Contoh: SWEET SEVENTEEN / GALA NIGHT 2026"
+                      className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-purple-500/30 text-white text-sm focus:border-purple-400 outline-none"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-medium text-cyan-300 mb-1">
+                        Tanggal Acara (Event Date)
+                      </label>
+                      <input
+                        type="text"
+                        value={partyForm.eventDate}
+                        onChange={(e) => setPartyForm({ ...partyForm, eventDate: e.target.value })}
+                        placeholder="Contoh: 16 OKTOBER 2026"
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-cyan-500/30 text-white text-sm focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-cyan-300 mb-1">
+                        Hashtag / Slogan
+                      </label>
+                      <input
+                        type="text"
+                        value={partyForm.hashtag}
+                        onChange={(e) => setPartyForm({ ...partyForm, hashtag: e.target.value })}
+                        placeholder="Contoh: #PartyVibes2026 #HappyDay"
+                        className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-cyan-500/30 text-white text-sm focus:border-cyan-400 outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-pink-300 mb-1">
+                      Teks Footer Cetakan
+                    </label>
+                    <input
+                      type="text"
+                      value={partyForm.footerText}
+                      onChange={(e) => setPartyForm({ ...partyForm, footerText: e.target.value })}
+                      placeholder="Contoh: CAPTURE YOUR CRAZY MOMENT"
+                      className="w-full px-3 py-2 rounded-lg bg-stone-900 border border-pink-500/30 text-white text-sm focus:border-pink-400 outline-none"
+                    />
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      onSavePartyConfig(partyForm);
+                      showToast("Pengaturan acara pesta berhasil disimpan!");
+                    }}
+                    className="px-6 py-2.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-pink-500 via-purple-500 to-cyan-500 shadow-lg hover:opacity-95 flex items-center gap-2 cursor-pointer mt-4"
+                  >
+                    <Save size={14} />
+                    <span>Simpan Pengaturan Acara Bebas/Party</span>
+                  </button>
+                </div>
+              )}
+
               {/* Tab 2: Manajemen Bingkai Frame (Exact yodhabooth design) */}
               {/* Tab 2: Manajemen Bingkai Frame (Cohesive Dark-Gold Luxury Theme) */}
               {activeTab === "templates" && (
-                <div className="bg-stone-900/60 p-4 sm:p-6 rounded-2xl border border-amber-400/25 shadow-xl space-y-6 backdrop-blur-md">
+                <div className={`p-4 sm:p-6 rounded-2xl shadow-xl space-y-6 backdrop-blur-md transition-all ${
+                  isPartyFrames
+                    ? "bg-stone-900/70 border border-pink-500/30"
+                    : "bg-stone-900/60 border border-amber-400/25"
+                }`}>
+                  {/* Theme Frame Switcher Sub-Tabs */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 bg-stone-950/80 rounded-xl border border-white/10">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs text-stone-300 font-semibold">Pilih Koleksi Bingkai:</span>
+                      <div className="flex items-center gap-1.5 p-1 bg-stone-900 rounded-lg border border-white/10">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFrameThemeMode("wedding");
+                            setActiveLayoutFilter("all");
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                            !isPartyFrames
+                              ? "bg-amber-400 text-stone-950 shadow-md font-bold"
+                              : "text-stone-400 hover:text-stone-200"
+                          }`}
+                        >
+                          <Heart size={13} />
+                          <span>💍 Bingkai Wedding ({slotsWeddingForm.length})</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedFrameThemeMode("party");
+                            setActiveLayoutFilter("all");
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+                            isPartyFrames
+                              ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white shadow-md font-bold"
+                              : "text-stone-400 hover:text-stone-200"
+                          }`}
+                        >
+                          <PartyPopper size={13} />
+                          <span>🎉 Bingkai Bebas / Party ({slotsPartyForm.length})</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="text-[11px] text-stone-400 flex items-center gap-1.5">
+                      <span>Sedang mengedit bingkai untuk:</span>
+                      <span className={`px-2 py-0.5 rounded-full font-bold ${isPartyFrames ? "bg-pink-500/20 text-pink-300 border border-pink-500/40" : "bg-amber-400/20 text-amber-300 border border-amber-400/40"}`}>
+                        {isPartyFrames ? "🎉 Bebas / Party" : "💍 Wedding Elegan"}
+                      </span>
+                    </div>
+                  </div>
+
                   {/* Header with Title, Description, and + Tambah Bingkai Baru button */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div>
-                      <h2 className="text-xl sm:text-2xl font-serif text-gold-gradient font-medium tracking-wide">
-                        Manajemen Bingkai Frame
+                      <h2 className={`text-xl sm:text-2xl font-serif font-medium tracking-wide ${
+                        isPartyFrames
+                          ? "bg-gradient-to-r from-pink-400 via-purple-300 to-cyan-300 bg-clip-text text-transparent"
+                          : "text-gold-gradient"
+                      }`}>
+                        {isPartyFrames ? "Manajemen Bingkai: Bebas / Party" : "Manajemen Bingkai: Wedding"}
                       </h2>
                       <p className="text-xs sm:text-sm text-stone-400 mt-1">
-                        Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru.
+                        {isPartyFrames
+                          ? "Kelola template bingkai warna-warni untuk photobooth bertema pesta / bebas."
+                          : "Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru."}
                       </p>
                     </div>
 
@@ -1473,8 +1740,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
               updated = [...slotsForm, newFrame];
               showToast(`✓ Bingkai baru "${name}" berhasil ditambahkan!`);
             }
-            setSlotsForm(updated);
-            onSaveFrameSlots(updated);
+            updateActiveSlots(updated);
             setStudioTargetFrame(null);
           }}
         />
