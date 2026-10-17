@@ -346,6 +346,20 @@ export function loadPartyFrameSlots(): FrameSlot[] {
           cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
           return DEFAULT_PARTY_FRAME_SLOTS;
         }
+        // Ensure the official 5 10x15 templates are present
+        const existingIds = new Set(parsed.map((s: any) => s.id));
+        const missingDefaults = DEFAULT_PARTY_FRAME_SLOTS.filter((s) => !existingIds.has(s.id));
+        if (missingDefaults.length > 0) {
+          const merged = [
+            ...DEFAULT_PARTY_FRAME_SLOTS,
+            ...parsed.filter((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id)),
+          ];
+          cachedPartyMemorySlots = merged;
+          try {
+            localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(merged));
+          } catch (_) {}
+          return merged;
+        }
         cachedPartyMemorySlots = parsed;
         return parsed;
       }
@@ -362,6 +376,18 @@ export async function initPartyFrameSlots(): Promise<FrameSlot[]> {
     if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
       // Check if it's the old placeholder
       if (!idbResult.slots.some((s) => s.id && s.id.startsWith("party_slot_"))) {
+        // Ensure the official 5 10x15 templates are present
+        const existingIds = new Set(idbResult.slots.map((s: any) => s.id));
+        const missingDefaults = DEFAULT_PARTY_FRAME_SLOTS.filter((s) => !existingIds.has(s.id));
+        if (missingDefaults.length > 0) {
+          const merged = [
+            ...DEFAULT_PARTY_FRAME_SLOTS,
+            ...idbResult.slots.filter((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id)),
+          ];
+          cachedPartyMemorySlots = merged;
+          saveFramesToIndexedDB(merged, Date.now(), "party_frame_slots").catch(() => {});
+          return merged;
+        }
         if (idbResult.updatedAt) {
           lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, idbResult.updatedAt);
         }

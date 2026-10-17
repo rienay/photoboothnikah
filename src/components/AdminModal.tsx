@@ -32,7 +32,7 @@ import {
   ThemeMode,
   WeddingConfig,
 } from "../types";
-import { LAYOUTS, WEDDING_PRESETS, ALL_FRAME_PRESETS } from "../config";
+import { LAYOUTS, WEDDING_PRESETS, ALL_FRAME_PRESETS, DEFAULT_PARTY_FRAME_SLOTS } from "../config";
 import { FrameStudioModal } from "./FrameStudioModal";
 import {
   getSessionHistory,
@@ -1044,6 +1044,25 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           onChange={handleImportConfig}
                         />
                       </label>
+
+                      {isPartyFrames && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const merged = [
+                              ...DEFAULT_PARTY_FRAME_SLOTS,
+                              ...slotsPartyForm.filter((s) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id)),
+                            ];
+                            updateActiveSlots(merged);
+                            showToast("✓ 5 Template Resmi JOTA-JOTI berhasil dimuat!");
+                          }}
+                          title="Muat 5 template resmi JOTA-JOTI 10x15: Scrapbook, Colorful, Newspaper, Cyber Scout, Jamboree"
+                          className="px-3.5 py-2.5 rounded-xl border border-purple-500/50 bg-purple-950/50 hover:bg-purple-900/70 text-purple-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                        >
+                          <Sparkles size={14} className="text-purple-300 animate-pulse" />
+                          <span>+ Muat 5 Template Resmi JOTA-JOTI</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
