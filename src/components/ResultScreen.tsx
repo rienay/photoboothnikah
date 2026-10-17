@@ -148,8 +148,21 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     setUploadStatus("uploading");
     setUploadMessage("Mengunggah foto ke Google Drive...");
 
+    const isParty = themeMode === "party";
     const timestampDescending = 9999999999999 - Date.now();
-    const safeFilename = `wedding-${weddingConfig.brideName.toLowerCase()}-${weddingConfig.groomName.toLowerCase()}-${timestampDescending}.jpg`;
+    
+    // Generate safe filename following current event
+    const eventSlug = isParty
+      ? (partyConfig?.eventName || partyConfig?.title || "jota-joti-2026")
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+      : `${weddingConfig.brideName}-${weddingConfig.groomName}`
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "");
+
+    const safeFilename = `${eventSlug}-${timestampDescending}.jpg`;
 
     const folderIdMatch = driveConfig.driveFolderUrl.match(/folders\/([a-zA-Z0-9_-]+)/);
     const targetFolderId = folderIdMatch ? folderIdMatch[1] : undefined;
@@ -191,9 +204,15 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
   const handleDownload = () => {
     if (!renderedStrip) return;
     soundFx.playChime();
+    const isParty = themeMode === "party";
+    const eventNameSlug = isParty
+      ? (partyConfig?.eventName || partyConfig?.title || "JOTA-JOTI-2026")
+          .replace(/[^a-zA-Z0-9_-]+/g, "_")
+      : `${weddingConfig.brideName}-${weddingConfig.groomName}`.replace(/[^a-zA-Z0-9_-]+/g, "_");
+
     const a = document.createElement("a");
     a.href = renderedStrip;
-    a.download = `Wedding-${weddingConfig.brideName}-${weddingConfig.groomName}-${Date.now()}.png`;
+    a.download = `${isParty ? "Event" : "Wedding"}-${eventNameSlug}-${Date.now()}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
