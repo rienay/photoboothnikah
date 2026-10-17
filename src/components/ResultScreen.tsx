@@ -74,7 +74,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     "idle"
   );
   const [uploadMessage, setUploadMessage] = useState<string>("");
-  const [resetTimer, setResetTimer] = useState(autoResetDuration);
   const [printCopies, setPrintCopies] = useState(defaultPrintCopies);
   const [isComposing, setIsComposing] = useState(true);
 
@@ -185,20 +184,6 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     }
   }, [renderedStrip]);
 
-  // 4. Auto Reset Countdown Timer
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setResetTimer((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          onHome();
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [onHome]);
 
   // 5. Download Direct PNG
   const handleDownload = () => {
