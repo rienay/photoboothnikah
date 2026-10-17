@@ -64,10 +64,10 @@ const SelectableFrameCard: React.FC<{
       className={`relative h-[270px] sm:h-[310px] md:h-[350px] lg:h-[44vh] xl:h-[47vh] 2xl:h-[49vh] max-h-[52vh] shrink min-w-[160px] sm:min-w-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
         isSelected
           ? isParty
-            ? "ring-4 ring-pink-500 shadow-[0_0_35px_rgba(255,0,127,0.6)] scale-[1.02] z-20"
+            ? "ring-4 ring-[#EF5000] shadow-[0_10px_35px_rgba(98,37,153,0.35)] scale-[1.02] z-20"
             : "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.02] z-20"
           : isParty
-          ? "border-2 border-pink-500/30 hover:border-cyan-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
+          ? "border-2 border-purple-200 hover:border-[#EF5000] hover:scale-[1.01] shadow-md opacity-90 hover:opacity-100 bg-white"
           : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
       }`}
       style={{
@@ -81,10 +81,12 @@ const SelectableFrameCard: React.FC<{
         style={
           slot.customImage
             ? {
-                backgroundImage:
-                  "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
+                backgroundImage: isParty
+                  ? "linear-gradient(45deg, #e7e4ee 25%, transparent 25%), linear-gradient(-45deg, #e7e4ee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e7e4ee 75%), linear-gradient(-45deg, transparent 75%, #e7e4ee 75%)"
+                  : "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
                 backgroundSize: "14px 14px",
                 backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
+                backgroundColor: isParty ? "#f6f4fa" : "#0d1017",
               }
             : {
                 background: preset.bgColor,
@@ -174,8 +176,8 @@ const SelectableFrameCard: React.FC<{
 
       {/* Floating Badges Directly on the Frame */}
       {/* Top Left: Frame Name Pill */}
-      <div className={`absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full bg-black/85 border text-[11px] font-semibold shadow-lg backdrop-blur-md truncate max-w-[70%] ${
-        isParty ? "border-pink-500/50 text-pink-200" : "border-amber-400/50 font-cinzel text-amber-200"
+      <div className={`absolute top-2.5 left-2.5 z-20 px-3 py-1 rounded-full text-[11px] font-bold shadow-md backdrop-blur-md truncate max-w-[70%] ${
+        isParty ? "bg-white/95 border border-purple-300 text-[#622599]" : "bg-black/85 border border-amber-400/50 font-cinzel text-amber-200"
       }`}>
         {slot.name || `Desain ${index + 1}`}
       </div>
@@ -205,7 +207,7 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
     <div className="flex-1 flex flex-col max-w-full mx-auto w-full px-2 sm:px-4 md:px-6 py-1 sm:py-2 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
       <div className="text-center mb-1 sm:mb-2 shrink-0">
-        <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-extrabold text-party-gradient" : "font-serif text-gold-gradient font-normal"}`}>
+        <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-black bg-gradient-to-r from-[#2E0E4C] via-[#622599] to-[#EF5000] bg-clip-text text-transparent drop-shadow-sm" : "font-serif text-gold-gradient font-normal"}`}>
           {isParty ? "Pilih Bingkai JOTA-JOTI 2026" : "Pilih Desain Bingkai"}
         </h2>
       </div>
@@ -229,7 +231,7 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
       </div>
 
       {/* Navigation Buttons */}
-      <div className={`flex items-center justify-between mt-2 sm:mt-3 pt-2.5 border-t shrink-0 ${isParty ? "border-pink-500/20" : "border-amber-400/15"}`}>
+      <div className={`flex items-center justify-between mt-2 sm:mt-3 pt-2.5 border-t shrink-0 ${isParty ? "border-purple-200/60" : "border-amber-400/15"}`}>
         <button
           onClick={() => {
             soundFx.playChime();

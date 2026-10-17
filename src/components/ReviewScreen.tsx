@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { Check, Camera, RefreshCw, RotateCw, FlipHorizontal, CheckCircle2 } from "lucide-react";
 import { PHOTO_FILTERS } from "../config";
-import { CameraFilter, LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
+import { CameraFilter, LayoutConfig, PartyConfig, PhotoBox, ThemeMode, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
 import { calculateTargetPhotoRatio, getDefaultBoxesForLayout, getBoxShotIndex } from "../lib/frameLayouts";
 
@@ -13,6 +13,8 @@ interface ReviewScreenProps {
   customOverlayUrl?: string;
   photoBoxes?: PhotoBox[];
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
+  themeMode?: ThemeMode;
   onChangeFilter: (filterId: string) => void;
   onUpdatePhoto: (index: number, newPhotoData: string) => void;
   onRetakeAll: () => void;
@@ -31,6 +33,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   customOverlayUrl,
   photoBoxes,
   weddingConfig,
+  partyConfig,
+  themeMode = "wedding",
   onChangeFilter,
   onUpdatePhoto,
   onConfirm,
@@ -39,6 +43,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   cameraRotation = 0,
   onChangeCameraRotation,
 }) => {
+  const isParty = themeMode === "party";
   const [activePhotoIdx, setActivePhotoIdx] = useState(0);
   const [retakeIdx, setRetakeIdx] = useState<number | null>(null);
   const [retakeCountdown, setRetakeCountdown] = useState<number | null>(null);
@@ -526,7 +531,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
               <button
                 onClick={captureSingleShot}
                 disabled={retakeCountdown !== null}
-                className="btn-gold w-full py-3 sm:py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_25px_rgba(212,175,55,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50"
+                className={`${isParty ? "btn-party" : "btn-gold"} w-full py-3 sm:py-3.5 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-bold tracking-wider uppercase cursor-pointer shadow-[0_0_25px_rgba(212,175,55,0.4)] hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50`}
               >
                 <Camera size={18} />
                 <span>Ambil Foto Ulang</span>
@@ -545,7 +550,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         {/* ================= LEFT: Live Frame / Strip Mockup ================= */}
         {customOverlayUrl ? (
           /* Custom Uploaded Frame Overlay Mockup */
-          <div className="relative h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950 shrink-0">
+          <div className={`relative h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] w-fit rounded-xl overflow-hidden border ${isParty ? "border-purple-200/80 bg-white shadow-md" : "border-amber-400/40 bg-stone-950 shadow-2xl"} select-none mx-auto flex items-center justify-center shrink-0`}>
             {/* Interactive Photo Boxes beneath custom overlay */}
             <div className="absolute inset-0 w-full h-full z-10 pointer-events-auto">
               {(photoBoxes && photoBoxes.length > 0
@@ -695,20 +700,24 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         )}
 
         {/* ================= RIGHT: Photo Review, 6 Filters & Buttons ================= */}
-        <div className="flex-1 max-w-lg w-full flex flex-col justify-between h-full max-h-[480px] bg-stone-900/40 border border-amber-400/15 rounded-2xl p-3.5 backdrop-blur-sm shadow-xl min-h-0">
+        <div className={`flex-1 max-w-lg w-full flex flex-col justify-between h-full max-h-[480px] ${
+          isParty
+            ? "glass-party-card border border-purple-200/80 shadow-lg text-slate-800"
+            : "bg-stone-900/40 border border-amber-400/15 text-stone-200 shadow-xl"
+        } rounded-2xl p-3.5 backdrop-blur-sm min-h-0`}>
           {/* Header Row: Title & Photo Switcher Pills */}
           <div className="flex items-center justify-between mb-2">
             <div>
-              <h3 className="font-serif text-base sm:text-lg text-gold-gradient font-normal">
-                Tinjau Hasil Foto
+              <h3 className={isParty ? "font-bold text-base sm:text-lg text-party-gradient" : "font-serif text-base sm:text-lg text-gold-gradient font-normal"}>
+                {isParty ? "Tinjau Foto JOTA-JOTI" : "Tinjau Hasil Foto"}
               </h3>
-              <p className="text-[10px] text-stone-400">
+              <p className={`text-[10px] ${isParty ? "text-purple-700 font-medium" : "text-stone-400"}`}>
                 Pilih filter tone & klik foto jika ingin mengulang
               </p>
             </div>
 
             {/* Photo Tabs 1, 2, 3 */}
-            <div className="flex items-center gap-1 bg-black/40 p-0.5 rounded-lg border border-white/10">
+            <div className={`flex items-center gap-1 ${isParty ? "bg-purple-100/70 border border-purple-200" : "bg-black/40 border border-white/10"} p-0.5 rounded-lg`}>
               {photos.map((_, pIdx) => (
                 <button
                   key={pIdx}
@@ -716,9 +725,13 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     soundFx.playChime();
                     setActivePhotoIdx(pIdx);
                   }}
-                  className={`px-2 py-0.5 rounded text-[11px] font-cinzel transition-all cursor-pointer ${
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
                     activePhotoIdx === pIdx
-                      ? "bg-amber-400 text-stone-950 font-bold shadow"
+                      ? isParty
+                        ? "bg-purple-700 text-white font-bold shadow"
+                        : "bg-amber-400 text-stone-950 font-bold shadow"
+                      : isParty
+                      ? "text-purple-800 hover:text-purple-950"
                       : "text-stone-400 hover:text-stone-200"
                   }`}
                 >
@@ -728,7 +741,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
             </div>
           </div>
 
-          {/* Top 6 Filters Grid (3 columns x 2 rows, matching user screenshot) */}
+          {/* Top 6 Filters Grid */}
           <div className="grid grid-cols-3 gap-1.5 mb-2">
             {PHOTO_FILTERS.slice(0, 6).map((f: CameraFilter) => {
               const isSelected = selectedFilterId === f.id;
@@ -741,7 +754,11 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                   }}
                   className={`py-1 px-1.5 rounded-lg text-[11px] transition-all flex items-center justify-center gap-1 border cursor-pointer ${
                     isSelected
-                      ? "bg-amber-400/25 border-amber-400 text-amber-200 font-semibold shadow-[0_0_10px_rgba(212,175,55,0.25)]"
+                      ? isParty
+                        ? "bg-purple-100 border-purple-500 text-purple-900 font-bold shadow-sm"
+                        : "bg-amber-400/25 border-amber-400 text-amber-200 font-semibold shadow-[0_0_10px_rgba(212,175,55,0.25)]"
+                      : isParty
+                      ? "bg-white/80 border-purple-200/60 text-purple-800 hover:bg-white hover:text-purple-950"
                       : "bg-white/5 border-white/10 text-stone-400 hover:bg-white/10 hover:text-stone-200"
                   }`}
                 >
@@ -753,27 +770,31 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           </div>
 
           {/* Center: Big Active Photo Display */}
-          <div className="flex-1 min-h-0 rounded-xl overflow-hidden relative border-2 border-amber-400/30 bg-stone-950 shadow-inner flex items-center justify-center mb-2.5">
+          <div className={`flex-1 min-h-0 rounded-xl overflow-hidden relative border-2 ${
+            isParty ? "border-purple-300/80 bg-black shadow-md" : "border-amber-400/30 bg-stone-950 shadow-inner"
+          } flex items-center justify-center mb-2.5`}>
             <img
               src={photos[activePhotoIdx]}
               alt={`Foto ${activePhotoIdx + 1}`}
               className="w-full h-full object-cover transition-all"
               style={{ filter: currentFilterObj?.css || "none" }}
             />
-            <div className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-sm text-[10px] font-mono text-amber-300 border border-white/10">
+            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded ${
+              isParty ? "bg-white/90 text-purple-900 border border-purple-200 font-bold" : "bg-black/60 text-amber-300 border border-white/10 font-mono"
+            } backdrop-blur-sm text-[10px]`}>
               Foto #{activePhotoIdx + 1}
             </div>
           </div>
 
-          {/* Bottom Row: 2 Action Buttons (matching the 2 red boxes in user screenshot) */}
-          <div className="grid grid-cols-2 gap-3 pt-2 border-t border-amber-400/10">
+          {/* Bottom Row: 2 Action Buttons */}
+          <div className={`grid grid-cols-2 gap-3 pt-2 border-t ${isParty ? "border-purple-200/80" : "border-amber-400/10"}`}>
             {/* Left Button: Ulang Foto Ini */}
             <button
               onClick={() => {
                 soundFx.playChime();
                 setRetakeIdx(activePhotoIdx);
               }}
-              className="btn-gold-outline py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
+              className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs font-semibold cursor-pointer hover:scale-[1.02] active:scale-[0.98]`}
             >
               <Camera size={14} />
               <span>Ulang Foto #{activePhotoIdx + 1}</span>
@@ -785,7 +806,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                 soundFx.playChime();
                 onConfirm();
               }}
-              className="btn-gold py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer shadow-[0_0_15px_rgba(212,175,55,0.3)] hover:scale-[1.02] active:scale-[0.98]"
+              className={`${isParty ? "btn-party shadow-[0_8px_25px_rgba(98,37,153,0.35)]" : "btn-gold shadow-[0_0_15px_rgba(212,175,55,0.3)]"} py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs sm:text-sm font-semibold cursor-pointer hover:scale-[1.02] active:scale-[0.98]`}
             >
               <span>Lanjut ke Cetak</span>
               <Check size={16} />

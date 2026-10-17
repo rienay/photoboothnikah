@@ -1,12 +1,13 @@
 import React from "react";
 import { ArrowLeft, Check, Sparkles } from "lucide-react";
 import { LAYOUTS } from "../config";
-import { LayoutConfig, LayoutId } from "../types";
+import { LayoutConfig, LayoutId, ThemeMode } from "../types";
 import { soundFx } from "../lib/audio";
 import { getBoxShotIndex } from "../lib/frameLayouts";
 
 interface LayoutScreenProps {
   selectedLayoutId: LayoutId;
+  themeMode?: ThemeMode;
   onSelectLayout: (id: LayoutId) => void;
   onBack: () => void;
   onNext: () => void;
@@ -14,21 +15,24 @@ interface LayoutScreenProps {
 
 export const LayoutScreen: React.FC<LayoutScreenProps> = ({
   selectedLayoutId,
+  themeMode = "wedding",
   onSelectLayout,
   onBack,
   onNext,
 }) => {
+  const isParty = themeMode === "party";
+
   return (
     <div className="flex-1 flex flex-col max-w-5xl mx-auto w-full px-4 py-4">
       {/* Title */}
       <div className="text-center mb-6">
-        <span className="font-cinzel tracking-[0.25em] text-xs text-amber-300/80 uppercase">
+        <span className={isParty ? "tracking-[0.25em] text-xs text-purple-700 uppercase font-bold" : "font-cinzel tracking-[0.25em] text-xs text-amber-300/80 uppercase"}>
           Langkah 1 dari 4
         </span>
-        <h2 className="font-serif text-3xl sm:text-4xl text-gold-gradient font-normal mt-1">
+        <h2 className={isParty ? "text-3xl sm:text-4xl text-party-gradient font-black mt-1" : "font-serif text-3xl sm:text-4xl text-gold-gradient font-normal mt-1"}>
           Pilih Format Foto
         </h2>
-        <p className="text-xs sm:text-sm text-stone-400 mt-1">
+        <p className={`text-xs sm:text-sm ${isParty ? "text-slate-600 font-medium" : "text-stone-400"} mt-1`}>
           Tentukan jumlah foto dan gaya layout yang diinginkan
         </p>
       </div>

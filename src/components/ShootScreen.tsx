@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Camera, FlipHorizontal, RefreshCw, RotateCw, Sparkles, CheckCircle2 } from "lucide-react";
-import { LayoutConfig, PhotoBox, WeddingConfig, WeddingFramePreset } from "../types";
+import { LayoutConfig, PartyConfig, PhotoBox, ThemeMode, WeddingConfig, WeddingFramePreset } from "../types";
 import { soundFx } from "../lib/audio";
 import { calculateTargetPhotoRatio, getDefaultBoxesForLayout, getBoxShotIndex } from "../lib/frameLayouts";
 
@@ -16,6 +16,8 @@ interface ShootScreenProps {
   customOverlayUrl?: string;
   photoBoxes?: PhotoBox[];
   weddingConfig: WeddingConfig;
+  partyConfig?: PartyConfig;
+  themeMode?: ThemeMode;
   onPhotosCaptured: (photos: string[]) => void;
   onBack: () => void;
 }
@@ -32,9 +34,12 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
   customOverlayUrl,
   photoBoxes,
   weddingConfig,
+  partyConfig,
+  themeMode = "wedding",
   onPhotosCaptured,
   onBack,
 }) => {
+  const isParty = themeMode === "party";
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -274,16 +279,16 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                     soundFx.playChime();
                     onBack();
                   }}
-                  className="btn-gold-outline px-3.5 py-1 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform flex items-center gap-1 font-medium"
+                  className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} px-3.5 py-1 rounded-full text-xs cursor-pointer hover:scale-105 transition-transform flex items-center gap-1 font-medium`}
                 >
                   <span>←</span>
                   <span>Kembali</span>
                 </button>
               )}
-              <span className="font-cinzel text-xs sm:text-sm tracking-wider text-amber-300 uppercase font-semibold">
+              <span className={isParty ? "font-bold text-xs sm:text-sm tracking-wider text-purple-900 uppercase" : "font-cinzel text-xs sm:text-sm tracking-wider text-amber-300 uppercase font-semibold"}>
                 {layout.name}
               </span>
-              <span className="text-xs text-stone-400">
+              <span className={`text-xs ${isParty ? "text-purple-700 font-medium" : "text-stone-400"}`}>
                 • {isShooting ? `Mengambil Foto ${currentShotIndex} dari ${layout.totalPhotos}` : `${layout.totalPhotos} Jepretan${layout.isMirrored ? " (Mirror)" : ""}`}
               </span>
             </div>
@@ -292,7 +297,11 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           {/* Main Camera Viewport Area */}
           <div className="flex-1 min-h-0 flex items-center justify-center p-0.5 sm:p-1 relative w-full overflow-hidden">
             <div
-              className="h-full w-auto max-h-[48vh] sm:max-h-[58vh] lg:max-h-[78vh] xl:max-h-[82vh] 2xl:max-h-[85vh] max-w-full rounded-2xl overflow-hidden relative border-2 border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)] flex items-center justify-center transition-all duration-300"
+              className={`h-full w-auto max-h-[48vh] sm:max-h-[58vh] lg:max-h-[78vh] xl:max-h-[82vh] 2xl:max-h-[85vh] max-w-full rounded-2xl overflow-hidden relative border-2 ${
+                isParty
+                  ? "border-purple-300/80 bg-black shadow-[0_15px_40px_rgba(98,37,153,0.18)]"
+                  : "border-amber-400/40 bg-stone-950 shadow-[0_25px_60px_rgba(0,0,0,0.9)]"
+              } flex items-center justify-center transition-all duration-300`}
               style={{
                 aspectRatio: `${targetPhotoRatio}`,
               }}
@@ -304,7 +313,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                   <p className="text-xs text-stone-400 mb-4">{cameraError}</p>
                   <button
                     onClick={() => window.location.reload()}
-                    className="btn-gold-outline px-4 py-2 rounded-full text-xs inline-flex items-center gap-2"
+                    className={`${isParty ? "btn-party-outline" : "btn-gold-outline"} px-4 py-2 rounded-full text-xs inline-flex items-center gap-2`}
                   >
                     <RefreshCw size={14} /> Muat Ulang Halaman
                   </button>
@@ -331,30 +340,38 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                     }}
                   />
 
-                  {/* Corner Golden Framing Brackets */}
-                  <div className="absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
-                  <div className="absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
-                  <div className="absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 border-amber-400/70 pointer-events-none z-10" />
-                  <div className="absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 border-amber-400/70 pointer-events-none z-10" />
+                  {/* Corner Framing Brackets */}
+                  <div className={`absolute top-2.5 left-2.5 w-4 h-4 border-t-2 border-l-2 ${isParty ? "border-purple-400" : "border-amber-400/70"} pointer-events-none z-10`} />
+                  <div className={`absolute top-2.5 right-2.5 w-4 h-4 border-t-2 border-r-2 ${isParty ? "border-purple-400" : "border-amber-400/70"} pointer-events-none z-10`} />
+                  <div className={`absolute bottom-2.5 left-2.5 w-4 h-4 border-b-2 border-l-2 ${isParty ? "border-purple-400" : "border-amber-400/70"} pointer-events-none z-10`} />
+                  <div className={`absolute bottom-2.5 right-2.5 w-4 h-4 border-b-2 border-r-2 ${isParty ? "border-purple-400" : "border-amber-400/70"} pointer-events-none z-10`} />
 
                   {/* Countdown Overlay */}
                   {countdown !== null && (
                     <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] flex flex-col items-center justify-center z-20">
-                      <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 border-amber-400/70 flex items-center justify-center bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)] animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]">
-                        <span className="font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient">
+                      <div className={`w-28 h-28 sm:w-36 sm:h-36 rounded-full border-4 ${
+                        isParty
+                          ? "border-purple-400 bg-white shadow-[0_0_50px_rgba(98,37,153,0.6)]"
+                          : "border-amber-400/70 bg-stone-900/85 shadow-[0_0_50px_rgba(212,175,55,0.7)]"
+                      } flex items-center justify-center animate-[ping_1s_cubic-bezier(0,0,0.2,1)_infinite]`}>
+                        <span className={isParty ? "font-extrabold text-5xl sm:text-6xl text-party-gradient" : "font-cinzel text-5xl sm:text-6xl font-bold text-gold-gradient"}>
                           {countdown}
                         </span>
                       </div>
-                      <span className="mt-3 font-script text-2xl sm:text-3xl text-amber-200 drop-shadow">
-                        Bersiaplah... Senyum!
+                      <span className={`mt-3 ${isParty ? "font-bold text-2xl sm:text-3xl text-white drop-shadow-md" : "font-script text-2xl sm:text-3xl text-amber-200 drop-shadow"}`}>
+                        {isParty ? "Siap-siap... Senyum!" : "Bersiaplah... Senyum!"}
                       </span>
                     </div>
                   )}
 
                   {/* In-between shot message */}
                   {isShooting && countdown === null && (
-                    <div className="absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-stone-900/90 border border-amber-400/40 text-amber-200 text-xs font-cinzel tracking-wider flex items-center gap-2 shadow-lg z-20">
-                      <Sparkles size={14} className="text-amber-400 animate-spin" />
+                    <div className={`absolute top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full ${
+                      isParty
+                        ? "bg-white/95 border border-purple-300 text-purple-900 shadow-md"
+                        : "bg-stone-900/90 border border-amber-400/40 text-amber-200"
+                    } text-xs font-medium tracking-wider flex items-center gap-2 shadow-lg z-20`}>
+                      <Sparkles size={14} className={`${isParty ? "text-purple-600" : "text-amber-400"} animate-spin`} />
                       <span>Foto {currentShotIndex} Tersimpan! Bersiap selanjutnya...</span>
                     </div>
                   )}
@@ -365,7 +382,11 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
         </div>
 
         {/* ================= RIGHT COLUMN: Live Strip Preview & Ambil Foto ================= */}
-        <div className="lg:col-span-4 xl:col-span-3 flex flex-col justify-between min-h-0 bg-stone-900/30 border border-amber-400/15 rounded-2xl p-2.5 sm:p-3 backdrop-blur-sm shadow-xl">
+        <div className={`lg:col-span-4 xl:col-span-3 flex flex-col justify-between min-h-0 ${
+          isParty
+            ? "glass-party-card border border-purple-200/80 shadow-lg text-slate-800"
+            : "bg-stone-900/30 border border-amber-400/15 text-stone-200 shadow-xl"
+        } rounded-2xl p-2.5 sm:p-3 backdrop-blur-sm`}>
           {/* Top Bar of Right Column: Camera Rotate Toggle & Mirror Toggle */}
           <div className="flex items-center justify-end gap-2 mb-1.5">
             {onChangeCameraRotation && (
@@ -377,7 +398,11 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                 }}
                 className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
                   cameraRotation !== 0
-                    ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                    ? isParty
+                      ? "bg-purple-100 border-purple-400 text-purple-900 font-bold shadow-sm"
+                      : "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                    : isParty
+                    ? "bg-white/80 border-purple-200 text-purple-700 hover:bg-white"
                     : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
                 }`}
                 title="Putar Orientasi Kamera (0° / 90° / 180° / 270°)"
@@ -394,7 +419,11 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
               }}
               className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
                 mirror
-                  ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                  ? isParty
+                    ? "bg-purple-100 border-purple-400 text-purple-900 font-bold shadow-sm"
+                    : "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
+                  : isParty
+                  ? "bg-white/80 border-purple-200 text-purple-700 hover:bg-white"
                   : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
               }`}
               title="Cermin / Flip Kamera"
@@ -408,7 +437,9 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           <div className="flex-1 flex items-center justify-center min-h-0 py-1">
             {customOverlayUrl ? (
               /* Custom Uploaded Frame Overlay Mockup */
-              <div className="relative h-full max-h-[220px] sm:max-h-[300px] lg:max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border border-amber-400/40 shadow-2xl select-none mx-auto flex items-center justify-center bg-stone-950">
+              <div className={`relative h-full max-h-[220px] sm:max-h-[300px] lg:max-h-[46vh] xl:max-h-[50vh] w-fit rounded-xl overflow-hidden border ${
+                isParty ? "border-purple-200/80 bg-white shadow-md" : "border-amber-400/40 bg-stone-950 shadow-2xl"
+              } select-none mx-auto flex items-center justify-center`}>
                 {/* Photo Boxes beneath custom overlay */}
                 <div className="absolute inset-0 w-full h-full z-10 pointer-events-none">
                   {(photoBoxes && photoBoxes.length > 0
@@ -426,7 +457,11 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                           shotPhoto
                             ? "bg-black"
                             : isCurrentTarget
-                            ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
+                            ? isParty
+                              ? "bg-purple-400/30 border-2 border-purple-500 animate-pulse z-10"
+                              : "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
+                            : isParty
+                            ? "bg-purple-50 border border-purple-200"
                             : "bg-stone-800 border border-stone-700"
                         }`}
                         style={{
@@ -444,16 +479,16 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                              <CheckCircle2 size={11} className="text-amber-400" />
+                              <CheckCircle2 size={11} className={isParty ? "text-purple-400" : "text-amber-400"} />
                             </div>
                           </div>
                         ) : isCurrentTarget ? (
-                          <div className="flex flex-col items-center gap-0.5 text-amber-300">
-                            <Camera size={14} className="animate-bounce text-amber-400" />
-                            <span className="text-[8px] font-bold text-amber-300 uppercase">#{shotIdx + 1}</span>
+                          <div className={`flex flex-col items-center gap-0.5 ${isParty ? "text-purple-600" : "text-amber-300"}`}>
+                            <Camera size={14} className={`animate-bounce ${isParty ? "text-purple-600" : "text-amber-400"}`} />
+                            <span className="text-[8px] font-bold uppercase">#{shotIdx + 1}</span>
                           </div>
                         ) : (
-                          <span className="text-[9px] font-mono text-stone-400 font-bold">#{shotIdx + 1}</span>
+                          <span className={`text-[9px] font-mono font-bold ${isParty ? "text-purple-400" : "text-stone-400"}`}>#{shotIdx + 1}</span>
                         )}
                       </div>
                     );
@@ -490,19 +525,19 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                   style={{ borderColor: preset.borderColor }}
                 />
 
-                {/* Strip Header: Couple Names */}
+                {/* Strip Header: Couple Names or Event Name */}
                 <div className="text-center z-10 pt-0.5">
                   <div
                     className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
                     style={{ color: preset.secondaryTextColor }}
                   >
-                    THE WEDDING OF
+                    {isParty ? (partyConfig?.title || "JOTA-JOTI 2026") : "THE WEDDING OF"}
                   </div>
                   <div
                     className="font-script text-base sm:text-lg leading-tight mt-0.5"
                     style={{ color: preset.textColor }}
                   >
-                    {weddingConfig.brideName} & {weddingConfig.groomName}
+                    {isParty ? (partyConfig?.subtitle || "KWARTIR CABANG CILACAP") : `${weddingConfig.brideName} & ${weddingConfig.groomName}`}
                   </div>
                 </div>
 
@@ -541,7 +576,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute bottom-1 right-1 bg-black/60 rounded-full p-0.5">
-                              <CheckCircle2 size={11} className="text-amber-400" />
+                              <CheckCircle2 size={11} className={isParty ? "text-purple-400" : "text-amber-400"} />
                             </div>
                           </div>
                         ) : isCurrentTarget ? (
@@ -569,25 +604,29 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                   className="text-[7px] sm:text-[8px] font-sans tracking-wider z-10 pb-0.5"
                   style={{ color: preset.secondaryTextColor }}
                 >
-                  {weddingConfig.weddingDate}
+                  {isParty ? (partyConfig?.eventDate || "16 - 18 Oktober 2026") : weddingConfig.weddingDate}
                 </div>
               </div>
             )}
           </div>
 
-          {/* Bottom Action: Prominent Ambil Foto Button (Matches Red Box at bottom right) */}
-          <div className="mt-1.5 pt-1.5 border-t border-amber-400/10">
+          {/* Bottom Action: Prominent Ambil Foto Button */}
+          <div className={`mt-1.5 pt-1.5 border-t ${isParty ? "border-purple-200/80" : "border-amber-400/10"}`}>
             <button
               onClick={() => {
                 soundFx.playChime();
                 startShootSequence();
               }}
               disabled={isShooting || !!cameraError}
-              className="w-full btn-gold shimmer-glow py-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(212,175,55,0.35)] transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className={`w-full ${
+                isParty
+                  ? "btn-party shadow-[0_8px_30px_rgba(98,37,153,0.35)]"
+                  : "btn-gold shimmer-glow shadow-[0_0_20px_rgba(212,175,55,0.35)]"
+              } py-3 rounded-xl flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-[1.02] active:scale-[0.98]`}
             >
               {isShooting ? (
                 <>
-                  <Sparkles size={16} className="animate-spin text-stone-900" />
+                  <Sparkles size={16} className={`animate-spin ${isParty ? "text-white" : "text-stone-900"}`} />
                   <span>Mengambil Foto...</span>
                 </>
               ) : (

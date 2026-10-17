@@ -352,7 +352,11 @@ export const App: React.FC = () => {
     setCurrentScreen("home");
   };
   return (
-    <div className="min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden bg-[#0c0e12]">
+    <div className={`min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden transition-colors duration-500 ${
+      isParty
+        ? "bg-gradient-to-br from-[#FAF8FD] via-[#F4F9FD] to-[#FFF9F2] text-slate-800"
+        : "bg-[#0c0e12] text-amber-200"
+    }`}>
       {/* Top Header */}
       <Header
         weddingConfig={weddingConfig}
@@ -419,6 +423,8 @@ export const App: React.FC = () => {
             customOverlayUrl={activeSlot.customImage}
             photoBoxes={activeSlot.photoBoxes}
             weddingConfig={weddingConfig}
+            partyConfig={partyConfig}
+            themeMode={themeMode}
             onPhotosCaptured={(captured) => {
               setPhotos(captured);
               setCurrentScreen("review");
@@ -440,6 +446,8 @@ export const App: React.FC = () => {
             customOverlayUrl={activeSlot.customImage}
             photoBoxes={activeSlot.photoBoxes}
             weddingConfig={weddingConfig}
+            partyConfig={partyConfig}
+            themeMode={themeMode}
             onChangeFilter={(newFilterId) => setSelectedFilterId(newFilterId)}
             onUpdatePhoto={(index, newPhotoData) => {
               const updated = [...photos];
@@ -483,18 +491,20 @@ export const App: React.FC = () => {
       {/* Footer subtle brand */}
       {/* Footer Info */}
       <footer className={`w-full py-2 px-3 sm:px-6 flex items-center justify-between text-[10px] sm:text-[11px] select-none z-10 border-t ${
-        isParty ? "text-pink-300/60 border-pink-500/15" : "text-amber-200/40 border-amber-400/5"
+        isParty
+          ? "bg-white/85 backdrop-blur-md border-purple-200/70 text-purple-950 font-semibold shadow-sm"
+          : "text-amber-200/40 border-amber-400/5"
       }`}>
-        <span className={`hidden sm:inline ${isParty ? "font-mono text-cyan-400" : ""}`}>
+        <span className={`hidden sm:inline ${isParty ? "font-mono font-bold text-[#0094B4]" : ""}`}>
           {isParty ? partyConfig.hashtag : weddingConfig.hashtag}
         </span>
         <span className={`italic text-center truncate mx-auto px-2 max-w-[280px] sm:max-w-none ${
-          isParty ? "font-sans font-bold text-pink-300" : "font-serif text-amber-200/70"
+          isParty ? "font-sans font-bold text-[#622599]" : "font-serif text-amber-200/70"
         }`}>
           {isParty ? partyConfig.footerText : weddingConfig.footerText}
         </span>
-        <span className={`hidden sm:inline ${isParty ? "text-purple-400 font-semibold" : ""}`}>
-          {isParty ? (partyConfig.eventName || "Photobooth Party") : "Yodha Wedding Photobooth"}
+        <span className={`hidden sm:inline ${isParty ? "text-[#EF5000] font-black" : ""}`}>
+          {isParty ? (partyConfig.eventName || "JOTA-JOTI 2026 CILACAP") : "Yodha Wedding Photobooth"}
         </span>
       </footer>
 
