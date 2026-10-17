@@ -52,11 +52,7 @@ const SelectableFrameCard: React.FC<{
       ? `calc((100% - ${(totalCount - 1) * 16}px) / ${totalCount})`
       : undefined;
 
-  const displayImage =
-    slot.previewImage ||
-    (slot.customImage && slot.customImage.includes("_Cutout.png")
-      ? slot.customImage.replace("_Cutout.png", "_Preview.png")
-      : slot.customImage);
+  const displayImage = slot.customImage;
 
   return (
     <button
