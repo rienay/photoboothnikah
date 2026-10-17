@@ -495,10 +495,14 @@ export function loadDriveConfig(): DriveConfig {
       const parsed = JSON.parse(raw);
       if (
         !parsed.driveFolderUrl ||
-        parsed.driveFolderUrl.includes("1lwRNyZWiwyWjOaAh9oDH-uA9pxWtScCN") ||
         !parsed.appsScriptUrl ||
-        parsed.appsScriptUrl.includes("AKfycbwjEdDj58epC0wLH3pHAbzpyaM9d_ab2qYXd-7Yf2da0lxYlEuVQMKxYoozqmPVCmRS")
+        parsed.appsScriptUrl.includes("AKfycbz8FiHwttKR7_j_MZa") ||
+        parsed.appsScriptUrl.includes("AKfycbwjEdDj58epC0wLH3p") ||
+        parsed.driveFolderUrl.includes("1AP-Qy0NhrwDyZn5EuA6zOY5uSzyT4bmV")
       ) {
+        try {
+          localStorage.setItem(KEYS.DRIVE, JSON.stringify(DEFAULT_DRIVE_CONFIG));
+        } catch (_) {}
         return DEFAULT_DRIVE_CONFIG;
       }
       return { ...DEFAULT_DRIVE_CONFIG, ...parsed };

@@ -30,9 +30,9 @@ export const DEFAULT_PARTY_CONFIG: PartyConfig = {
 
 export const DEFAULT_DRIVE_CONFIG: DriveConfig = {
   appsScriptUrl:
-    "https://script.google.com/macros/s/AKfycbz8FiHwttKR7_j_MZa_BdeUuyw32AfdDkAy71hi1jUq800qSH0jToyTl1g3XNR_nkBk/exec",
+    "https://script.google.com/macros/s/AKfycbzmfvcJhAGSpENOLo2bQ7u-48Z1K9jSjNt1m1tSHGbg_ao2Espm1QGZQ7tR7d92dIDx/exec",
   driveFolderUrl:
-    "https://drive.google.com/drive/folders/1AP-Qy0NhrwDyZn5EuA6zOY5uSzyT4bmV?usp=drive_link",
+    "https://drive.google.com/drive/folders/1lwRNyZWiwyWjOaAh9oDH-uA9pxWtScCN?usp=drive_link",
   autoUpload: true,
 };
 
