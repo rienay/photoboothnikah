@@ -367,6 +367,7 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
     layoutId: "3x2",
     presetThemeId: "scout_purple",
     customImage: "/frames/jotajoti/Frame_10x15_Scrapbook_Cutout.png",
+    previewImage: "/frames/jotajoti/Frame_10x15_Scrapbook_Preview.png",
     enabled: true,
     photoBoxes: [
       { id: "box_1", x: 5.0, y: 10.0, w: 40.08, h: 17.89 },
@@ -383,6 +384,7 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
     layoutId: "3x2",
     presetThemeId: "candy_pop",
     customImage: "/frames/jotajoti/Frame_10x15_Colorful_Cutout.png",
+    previewImage: "/frames/jotajoti/Frame_10x15_Colorful_Preview.png",
     enabled: true,
     photoBoxes: [
       { id: "box_1", x: 5.0, y: 11.0, w: 40.0, h: 19.17 },
@@ -399,6 +401,7 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
     layoutId: "3x2",
     presetThemeId: "retro_vibes",
     customImage: "/frames/jotajoti/Frame_10x15_Newspaper_Cutout.png",
+    previewImage: "/frames/jotajoti/Frame_10x15_Newspaper_Preview.png",
     enabled: true,
     photoBoxes: [
       { id: "box_1", x: 4.75, y: 14.89, w: 40.58, h: 18.17 },
@@ -415,6 +418,7 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
     layoutId: "3x2",
     presetThemeId: "scout_purple",
     customImage: "/frames/jotajoti/Frame_10x15_DoubleStrip_Cutout.png",
+    previewImage: "/frames/jotajoti/Frame_10x15_DoubleStrip_Preview.png",
     enabled: true,
     photoBoxes: [
       { id: "box_1", x: 5.0, y: 10.0, w: 40.08, h: 17.28 },
@@ -431,6 +435,7 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
     layoutId: "3x2",
     presetThemeId: "cyber_glow",
     customImage: "/frames/jotajoti/Frame_10x15_Jamboree_Cutout.png",
+    previewImage: "/frames/jotajoti/Frame_10x15_Jamboree_Preview.png",
     enabled: true,
     photoBoxes: [
       { id: "box_1", x: 5.0, y: 9.72, w: 40.0, h: 18.06 },
@@ -439,44 +444,6 @@ export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
       { id: "box_4", x: 55.0, y: 29.0, w: 40.0, h: 17.89 },
       { id: "box_5", x: 5.0, y: 48.06, w: 40.0, h: 18.06 },
       { id: "box_6", x: 55.0, y: 48.06, w: 40.0, h: 18.06 },
-    ],
-  },
-  {
-    id: "jota_slot_1",
-    name: "Festival Waves (3 Strip 5x15)",
-    layoutId: "3x1",
-    presetThemeId: "scout_purple",
-    customImage: "/frames/jotajoti/Desain_1_FestivalWaves_Cutout.png",
-    enabled: true,
-    photoBoxes: [
-      { id: "box_1", x: 8.33, y: 19.17, w: 83.33, h: 19.58 },
-      { id: "box_2", x: 8.33, y: 40.83, w: 83.33, h: 19.58 },
-      { id: "box_3", x: 8.33, y: 62.50, w: 83.33, h: 19.58 },
-    ],
-  },
-  {
-    id: "jota_slot_2",
-    name: "Digital Explorer (2 Strip 5x15)",
-    layoutId: "2x1",
-    presetThemeId: "retro_vibes",
-    customImage: "/frames/jotajoti/Desain_2_DigitalExplorer_Cutout.png",
-    enabled: true,
-    photoBoxes: [
-      { id: "box_1", x: 6.67, y: 19.17, w: 86.67, h: 30.42 },
-      { id: "box_2", x: 6.67, y: 52.50, w: 86.67, h: 30.42 },
-    ],
-  },
-  {
-    id: "jota_slot_3",
-    name: "Cyber Scout (3 Strip 5x15)",
-    layoutId: "3x1",
-    presetThemeId: "cyber_glow",
-    customImage: "/frames/jotajoti/Desain_3_CyberScout_Cutout.png",
-    enabled: true,
-    photoBoxes: [
-      { id: "box_1", x: 8.33, y: 14.17, w: 83.33, h: 19.79 },
-      { id: "box_2", x: 8.33, y: 36.04, w: 83.33, h: 19.79 },
-      { id: "box_3", x: 8.33, y: 57.92, w: 83.33, h: 19.79 },
     ],
   },
 ];

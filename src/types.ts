@@ -65,6 +65,7 @@ export interface FrameSlot {
   name: string;
   layoutId: LayoutId;
   customImage?: string;
+  previewImage?: string;
   presetThemeId: FrameThemeId;
   enabled?: boolean;
   presetId?: string;

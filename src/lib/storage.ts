@@ -334,6 +334,16 @@ export function saveFrameSlots(slots: FrameSlot[], timestamp: number = Date.now(
 // ---------------------------------------------------------------------------
 export function loadPartyFrameSlots(): FrameSlot[] {
   if (cachedPartyMemorySlots && cachedPartyMemorySlots.length > 0) {
+    // If it has frames other than the 5 official frames, clean it to exactly the 5 official frames
+    if (
+      cachedPartyMemorySlots.length !== DEFAULT_PARTY_FRAME_SLOTS.length ||
+      cachedPartyMemorySlots.some((s) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id))
+    ) {
+      cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
+      try {
+        localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(DEFAULT_PARTY_FRAME_SLOTS));
+      } catch (_) {}
+    }
     return cachedPartyMemorySlots;
   }
   try {
@@ -341,24 +351,17 @@ export function loadPartyFrameSlots(): FrameSlot[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // If it still has the old placeholder slots without custom cutout frames, upgrade to JOTA-JOTI
-        if (parsed.some((s) => s.id && s.id.startsWith("party_slot_"))) {
+        // Enforce strictly only the 5 official frames
+        if (
+          parsed.length !== DEFAULT_PARTY_FRAME_SLOTS.length ||
+          parsed.some((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id))
+        ) {
           cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
-          return DEFAULT_PARTY_FRAME_SLOTS;
-        }
-        // Ensure the official 5 10x15 templates are present
-        const existingIds = new Set(parsed.map((s: any) => s.id));
-        const missingDefaults = DEFAULT_PARTY_FRAME_SLOTS.filter((s) => !existingIds.has(s.id));
-        if (missingDefaults.length > 0) {
-          const merged = [
-            ...DEFAULT_PARTY_FRAME_SLOTS,
-            ...parsed.filter((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id)),
-          ];
-          cachedPartyMemorySlots = merged;
           try {
-            localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(merged));
+            localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(DEFAULT_PARTY_FRAME_SLOTS));
           } catch (_) {}
-          return merged;
+          saveFramesToIndexedDB(DEFAULT_PARTY_FRAME_SLOTS, Date.now(), "party_frame_slots").catch(() => {});
+          return DEFAULT_PARTY_FRAME_SLOTS;
         }
         cachedPartyMemorySlots = parsed;
         return parsed;
@@ -367,6 +370,7 @@ export function loadPartyFrameSlots(): FrameSlot[] {
   } catch (e) {
     console.warn("Failed to load party frame slots:", e);
   }
+  cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
   return DEFAULT_PARTY_FRAME_SLOTS;
 }
 
@@ -374,32 +378,26 @@ export async function initPartyFrameSlots(): Promise<FrameSlot[]> {
   try {
     const idbResult = await loadFramesFromIndexedDB("party_frame_slots");
     if (idbResult && idbResult.slots && idbResult.slots.length > 0) {
-      // Check if it's the old placeholder
-      if (!idbResult.slots.some((s) => s.id && s.id.startsWith("party_slot_"))) {
-        // Ensure the official 5 10x15 templates are present
-        const existingIds = new Set(idbResult.slots.map((s: any) => s.id));
-        const missingDefaults = DEFAULT_PARTY_FRAME_SLOTS.filter((s) => !existingIds.has(s.id));
-        if (missingDefaults.length > 0) {
-          const merged = [
-            ...DEFAULT_PARTY_FRAME_SLOTS,
-            ...idbResult.slots.filter((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id)),
-          ];
-          cachedPartyMemorySlots = merged;
-          saveFramesToIndexedDB(merged, Date.now(), "party_frame_slots").catch(() => {});
-          return merged;
-        }
-        if (idbResult.updatedAt) {
-          lastLocalPartyFrameUpdate = Math.max(lastLocalPartyFrameUpdate, idbResult.updatedAt);
-        }
-        cachedPartyMemorySlots = idbResult.slots;
-        return idbResult.slots;
+      // If it contains other/old frames, sanitize to only the 5 official frames
+      if (
+        idbResult.slots.length !== DEFAULT_PARTY_FRAME_SLOTS.length ||
+        idbResult.slots.some((s: any) => !DEFAULT_PARTY_FRAME_SLOTS.some((d) => d.id === s.id))
+      ) {
+        cachedPartyMemorySlots = DEFAULT_PARTY_FRAME_SLOTS;
+        saveFramesToIndexedDB(DEFAULT_PARTY_FRAME_SLOTS, Date.now(), "party_frame_slots").catch(() => {});
+        try {
+          localStorage.setItem(KEYS.PARTY_SLOTS, JSON.stringify(DEFAULT_PARTY_FRAME_SLOTS));
+        } catch (_) {}
+        return DEFAULT_PARTY_FRAME_SLOTS;
       }
+      cachedPartyMemorySlots = idbResult.slots;
+      return idbResult.slots;
     }
   } catch (err) {
     console.warn("Failed loading party frames from IndexedDB:", err);
   }
 
-  // Fallback to localStorage or defaults
+  // Fallback to defaults
   const localSlots = loadPartyFrameSlots();
   cachedPartyMemorySlots = localSlots;
   saveFramesToIndexedDB(localSlots, Date.now(), "party_frame_slots").catch(() => {});

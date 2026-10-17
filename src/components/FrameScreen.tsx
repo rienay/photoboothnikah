@@ -32,23 +32,31 @@ const SelectableFrameCard: React.FC<{
     ALL_FRAME_PRESETS.find((p) => p.id === slot.presetThemeId) || ALL_FRAME_PRESETS[0];
   const layout = LAYOUTS.find((l) => l.id === slot.layoutId) || LAYOUTS[3]; // default 3x1
 
-  // Default initial aspect ratio based on layout
-  const defaultRatio =
-    layout.cols === 1
-      ? slot.layoutId === "2x1"
-        ? 1 / 2
-        : 1 / 3
-      : slot.layoutId === "1x1"
-      ? 1
-      : 2 / 3;
+  // 10x15 cm frames (4R format) have an exact aspect ratio of 2/3 (1200x1800)
+  const is10x15 = slot.layoutId === "3x2" || slot.layoutId === "2x2" || isParty;
+  const defaultRatio = is10x15
+    ? 2 / 3
+    : layout.cols === 1
+    ? slot.layoutId === "2x1"
+      ? 1 / 2
+      : 1 / 3
+    : slot.layoutId === "1x1"
+    ? 1
+    : 2 / 3;
 
   const [aspectRatio, setAspectRatio] = useState<number>(defaultRatio);
 
-  // Compute maximum width so all cards fit within the screen width on widened displays
+  // Compute maximum width so all cards fit comfortably within screen width
   const maxCardWidthStyle =
     totalCount <= 5
       ? `calc((100% - ${(totalCount - 1) * 16}px) / ${totalCount})`
       : undefined;
+
+  const displayImage =
+    slot.previewImage ||
+    (slot.customImage && slot.customImage.includes("_Cutout.png")
+      ? slot.customImage.replace("_Cutout.png", "_Preview.png")
+      : slot.customImage);
 
   return (
     <button
@@ -61,13 +69,13 @@ const SelectableFrameCard: React.FC<{
           onSelect();
         }
       }}
-      className={`relative h-[270px] sm:h-[310px] md:h-[350px] lg:h-[44vh] xl:h-[47vh] 2xl:h-[49vh] max-h-[52vh] shrink min-w-[160px] sm:min-w-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
+      className={`relative h-[50vh] sm:h-[53vh] md:h-[56vh] lg:h-[58vh] max-h-[600px] shrink-0 rounded-2xl cursor-pointer transition-all duration-300 select-none flex flex-col items-center justify-center p-0 overflow-hidden ${
         isSelected
           ? isParty
-            ? "ring-4 ring-[#EF5000] shadow-[0_10px_35px_rgba(98,37,153,0.35)] scale-[1.02] z-20"
-            : "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.02] z-20"
+            ? "ring-4 ring-[#EF5000] shadow-[0_10px_35px_rgba(98,37,153,0.45)] scale-[1.03] z-20"
+            : "ring-4 ring-amber-400 shadow-[0_0_35px_rgba(212,175,55,0.6)] scale-[1.03] z-20"
           : isParty
-          ? "border-2 border-purple-200 hover:border-[#EF5000] hover:scale-[1.01] shadow-md opacity-90 hover:opacity-100 bg-white"
+          ? "border-2 border-purple-200/80 hover:border-[#EF5000] hover:scale-[1.01] shadow-md opacity-90 hover:opacity-100 bg-white"
           : "border-2 border-amber-400/30 hover:border-amber-400/70 hover:scale-[1.01] shadow-xl opacity-85 hover:opacity-100"
       }`}
       style={{
@@ -75,18 +83,13 @@ const SelectableFrameCard: React.FC<{
         maxWidth: maxCardWidthStyle,
       }}
     >
-      {/* Frame Visual: Takes 100% of the card with NO outer dark box */}
+      {/* Frame Visual: 100% filled with NO blank borders */}
       <div
-        className="w-full h-full rounded-2xl overflow-hidden relative shadow-inner flex flex-col justify-between"
+        className="w-full h-full rounded-2xl overflow-hidden relative shadow-inner flex flex-col justify-between bg-white"
         style={
           slot.customImage
             ? {
-                backgroundImage: isParty
-                  ? "linear-gradient(45deg, #e7e4ee 25%, transparent 25%), linear-gradient(-45deg, #e7e4ee 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #e7e4ee 75%), linear-gradient(-45deg, transparent 75%, #e7e4ee 75%)"
-                  : "linear-gradient(45deg, #181c24 25%, transparent 25%), linear-gradient(-45deg, #181c24 25%, transparent 25%), linear-gradient(45deg, transparent 75%, #181c24 75%), linear-gradient(-45deg, transparent 75%, #181c24 75%)",
-                backgroundSize: "14px 14px",
-                backgroundPosition: "0 0, 0 7px, 7px -7px, -7px 0px",
-                backgroundColor: isParty ? "#f6f4fa" : "#0d1017",
+                backgroundColor: "#ffffff",
               }
             : {
                 background: preset.bgColor,
@@ -96,9 +99,14 @@ const SelectableFrameCard: React.FC<{
       >
         {slot.customImage ? (
           <img
-            src={slot.customImage}
+            src={displayImage}
             alt={slot.name}
-            className="w-full h-full object-contain pointer-events-none drop-shadow-md"
+            className="w-full h-full object-fill pointer-events-none drop-shadow-sm rounded-2xl"
+            onError={(e) => {
+              if (slot.customImage && e.currentTarget.src !== slot.customImage) {
+                e.currentTarget.src = slot.customImage;
+              }
+            }}
             onLoad={(e) => {
               const img = e.currentTarget;
               if (img.naturalWidth && img.naturalHeight) {
@@ -212,8 +220,8 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
         </h2>
       </div>
 
-      {/* Frame Slots: Clean flex row with no artificial outer box */}
-      <div className="flex flex-nowrap items-center justify-start md:justify-center gap-2 sm:gap-3 md:gap-3.5 lg:gap-4 flex-1 min-h-0 mx-auto w-full my-auto py-3 px-3 overflow-x-auto overflow-y-hidden scrollbar-none">
+      {/* Frame Slots: Clean flex row centered */}
+      <div className="flex flex-nowrap items-center justify-center gap-3 sm:gap-4 md:gap-5 flex-1 min-h-0 mx-auto w-full my-auto py-3 px-3 overflow-x-auto overflow-y-hidden scrollbar-none">
         {displaySlots.map((slot, index) => (
           <SelectableFrameCard
             key={slot.id}
