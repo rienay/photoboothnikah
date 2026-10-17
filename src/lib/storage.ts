@@ -406,6 +406,9 @@ export function savePartyFrameSlots(slots: FrameSlot[], timestamp: number = Date
 
   // 4. Push to local server
   pushToServer({ partyFrameSlots: slots, partyUpdatedAt: timestamp }).catch(() => {});
+
+  // 5. Push party frames to cloud database if configured
+  pushFramesToCloud(slots, undefined, "party_frames").catch(() => {});
 }
 
 // ---------------------------------------------------------------------------

@@ -54,7 +54,7 @@ import {
   setCachedPartyMemorySlots,
 } from "./lib/storage";
 import { saveFramesToIndexedDB } from "./lib/frameDB";
-import { fetchFramesFromCloud } from "./lib/cloudSync";
+import { fetchAllCollectionsFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
 
 export const App: React.FC = () => {
@@ -124,19 +124,36 @@ export const App: React.FC = () => {
 
       // 1. Check cloud frames from Supabase first (if configured)
       try {
-        const cloud = await fetchFramesFromCloud();
-        if (cloud.success && cloud.frames && cloud.frames.length > 0) {
+        const cloud = await fetchAllCollectionsFromCloud();
+        if (cloud.success) {
           if (!mounted || isAdminOpenRef.current) return;
-          const cloudTs = cloud.updatedAt ? new Date(cloud.updatedAt).getTime() : 0;
-          const localTs = getLastLocalFrameUpdate();
-          if (cloudTs >= localTs) {
-            setLastLocalFrameUpdate(cloudTs);
-            setCachedMemorySlots(cloud.frames);
-            saveFramesToIndexedDB(cloud.frames, cloudTs).catch(() => {});
-            setFrameSlots(cloud.frames);
-            try {
-              localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.frames));
-            } catch (_) {}
+          // Wedding frames sync
+          if (cloud.weddingFrames && cloud.weddingFrames.length > 0) {
+            const cloudTs = cloud.weddingUpdatedAt ? new Date(cloud.weddingUpdatedAt).getTime() : 0;
+            const localTs = getLastLocalFrameUpdate();
+            if (cloudTs >= localTs) {
+              setLastLocalFrameUpdate(cloudTs);
+              setCachedMemorySlots(cloud.weddingFrames);
+              saveFramesToIndexedDB(cloud.weddingFrames, cloudTs, "current_frame_slots").catch(() => {});
+              setFrameSlots(cloud.weddingFrames);
+              try {
+                localStorage.setItem("yodha_frame_slots", JSON.stringify(cloud.weddingFrames));
+              } catch (_) {}
+            }
+          }
+          // Party (JOTA-JOTI) frames sync
+          if (cloud.partyFrames && cloud.partyFrames.length > 0) {
+            const pCloudTs = cloud.partyUpdatedAt ? new Date(cloud.partyUpdatedAt).getTime() : 0;
+            const pLocalTs = getLastLocalPartyFrameUpdate();
+            if (pCloudTs >= pLocalTs) {
+              setLastLocalPartyFrameUpdate(pCloudTs);
+              setCachedPartyMemorySlots(cloud.partyFrames);
+              saveFramesToIndexedDB(cloud.partyFrames, pCloudTs, "party_frame_slots").catch(() => {});
+              setPartyFrameSlots(cloud.partyFrames);
+              try {
+                localStorage.setItem("yodha_party_frame_slots", JSON.stringify(cloud.partyFrames));
+              } catch (_) {}
+            }
           }
         }
       } catch (_) {}

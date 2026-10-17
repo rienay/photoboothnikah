@@ -47,6 +47,8 @@ import {
   testCloudConnection,
   pushFramesToCloud,
   fetchFramesFromCloud,
+  pushAllCollectionsToCloud,
+  fetchAllCollectionsFromCloud,
   SUPABASE_SQL_SETUP,
 } from "../lib/cloudSync";
 
@@ -318,10 +320,10 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   const handlePushFramesToCloud = async () => {
     setCloudPushing(true);
     saveCloudSyncConfig(cloudConfig);
-    const res = await pushFramesToCloud(slotsForm, cloudConfig);
+    const res = await pushAllCollectionsToCloud(slotsWeddingForm, slotsPartyForm, cloudConfig);
     setCloudPushing(false);
     if (res.success) {
-      showToast("✓ Seluruh bingkai berhasil di-upload ke Supabase Cloud!");
+      showToast("✓ Seluruh bingkai (Wedding & JOTA-JOTI) berhasil di-upload ke Supabase Cloud!");
       setCloudConfig(loadCloudSyncConfig());
     } else {
       alert(`Gagal upload ke cloud: ${res.message}`);
@@ -331,11 +333,21 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   // Pull frames from Supabase
   const handlePullFramesFromCloud = async () => {
     setCloudPulling(true);
-    const res = await fetchFramesFromCloud(cloudConfig);
+    const res = await fetchAllCollectionsFromCloud(cloudConfig);
     setCloudPulling(false);
-    if (res.success && res.frames) {
-      updateActiveSlots(res.frames);
-      showToast("✓ Seluruh bingkai dari Supabase Cloud berhasil ditarik ke perangkat ini!");
+    if (res.success) {
+      let count = 0;
+      if (res.weddingFrames && res.weddingFrames.length > 0) {
+        setSlotsWeddingForm(res.weddingFrames);
+        onSaveFrameSlots(res.weddingFrames);
+        count += res.weddingFrames.length;
+      }
+      if (res.partyFrames && res.partyFrames.length > 0) {
+        setSlotsPartyForm(res.partyFrames);
+        onSavePartyFrameSlots(res.partyFrames);
+        count += res.partyFrames.length;
+      }
+      showToast(`✓ Berhasil menarik ${count} bingkai (Wedding & JOTA-JOTI) dari Supabase Cloud!`);
       setCloudConfig(loadCloudSyncConfig());
     } else {
       alert(`Gagal menarik dari cloud: ${res.message}`);

@@ -138,11 +138,12 @@ export async function testCloudConnection(
 }
 
 /**
- * Uploads (upserts) the active frame slots to Supabase
+ * Uploads (upserts) frame slots to Supabase for a specific collection (default: active_frames)
  */
 export async function pushFramesToCloud(
   slots: FrameSlot[],
-  overrideCfg?: CloudSyncConfig
+  overrideCfg?: CloudSyncConfig,
+  collectionId: string = "active_frames"
 ): Promise<{ success: boolean; message?: string }> {
   const cfg = overrideCfg || loadCloudSyncConfig();
   if (!cfg.enabled || !cfg.supabaseUrl || !cfg.supabaseAnonKey) {
@@ -154,7 +155,7 @@ export async function pushFramesToCloud(
 
   try {
     const payload = {
-      id: "active_frames",
+      id: collectionId,
       data: slots,
       updated_at: new Date().toISOString(),
     };
@@ -184,17 +185,18 @@ export async function pushFramesToCloud(
 }
 
 /**
- * Downloads the active frame slots from Supabase
+ * Downloads frame slots from Supabase for a specific collection (default: active_frames)
  */
 export async function fetchFramesFromCloud(
-  overrideCfg?: CloudSyncConfig
+  overrideCfg?: CloudSyncConfig,
+  collectionId: string = "active_frames"
 ): Promise<{ success: boolean; frames?: FrameSlot[]; updatedAt?: string; message?: string }> {
   const cfg = overrideCfg || loadCloudSyncConfig();
   if (!cfg.enabled || !cfg.supabaseUrl || !cfg.supabaseAnonKey) {
     return { success: false, message: "Sinkronisasi cloud belum aktif." };
   }
 
-  const url = `${cleanUrl(cfg.supabaseUrl)}/rest/v1/photobooth_frames?id=eq.active_frames&select=*`;
+  const url = `${cleanUrl(cfg.supabaseUrl)}/rest/v1/photobooth_frames?id=eq.${collectionId}&select=*`;
   const key = cfg.supabaseAnonKey.trim();
 
   try {
@@ -225,8 +227,51 @@ export async function fetchFramesFromCloud(
       }
     }
 
-    return { success: false, message: "Belum ada frame tersimpan di Supabase." };
+    return { success: false, message: `Belum ada frame (${collectionId}) tersimpan di Supabase.` };
   } catch (e: any) {
     return { success: false, message: e.message || "Gagal mengunduh frame dari cloud." };
   }
+}
+
+/**
+ * Uploads BOTH wedding frames and party (JOTA-JOTI) frames to Supabase
+ */
+export async function pushAllCollectionsToCloud(
+  weddingSlots: FrameSlot[],
+  partySlots: FrameSlot[],
+  overrideCfg?: CloudSyncConfig
+): Promise<{ success: boolean; message?: string }> {
+  const resWedding = await pushFramesToCloud(weddingSlots, overrideCfg, "active_frames");
+  if (!resWedding.success) return resWedding;
+
+  const resParty = await pushFramesToCloud(partySlots, overrideCfg, "party_frames");
+  return resParty;
+}
+
+/**
+ * Fetches both wedding and party frames from Supabase
+ */
+export async function fetchAllCollectionsFromCloud(
+  overrideCfg?: CloudSyncConfig
+): Promise<{
+  success: boolean;
+  weddingFrames?: FrameSlot[];
+  weddingUpdatedAt?: string;
+  partyFrames?: FrameSlot[];
+  partyUpdatedAt?: string;
+  message?: string;
+}> {
+  const [weddingRes, partyRes] = await Promise.all([
+    fetchFramesFromCloud(overrideCfg, "active_frames"),
+    fetchFramesFromCloud(overrideCfg, "party_frames"),
+  ]);
+
+  return {
+    success: weddingRes.success || partyRes.success,
+    weddingFrames: weddingRes.frames,
+    weddingUpdatedAt: weddingRes.updatedAt,
+    partyFrames: partyRes.frames,
+    partyUpdatedAt: partyRes.updatedAt,
+    message: weddingRes.message || partyRes.message,
+  };
 }
