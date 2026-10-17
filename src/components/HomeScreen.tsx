@@ -72,7 +72,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
         <div className="flex items-center gap-3 mb-2">
           <div className="w-12 h-[2px] bg-gradient-to-r from-transparent to-[#EF5000]" />
           <span className="px-5 py-1.5 rounded-full bg-white border-2 border-purple-200 text-[#622599] font-black tracking-[0.2em] text-xs sm:text-sm uppercase shadow-sm">
-            {partyConfig?.subtitle || "KWARTIR CABANG CILACAP • YD2ABJ"}
+            {partyConfig?.subtitle || "KWARTIR CABANG CILACAP • YH2ABJ"}
           </span>
           <div className="w-12 h-[2px] bg-gradient-to-l from-transparent to-[#EF5000]" />
         </div>
@@ -89,7 +89,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
           </span>
           <span className="text-slate-400">•</span>
           <span className="px-4 py-1.5 rounded-full bg-white border border-[#622599]/40 text-[#622599] shadow-sm">
-            {partyConfig?.hashtag || "#JOTAJOTI2026 #YD2ABJ"}
+            {partyConfig?.hashtag || "#JOTAJOTI2026 #YH2ABJ"}
           </span>
         </div>
 

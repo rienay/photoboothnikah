@@ -21,10 +21,10 @@ export const DEFAULT_WEDDING_CONFIG: WeddingConfig = {
 
 export const DEFAULT_PARTY_CONFIG: PartyConfig = {
   title: "JOTA-JOTI 2026",
-  subtitle: "KWARTIR CABANG CILACAP • YD2ABJ",
+  subtitle: "KWARTIR CABANG CILACAP • YH2ABJ",
   eventName: "JOTA-JOTI 2026 CILACAP",
   eventDate: "16 - 18 Oktober 2026",
-  hashtag: "#JOTAJOTI2026 #Scouts #YD2ABJ",
+  hashtag: "#JOTAJOTI2026 #Scouts #YH2ABJ",
   footerText: "WORLD SCOUTING EVENT • YODHA PHOTOBOOTH",
 };
 
