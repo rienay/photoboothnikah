@@ -79,8 +79,13 @@ export async function composeWeddingStrip(options: ComposeOptions): Promise<stri
   if (customOverlayUrl) {
     try {
       const overlayImg = await loadImage(customOverlayUrl);
-      const W = overlayImg.naturalWidth > 0 ? overlayImg.naturalWidth : (layout.cols === 1 ? 600 : 1200);
-      const H = overlayImg.naturalHeight > 0 ? overlayImg.naturalHeight : 1800;
+      const baseW = overlayImg.naturalWidth > 0 ? overlayImg.naturalWidth : (layout.cols === 1 ? 600 : 1200);
+      const baseH = overlayImg.naturalHeight > 0 ? overlayImg.naturalHeight : 1800;
+
+      // Double resolution (Ultra HD 2400x3600) to keep maximum clarity when zooming into photos
+      const scale = baseW <= 1200 ? 2 : 1;
+      const W = baseW * scale;
+      const H = baseH * scale;
 
       const canvas = document.createElement("canvas");
       canvas.width = W;

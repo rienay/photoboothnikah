@@ -100,8 +100,8 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
           audio: false,
           video: {
             deviceId: selectedCameraId ? { exact: selectedCameraId } : undefined,
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
+            width: { ideal: 3840 },
+            height: { ideal: 2160 },
             facingMode: "user",
           },
         };
@@ -189,7 +189,7 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
     );
     ctx.restore();
 
-    return canvas.toDataURL("image/jpeg", 0.95);
+    return canvas.toDataURL("image/jpeg", 0.98);
   }, [mirror, targetPhotoRatio, cameraRotation]);
 
   // Trigger Flash effect and Shutter sound
