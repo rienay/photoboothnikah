@@ -103,7 +103,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
         setRenderedStrip(stripUrl);
 
         // Fire celebratory wedding confetti!
-        fireWeddingConfetti();
+        // fireWeddingConfetti() disabled for low-spec PC
 
         // Save session locally
         const sessionRecord: SavedSession = {
@@ -428,14 +428,14 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
               <div className="flex flex-col items-center justify-center py-6 px-6 text-center gap-4">
                 <div className="relative flex items-center justify-center w-20 h-20">
                   <div className={`w-16 h-16 rounded-full border-2 ${isParty ? "border-purple-300 bg-purple-50" : "border-amber-400/30 bg-amber-400/10"} flex items-center justify-center`}>
-                    <CloudUpload size={30} className={isParty ? "text-purple-600 animate-bounce" : "text-amber-400 animate-bounce"} />
+                    <CloudUpload size={30} className={isParty ? "text-purple-600 " : "text-amber-400 "} />
                   </div>
                   <RotateCw size={80} className={`absolute inset-0 ${isParty ? "text-purple-400/60" : "text-amber-400/60"} animate-spin`} />
                 </div>
 
                 {/* Shimmer loading bar */}
                 <div className="w-44 h-2 rounded-full bg-white/20 overflow-hidden mt-1">
-                  <div className={`h-full ${isParty ? "bg-gradient-to-r from-purple-600 via-amber-400 to-cyan-400" : "bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500"} w-full animate-pulse`} />
+                  <div className={`h-full ${isParty ? "bg-gradient-to-r from-purple-600 via-amber-400 to-cyan-400" : "bg-gradient-to-r from-amber-500 via-amber-300 to-amber-500"} w-full `} />
                 </div>
               </div>
             ) : driveConfig.autoUpload && uploadStatus === "error" ? (
