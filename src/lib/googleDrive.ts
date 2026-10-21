@@ -26,7 +26,6 @@ async function compressForDriveUpload(base64DataUrl: string): Promise<string> {
         ctx.fillStyle = "#FFFFFF";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         ctx.drawImage(img, 0, 0);
-        // High quality JPEG (0.86) is ~180-250KB and visually crisp
         const compressed = canvas.toDataURL("image/jpeg", 0.86);
         resolve(compressed);
       } catch (err) {
@@ -41,7 +40,6 @@ async function compressForDriveUpload(base64DataUrl: string): Promise<string> {
 
 /**
  * Uploads base64 image data to Google Drive via Google Apps Script Web App
- * Compatible with the implementation in C:\laragon\www\kerja\booth
  */
 export async function uploadToGoogleDrive(
   appsScriptUrl: string,
@@ -54,15 +52,11 @@ export async function uploadToGoogleDrive(
   }
 
   try {
-    // 1. Compress image to lightweight JPEG for blazing fast upload (<1s)
     const optimizedBase64 = await compressForDriveUpload(base64DataUrl);
-
-    // Strip data prefix if present (e.g. data:image/jpeg;base64,...)
     const base64Clean = optimizedBase64.includes(",")
       ? optimizedBase64.split(",")[1]
       : optimizedBase64;
 
-    // Fast upload fetch with no-cors
     const uploadFetch = fetch(appsScriptUrl, {
       method: "POST",
       mode: "no-cors",
@@ -76,7 +70,6 @@ export async function uploadToGoogleDrive(
       }),
     });
 
-    // Race with a 2-second fallback so guests never get stuck waiting at the photobooth
     await Promise.race([
       uploadFetch,
       new Promise((res) => setTimeout(res, 2000)),
@@ -92,6 +85,104 @@ export async function uploadToGoogleDrive(
       success: false,
       message: error instanceof Error ? error.message : "Gagal mengunggah ke Google Drive",
     };
+  }
+}
+
+/**
+ * Uploads a frame template PNG to Google Drive via Google Apps Script
+ */
+export async function uploadFrameToGoogleDrive(
+  appsScriptUrl: string,
+  imagePngDataUrl: string,
+  frameName: string,
+  layoutId: string = "3x1",
+  mode: string = "wedding"
+): Promise<{ success: boolean; directUrl?: string; fileId?: string; message?: string }> {
+  if (!appsScriptUrl || !appsScriptUrl.trim()) {
+    return { success: false, message: "URL Apps Script belum diisi" };
+  }
+
+  try {
+    const base64Clean = imagePngDataUrl.includes(",")
+      ? imagePngDataUrl.split(",")[1]
+      : imagePngDataUrl;
+
+    const res = await fetch(appsScriptUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8",
+      },
+      body: JSON.stringify({
+        action: "uploadFrame",
+        image: base64Clean,
+        name: frameName,
+        layout: layoutId,
+        mode: mode,
+      }),
+    });
+
+    const data = await res.json();
+    if (data.status === "success" || data.success) {
+      return {
+        success: true,
+        directUrl: data.frame?.url || "",
+        fileId: data.frame?.fileId || "",
+        message: "Frame berhasil disimpan ke Google Drive!",
+      };
+    } else {
+      return {
+        success: false,
+        message: data.message || "Gagal mengunggah frame ke Drive",
+      };
+    }
+  } catch (error) {
+    console.error("Frame Google Drive Upload Error:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Error upload ke Google Drive",
+    };
+  }
+}
+
+/**
+ * Fetches all frame templates stored in Google Drive
+ */
+export async function fetchFramesFromGoogleDrive(
+  appsScriptUrl: string
+): Promise<{ success: boolean; frames?: any[]; message?: string }> {
+  if (!appsScriptUrl || !appsScriptUrl.trim()) {
+    return { success: false, message: "URL Apps Script belum diisi" };
+  }
+  try {
+    const res = await fetch(`${appsScriptUrl}?action=getFrames`);
+    const data = await res.json();
+    if (data.status === "success" || data.success) {
+      return { success: true, frames: data.frames || [] };
+    }
+    return { success: false, message: data.message || "Gagal mengambil frame dari Drive" };
+  } catch (err: any) {
+    return { success: false, message: err.message || "Error koneksi ke Apps Script" };
+  }
+}
+
+/**
+ * Deletes a frame template from Google Drive
+ */
+export async function deleteFrameFromGoogleDrive(
+  appsScriptUrl: string,
+  fileId: string
+): Promise<{ success: boolean; message?: string }> {
+  if (!appsScriptUrl || !appsScriptUrl.trim() || !fileId) return { success: false };
+  try {
+    const res = await fetch(appsScriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "deleteFrame", fileId }),
+    });
+    const data = await res.json();
+    return { success: data.status === "success" || data.success, message: data.message };
+  } catch (err: any) {
+    return { success: false, message: err.message };
   }
 }
 

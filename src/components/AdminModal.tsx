@@ -38,7 +38,12 @@ import {
   getSessionHistory,
   clearSessionHistory,
 } from "../lib/storage";
-import { uploadToGoogleDrive } from "../lib/googleDrive";
+import {
+  uploadToGoogleDrive,
+  uploadFrameToGoogleDrive,
+  fetchFramesFromGoogleDrive,
+  deleteFrameFromGoogleDrive,
+} from "../lib/googleDrive";
 import { soundFx } from "../lib/audio";
 import {
   CloudSyncConfig,
@@ -454,6 +459,88 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     reader.readAsText(file);
     e.target.value = "";
   };
+
+  const [isSyncingDrive, setIsSyncingDrive] = useState(false);
+  const [isPullingDrive, setIsPullingDrive] = useState(false);
+
+  const handleSyncAllToDrive = async () => {
+    if (!driveForm.appsScriptUrl) {
+      alert("URL Google Apps Script belum diisi di tab Google Drive!");
+      return;
+    }
+    const framesToUpload = slotsForm.filter((s) => s.customImage && s.customImage.startsWith("data:image"));
+    if (framesToUpload.length === 0) {
+      showToast("Semua bingkai sudah tersimpan di Drive atau tidak ada bingkai kustom lokal.");
+      return;
+    }
+
+    setIsSyncingDrive(true);
+    showToast(`⏳ Mengunggah ${framesToUpload.length} bingkai ke Google Drive...`);
+    let uploadedCount = 0;
+
+    let updatedSlots = [...slotsForm];
+    for (const frame of framesToUpload) {
+      if (frame.customImage) {
+        const res = await uploadFrameToGoogleDrive(
+          driveForm.appsScriptUrl,
+          frame.customImage,
+          frame.name,
+          frame.layoutId,
+          isPartyFrames ? "party" : "wedding"
+        );
+        if (res.success && res.directUrl) {
+          uploadedCount++;
+          updatedSlots = updatedSlots.map((s) =>
+            s.id === frame.id ? { ...s, customImage: res.directUrl } : s
+          );
+        }
+      }
+    }
+
+    updateActiveSlots(updatedSlots);
+    setIsSyncingDrive(false);
+    showToast(`✓ Berhasil mencadangkan ${uploadedCount} bingkai ke Google Drive!`);
+  };
+
+  const handlePullFromDrive = async () => {
+    if (!driveForm.appsScriptUrl) {
+      alert("URL Google Apps Script belum diisi di tab Google Drive!");
+      return;
+    }
+    setIsPullingDrive(true);
+    showToast("⏳ Mengambil daftar bingkai dari Google Drive...");
+    const res = await fetchFramesFromGoogleDrive(driveForm.appsScriptUrl);
+    setIsPullingDrive(false);
+
+    if (res.success && res.frames && res.frames.length > 0) {
+      let currentSlots = [...slotsForm];
+      let added = 0;
+      for (const df of res.frames) {
+        const exists = currentSlots.some((s) => s.customImage === df.url || s.id === df.id);
+        if (!exists) {
+          currentSlots.push({
+            id: df.id || `frame_${Date.now()}_${added}`,
+            name: df.name || `Bingkai Drive ${added + 1}`,
+            layoutId: df.layout || "3x1",
+            customImage: df.url,
+            presetThemeId: "custom",
+            enabled: true,
+            presetId: "auto",
+          });
+          added++;
+        }
+      }
+      if (added > 0) {
+        updateActiveSlots(currentSlots);
+        showToast(`✓ Berhasil menambahkan ${added} bingkai dari Google Drive!`);
+      } else {
+        showToast("✓ Semua bingkai dari Google Drive sudah ada di perangkat ini.");
+      }
+    } else {
+      showToast(res.message || "Tidak ada file bingkai ditemukan di folder Google Drive.");
+    }
+  };
+
 
   // Layout counts for filter pills (matching yodhabooth)
   const layoutCounts = React.useMemo(() => {
@@ -1029,6 +1116,27 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       >
                         <Download size={14} />
                         <span>Ekspor JSON (Sync)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSyncAllToDrive}
+                        disabled={isSyncingDrive}
+                        title="Upload semua frame aktif ke folder Google Drive"
+                        className="px-3.5 py-2.5 rounded-xl border border-emerald-400/40 bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                      >
+                        <CloudUpload size={14} className={isSyncingDrive ? "animate-bounce" : ""} />
+                        <span>{isSyncingDrive ? "Menyimpan ke Drive..." : "☁️ Backup ke Drive"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handlePullFromDrive}
+                        disabled={isPullingDrive}
+                        title="Tarik template frame dari folder Google Drive"
+                        className="px-3.5 py-2.5 rounded-xl border border-sky-400/40 bg-sky-950/40 hover:bg-sky-900/60 text-sky-300 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md disabled:opacity-50"
+                      >
+                        <RefreshCw size={14} className={isPullingDrive ? "animate-spin" : ""} />
+                        <span>{isPullingDrive ? "Mengambil..." : "📥 Ambil dari Drive"}</span>
                       </button>
 
                       <label
@@ -1727,6 +1835,26 @@ export const AdminModal: React.FC<AdminModalProps> = ({
           initialPreset={typeof studioTargetFrame === "object" ? studioTargetFrame.presetId : "auto"}
           initialPhotoBoxes={typeof studioTargetFrame === "object" ? studioTargetFrame.photoBoxes : undefined}
           onSaveFrame={({ id, slotIndex, name, layoutId, imagePngDataUrl, presetId, photoBoxes }) => {
+            // Upload otomatis ke Google Drive jika ada gambar baru (Base64)
+            if (imagePngDataUrl && imagePngDataUrl.startsWith("data:image") && driveForm.appsScriptUrl) {
+              showToast("⏳ Mengunggah bingkai ke Google Drive...");
+              uploadFrameToGoogleDrive(
+                driveForm.appsScriptUrl,
+                imagePngDataUrl,
+                name,
+                layoutId,
+                isPartyFrames ? "party" : "wedding"
+              ).then((res) => {
+                if (res.success && res.directUrl) {
+                  showToast(`☁️ Bingkai "${name}" berhasil tersimpan di Google Drive!`);
+                  const currentList = isPartyFrames ? slotsPartyForm : slotsWeddingForm;
+                  const updatedWithDrive = currentList.map((s) =>
+                    (id && s.id === id) || s.name === name ? { ...s, customImage: res.directUrl } : s
+                  );
+                  updateActiveSlots(updatedWithDrive);
+                }
+              }).catch((err) => console.warn("Auto-upload frame error:", err));
+            }
             let updated: FrameSlot[];
             if (id) {
               updated = slotsForm.map((s) =>
