@@ -1,12 +1,13 @@
 import React, { useEffect } from "react";
-import { Camera, Heart, Sparkles, PartyPopper } from "lucide-react";
-import { PartyConfig, ThemeMode, WeddingConfig } from "../types";
+import { Camera, Heart, Sparkles, PartyPopper, ArrowRight } from "lucide-react";
+import { CustomHomeDesign, PartyConfig, ThemeMode, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
 interface HomeScreenProps {
   themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
   partyConfig?: PartyConfig;
+  customDesign?: CustomHomeDesign;
   onStart: () => void;
 }
 
@@ -14,6 +15,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   themeMode = "wedding",
   weddingConfig,
   partyConfig,
+  customDesign,
   onStart,
 }) => {
   // Listen for Spacebar key to start
@@ -36,6 +38,235 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
     }
     onStart();
   };
+
+  // ----------------------------------------------------
+  // TEMA CUSTOM DIY BUILDER (DARI GOOGLE DRIVE / ONLINE / LOCAL)
+  // ----------------------------------------------------
+  if (themeMode === "custom" || customDesign) {
+    const d = customDesign;
+    if (d) {
+      const getFontFamilyClass = () => {
+        if (d.titleFontFamily === "script") return "font-script";
+        if (d.titleFontFamily === "cinzel") return "font-cinzel";
+        if (d.titleFontFamily === "serif") return "font-serif";
+        if (d.titleFontFamily === "mono") return "font-mono";
+        return "font-sans";
+      };
+
+      const getTitleSizeClass = () => {
+        if (d.titleFontSize === "normal") return "text-4xl sm:text-5xl md:text-6xl";
+        if (d.titleFontSize === "xlarge") return "text-6xl sm:text-7xl md:text-8xl lg:text-9xl";
+        return "text-5xl sm:text-6xl md:text-7xl lg:text-8xl";
+      };
+
+      const renderIcon = () => {
+        if (d.buttonIcon === "sparkles") return <Sparkles size={24} className="group-hover:scale-115 transition-transform drop-shadow" />;
+        if (d.buttonIcon === "heart") return <Heart size={24} className="group-hover:scale-115 transition-transform drop-shadow" />;
+        if (d.buttonIcon === "arrow") return <ArrowRight size={24} className="group-hover:scale-115 transition-transform drop-shadow" />;
+        if (d.buttonIcon === "none") return null;
+        return <Camera size={26} className="group-hover:scale-115 transition-transform drop-shadow" />;
+      };
+
+      const getButtonShapeClass = () => {
+        if (d.buttonShape === "box") return "rounded-xl";
+        if (d.buttonShape === "rounded") return "rounded-2xl";
+        return "rounded-full";
+      };
+
+      const bgStyle: React.CSSProperties = {};
+      if (d.bgType === "image" && d.bgImageUrl) {
+        bgStyle.backgroundImage = `url(${d.bgImageUrl})`;
+        bgStyle.backgroundSize = "cover";
+        bgStyle.backgroundPosition = "center";
+        bgStyle.backgroundRepeat = "no-repeat";
+      } else if (d.bgType === "gradient" && d.bgGradient) {
+        bgStyle.background = d.bgGradient;
+      } else if (d.bgColor) {
+        bgStyle.backgroundColor = d.bgColor;
+      }
+
+      return (
+        <div
+          className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative text-center overflow-hidden"
+          style={bgStyle}
+        >
+          {/* Background Overlay (If Image with Opacity) */}
+          {d.bgType === "image" && (d.bgOverlayOpacity ?? 0) > 0 && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{
+                backgroundColor: d.bgOverlayColor || "#000000",
+                opacity: (d.bgOverlayOpacity || 0) / 100,
+              }}
+            />
+          )}
+
+          {/* Ambient Rings */}
+          {d.showAmbientRings && (
+            <>
+              <div
+                className="absolute w-[520px] h-[520px] rounded-full border pointer-events-none animate-[pulse_4s_ease-in-out_infinite]"
+                style={{ borderColor: d.ambientRingColor || "rgba(98,37,153,0.3)" }}
+              />
+              <div
+                className="absolute w-[700px] h-[700px] rounded-full border pointer-events-none"
+                style={{ borderColor: d.ambientRingColor || "rgba(0,148,180,0.2)" }}
+              />
+            </>
+          )}
+
+          {/* Center Logo / Badge */}
+          {d.showLogo && (
+            <div className="relative mb-6 z-10">
+              <div
+                className={`overflow-hidden flex items-center justify-center shadow-lg transition-transform hover:scale-105 ${
+                  d.logoShape === "circle"
+                    ? "rounded-full"
+                    : d.logoShape === "rounded"
+                    ? "rounded-2xl"
+                    : d.logoShape === "square"
+                    ? "rounded-none"
+                    : ""
+                }`}
+                style={{
+                  width: `${d.logoSize || 120}px`,
+                  height: `${d.logoSize || 120}px`,
+                  border: d.logoBorderWidth ? `${d.logoBorderWidth}px solid ${d.logoBorderColor || "#ffffff"}` : undefined,
+                  backgroundColor: "#ffffff",
+                }}
+              >
+                {d.logoUrl ? (
+                  <img
+                    src={d.logoUrl}
+                    alt="Logo"
+                    className="w-full h-full object-contain p-2"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                  />
+                ) : (
+                  <Sparkles size={40} className="text-amber-500" />
+                )}
+              </div>
+
+              {/* Sub-badge under logo */}
+              {d.logoBadgeText && (
+                <div
+                  className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 px-3.5 py-0.5 rounded-full flex items-center gap-1.5 shadow-md border whitespace-nowrap"
+                  style={{
+                    backgroundColor: d.logoBadgeBgColor || "#2E0E4C",
+                    borderColor: d.logoBorderColor || "#F9B708",
+                    color: d.logoBadgeTextColor || "#F9B708",
+                  }}
+                >
+                  <Sparkles size={11} className="animate-spin text-current" />
+                  <span className="text-[10px] font-black tracking-widest uppercase">
+                    {d.logoBadgeText}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Subtitle Pill */}
+          {d.showSubtitle && d.subtitleText && (
+            <div className="flex items-center gap-3 mb-2 z-10 max-w-full">
+              <div
+                className="w-8 sm:w-12 h-[2px]"
+                style={{
+                  background: `linear-gradient(to right, transparent, ${d.subtitleTextColor || "#622599"})`,
+                }}
+              />
+              <span
+                className="px-5 py-1.5 rounded-full font-black tracking-[0.18em] text-xs sm:text-sm uppercase shadow-sm border truncate max-w-[85vw]"
+                style={{
+                  backgroundColor: d.subtitleBgColor || "#ffffff",
+                  color: d.subtitleTextColor || "#622599",
+                  borderColor: d.subtitleBorderColor || "rgba(98,37,153,0.3)",
+                }}
+              >
+                {d.subtitleText}
+              </span>
+              <div
+                className="w-8 sm:w-12 h-[2px]"
+                style={{
+                  background: `linear-gradient(to left, transparent, ${d.subtitleTextColor || "#622599"})`,
+                }}
+              />
+            </div>
+          )}
+
+          {/* Main Title Heading */}
+          <h1
+            className={`${getFontFamilyClass()} ${getTitleSizeClass()} font-black py-2 px-6 my-1 drop-shadow-sm leading-tight tracking-tight z-10 max-w-full overflow-visible break-words`}
+            style={
+              d.titleColorType === "gradient" && d.titleGradient
+                ? {
+                    background: d.titleGradient,
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }
+                : {
+                    color: d.titleColor || "#1e293b",
+                  }
+            }
+          >
+            {d.titleText}
+          </h1>
+
+          {/* Date & Hashtag Badges */}
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm tracking-wider font-bold mt-2 mb-10 z-10">
+            {d.showDateTag && d.dateText && (
+              <span
+                className="px-4 py-1.5 rounded-full border shadow-sm"
+                style={{
+                  backgroundColor: d.dateBgColor || "#ffffff",
+                  color: d.dateTextColor || "#0094B4",
+                  borderColor: d.dateBorderColor || "rgba(0,148,180,0.4)",
+                }}
+              >
+                {d.dateText}
+              </span>
+            )}
+            {d.showDateTag && d.showHashtagTag && (
+              <span className="text-slate-400 font-bold">•</span>
+            )}
+            {d.showHashtagTag && d.hashtagText && (
+              <span
+                className="px-4 py-1.5 rounded-full border shadow-sm"
+                style={{
+                  backgroundColor: d.hashtagBgColor || "#ffffff",
+                  color: d.hashtagTextColor || "#622599",
+                  borderColor: d.hashtagBorderColor || "rgba(98,37,153,0.4)",
+                }}
+              >
+                {d.hashtagText}
+              </span>
+            )}
+          </div>
+
+          {/* CTA Start Button */}
+          <button
+            onClick={handleStartClick}
+            className={`px-10 py-4 sm:px-16 sm:py-5 flex items-center justify-center gap-3 text-base sm:text-lg font-bold group cursor-pointer transition-all active:scale-95 z-10 ${getButtonShapeClass()}`}
+            style={{
+              background:
+                d.buttonBgType === "gradient" && d.buttonBgGradient
+                  ? d.buttonBgGradient
+                  : d.buttonBgColor || "#EF5000",
+              color: d.buttonTextColor || "#ffffff",
+              boxShadow: d.buttonShadow
+                ? `0 10px 30px ${d.buttonShadowColor || "rgba(0,0,0,0.3)"}`
+                : undefined,
+            }}
+          >
+            {renderIcon()}
+            <span>{d.buttonText || "Sentuh Layar untuk Mulai"}</span>
+          </button>
+        </div>
+      );
+    }
+  }
 
   // ----------------------------------------------------
   // TEMA BEBAS / COLORFUL PARTY

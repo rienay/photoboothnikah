@@ -23,7 +23,7 @@ export interface LayoutConfig {
   aspectRatio: string;
 }
 
-export type ThemeMode = "wedding" | "party";
+export type ThemeMode = "wedding" | "party" | "custom";
 
 export type FrameThemeId =
   | "royal_gold"
@@ -136,4 +136,86 @@ export interface SavedSession {
   frameTheme: string;
   stripDataUrl: string;
   driveUploadStatus: "success" | "error" | "pending" | "none";
+}
+
+export interface CustomHomeDesign {
+  id: string;
+  name: string; // e.g. "JOTA-JOTI 2026 Cilacap" or "Wedding Sarah & Kevin"
+  isActive?: boolean;
+  createdAt?: number;
+  updatedAt?: number;
+
+  // Background
+  bgType: "color" | "gradient" | "image";
+  bgColor?: string; // hex e.g. "#f8fafc" or "#0c0e12"
+  bgGradient?: string; // e.g. "linear-gradient(135deg, #622599 0%, #0094B4 100%)"
+  bgImageUrl?: string; // custom background image url / base64
+  bgOverlayOpacity?: number; // 0 - 100 (in percent)
+  bgOverlayColor?: string; // e.g. "#000000" or "#ffffff"
+  bgBlur?: number; // 0 - 20 (in px)
+  showAmbientRings?: boolean;
+  ambientRingColor?: string;
+
+  // Center Badge / Logo
+  showLogo?: boolean;
+  logoUrl?: string; // image url / base64
+  logoShape?: "circle" | "rounded" | "square" | "none";
+  logoBorderColor?: string;
+  logoBorderWidth?: number; // px
+  logoSize?: number; // px (e.g. 110)
+  logoBadgeText?: string; // e.g. "JOTA-JOTI 2026"
+  logoBadgeBgColor?: string;
+  logoBadgeTextColor?: string;
+
+  // Subtitle / Pill
+  showSubtitle?: boolean;
+  subtitleText?: string; // e.g. "KWARTIR CABANG CILACAP • YH2ABJ"
+  subtitleTextColor?: string;
+  subtitleBgColor?: string;
+  subtitleBorderColor?: string;
+
+  // Main Event Title
+  titleText: string; // e.g. "JOTA-JOTI 2026 CILACAP"
+  titleColorType?: "solid" | "gradient";
+  titleColor?: string; // hex
+  titleGradient?: string; // CSS gradient
+  titleFontFamily?: "sans" | "serif" | "script" | "cinzel" | "mono";
+  titleFontSize?: "normal" | "large" | "xlarge";
+
+  // Event Badges / Tags (Date & Hashtag)
+  showDateTag?: boolean;
+  dateText?: string; // e.g. "16 - 18 Oktober 2026"
+  dateTextColor?: string;
+  dateBgColor?: string;
+  dateBorderColor?: string;
+
+  showHashtagTag?: boolean;
+  hashtagText?: string; // e.g. "#JOTAJOTI2026 #Scouts #YH2ABJ"
+  hashtagTextColor?: string;
+  hashtagBgColor?: string;
+  hashtagBorderColor?: string;
+
+  // CTA Start Button
+  buttonText?: string; // e.g. "Sentuh Layar untuk Mulai"
+  buttonIcon?: "camera" | "sparkles" | "heart" | "arrow" | "none";
+  buttonBgType?: "gradient" | "solid";
+  buttonBgColor?: string;
+  buttonBgGradient?: string; // e.g. "linear-gradient(90deg, #622599 0%, #EF5000 100%)"
+  buttonTextColor?: string;
+  buttonShape?: "pill" | "rounded" | "box";
+  buttonShadow?: boolean;
+  buttonShadowColor?: string;
+
+  // Header & Footer
+  headerBrandText?: string; // e.g. "JOTA-JOTI 2026 • PHOTOBOOTH"
+  headerSubtitleText?: string; // e.g. "JOTA-JOTI 2026 CILACAP"
+  footerText?: string; // e.g. "WORLD SCOUTING EVENT - YODHA PHOTOBOOTH"
+  footerTextColor?: string;
+}
+
+export interface FirebaseSyncConfig {
+  databaseUrl: string; // e.g. "https://my-photobooth-default-rtdb.firebaseio.com"
+  authToken?: string; // optional Database Secret or leave empty if public rules
+  enabled: boolean;
+  lastSyncedAt?: number;
 }

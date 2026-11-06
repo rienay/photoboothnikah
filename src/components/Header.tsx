@@ -1,30 +1,44 @@
 import React from "react";
-import { Maximize2, Minimize2, Settings, Volume2, VolumeX, Sparkles } from "lucide-react";
-import { PartyConfig, ThemeMode, WeddingConfig } from "../types";
+import { Maximize2, Minimize2, Settings, Volume2, VolumeX, Sparkles, Paintbrush } from "lucide-react";
+import { CustomHomeDesign, PartyConfig, ThemeMode, WeddingConfig } from "../types";
 import { soundFx } from "../lib/audio";
 
 interface HeaderProps {
   themeMode?: ThemeMode;
   weddingConfig: WeddingConfig;
   partyConfig?: PartyConfig;
+  customDesign?: CustomHomeDesign;
   soundEnabled: boolean;
   onToggleSound: () => void;
   isFullscreen: boolean;
   onToggleFullscreen: () => void;
   onOpenAdmin: () => void;
+  onOpenStudio?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   themeMode = "wedding",
   weddingConfig,
   partyConfig,
+  customDesign,
   soundEnabled,
   onToggleSound,
   isFullscreen,
   onToggleFullscreen,
   onOpenAdmin,
+  onOpenStudio,
 }) => {
-  const isParty = themeMode === "party";
+  const isParty = themeMode === "party" || Boolean(customDesign);
+
+  const brandTitle =
+    customDesign?.headerBrandText ||
+    (isParty ? "JOTA-JOTI 2026 • PHOTOBOOTH" : "Wedding Photobooth");
+
+  const brandSubtitle =
+    customDesign?.headerSubtitleText ||
+    (isParty
+      ? partyConfig?.eventName || "JOTA-JOTI 2026 CILACAP"
+      : `${weddingConfig.brideName} & ${weddingConfig.groomName}`);
 
   return (
     <header className={`w-full px-3 sm:px-6 py-2 sm:py-3 flex items-center justify-between z-30 select-none shrink-0 gap-2 transition-colors ${
@@ -34,7 +48,34 @@ export const Header: React.FC<HeaderProps> = ({
     }`}>
       {/* Left: Branding */}
       <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-        {isParty ? (
+        {customDesign ? (
+          <>
+            {customDesign.showLogo && customDesign.logoUrl ? (
+              <div className="h-8 sm:h-9 px-1.5 rounded-lg bg-white flex items-center justify-center shadow-sm shrink-0 border border-purple-200">
+                <img
+                  src={customDesign.logoUrl}
+                  alt="Logo"
+                  className="h-5 sm:h-6 object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLElement).style.display = "none";
+                  }}
+                />
+              </div>
+            ) : (
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-sm shrink-0">
+                <Sparkles size={16} />
+              </div>
+            )}
+            <div className="flex flex-col min-w-0">
+              <span className="font-extrabold tracking-[0.16em] text-[9px] sm:text-[11px] text-[#622599] uppercase truncate">
+                {brandTitle}
+              </span>
+              <span className="font-black text-sm sm:text-base text-[#2E0E4C] leading-tight truncate max-w-[140px] sm:max-w-[280px] md:max-w-none">
+                {brandSubtitle}
+              </span>
+            </div>
+          </>
+        ) : isParty ? (
           <>
             <div className="h-8 sm:h-9 px-2 rounded-lg bg-white flex items-center justify-center shadow-sm shrink-0 border border-purple-200">
               <img
@@ -76,6 +117,20 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* Right: Quick Controls */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* DIY Theme Studio Button */}
+        {onOpenStudio && (
+          <button
+            onClick={() => {
+              soundFx.playChime();
+              onOpenStudio();
+            }}
+            className="px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl flex items-center gap-1.5 text-xs font-bold transition-all cursor-pointer shadow-sm bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 hover:from-purple-500 hover:to-cyan-500 text-white active:scale-95"
+            title="Buka Web Studio DIY Theme Builder"
+          >
+            <Paintbrush size={14} className="animate-pulse" />
+            <span className="hidden sm:inline">Theme Studio (DIY)</span>
+          </button>
+        )}
         {/* Sound toggle */}
         <button
           onClick={() => {

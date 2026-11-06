@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { CustomHomeDesign } from "../types";
 
 export interface UploadResult {
   success: boolean;
@@ -208,5 +209,78 @@ export async function generateDriveQRCode(
   } catch (err) {
     console.error("Failed to generate QR code:", err);
     return "";
+  }
+}
+
+/**
+ * Saves DIY Builder Themes / Custom Designs to Google Drive / Sheets via Apps Script
+ */
+export async function saveDesignsToGoogleDrive(
+  appsScriptUrl: string,
+  designs: CustomHomeDesign[],
+  activeDesignId?: string,
+  activeDesign?: CustomHomeDesign
+): Promise<{ success: boolean; message: string }> {
+  if (!appsScriptUrl || !appsScriptUrl.trim()) {
+    return { success: false, message: "URL Google Apps Script belum diisi di tab Google Drive." };
+  }
+
+  try {
+    const res = await fetch(appsScriptUrl, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({
+        action: "saveDesigns",
+        designs: designs,
+        activeDesignId: activeDesignId || (designs.find((d) => d.isActive)?.id || designs[0]?.id),
+        activeDesign: activeDesign || designs.find((d) => d.isActive || d.id === activeDesignId) || designs[0],
+      }),
+    });
+
+    const data = await res.json();
+    if (data.status === "success" || data.success) {
+      return { success: true, message: data.message || "Berhasil disimpan ke Google Drive!" };
+    }
+    return { success: false, message: data.message || "Gagal menyimpan desain ke Google Drive." };
+  } catch (err: any) {
+    console.error("Save Designs Google Drive Error:", err);
+    return { success: false, message: err.message || "Gagal menghubungi Apps Script." };
+  }
+}
+
+/**
+ * Fetches DIY Builder Themes / Custom Designs from Google Drive via Apps Script
+ */
+export async function fetchDesignsFromGoogleDrive(
+  appsScriptUrl: string
+): Promise<{
+  success: boolean;
+  designs?: CustomHomeDesign[];
+  activeDesignId?: string;
+  activeDesign?: CustomHomeDesign | null;
+  message?: string;
+}> {
+  if (!appsScriptUrl || !appsScriptUrl.trim()) {
+    return { success: false, message: "URL Google Apps Script belum diisi." };
+  }
+
+  try {
+    const separator = appsScriptUrl.includes("?") ? "&" : "?";
+    const res = await fetch(`${appsScriptUrl}${separator}action=getDesigns&_t=${Date.now()}`);
+    const data = await res.json();
+
+    if (data.status === "success" || data.success) {
+      return {
+        success: true,
+        designs: data.designs || [],
+        activeDesignId: data.activeDesignId || "",
+        activeDesign: data.activeDesign || null,
+        message: "Berhasil mengambil desain dari Google Drive.",
+      };
+    }
+    return { success: false, message: data.message || "Gagal mengambil data dari Google Drive." };
+  } catch (err: any) {
+    console.error("Fetch Designs Google Drive Error:", err);
+    return { success: false, message: err.message || "Gagal menghubungi Apps Script." };
   }
 }

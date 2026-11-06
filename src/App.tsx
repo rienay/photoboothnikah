@@ -7,8 +7,10 @@ import { ShootScreen } from "./components/ShootScreen";
 import { ReviewScreen } from "./components/ReviewScreen";
 import { ResultScreen } from "./components/ResultScreen";
 import { AdminModal } from "./components/AdminModal";
+import { ThemeStudio } from "./components/ThemeStudio";
 import {
   BoothSettings,
+  CustomHomeDesign,
   DriveConfig,
   FrameSlot,
   PartyConfig,
@@ -52,7 +54,12 @@ import {
   setCachedMemorySlots,
   getCachedPartyMemorySlots,
   setCachedPartyMemorySlots,
+  loadCustomDesigns,
+  saveCustomDesigns,
+  getActiveCustomDesign,
+  setActiveCustomDesignId,
 } from "./lib/storage";
+import { fetchDesignsFromGoogleDrive } from "./lib/googleDrive";
 import { saveFramesToIndexedDB } from "./lib/frameDB";
 import { fetchAllCollectionsFromCloud } from "./lib/cloudSync";
 import { soundFx } from "./lib/audio";
@@ -90,6 +97,15 @@ export const App: React.FC = () => {
   }, [themeMode, currentThemeSlots]);
 
   // UI state
+  const isStudioUrl =
+    typeof window !== "undefined" &&
+    (window.location.pathname.includes("/builder") ||
+      window.location.pathname.includes("/studio") ||
+      window.location.search.includes("builder") ||
+      window.location.hash.includes("builder"));
+
+  const [isStudioOpen, setIsStudioOpen] = useState<boolean>(isStudioUrl);
+  const [activeCustomDesign, setActiveCustomDesign] = useState<CustomHomeDesign>(getActiveCustomDesign);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const isAdminOpenRef = React.useRef(isAdminOpen);
@@ -218,6 +234,32 @@ export const App: React.FC = () => {
             }
             return prev;
           });
+        }
+        if (serverData.customDesigns && Array.isArray(serverData.customDesigns) && serverData.customDesigns.length > 0) {
+          saveCustomDesigns(serverData.customDesigns);
+          if (serverData.activeDesignId) {
+            setActiveCustomDesignId(serverData.activeDesignId);
+          }
+          setActiveCustomDesign(getActiveCustomDesign());
+        }
+
+        // 3. Google Apps Script / Drive Sync (Custom Designs)
+        const targetDriveUrl = serverData.driveConfig?.appsScriptUrl || driveConfig.appsScriptUrl;
+        if (targetDriveUrl) {
+          try {
+            const driveRes = await fetchDesignsFromGoogleDrive(targetDriveUrl);
+            if (driveRes.success && driveRes.designs && driveRes.designs.length > 0) {
+              if (mounted && !isAdminOpenRef.current) {
+                saveCustomDesigns(driveRes.designs);
+                if (driveRes.activeDesign) {
+                  setActiveCustomDesign(driveRes.activeDesign);
+                } else if (driveRes.activeDesignId) {
+                  setActiveCustomDesignId(driveRes.activeDesignId);
+                  setActiveCustomDesign(getActiveCustomDesign());
+                }
+              }
+            }
+          } catch (_) {}
         }
       } else {
         // If server is currently empty, push current device's configuration to server
@@ -368,6 +410,26 @@ export const App: React.FC = () => {
     setActiveSlotOverride(null);
     setCurrentScreen("home");
   };
+
+  if (isStudioOpen) {
+    return (
+      <ThemeStudio
+        driveConfig={driveConfig}
+        onBackToKiosk={() => {
+          setIsStudioOpen(false);
+          setActiveCustomDesign(getActiveCustomDesign());
+          if (
+            typeof window !== "undefined" &&
+            (window.location.pathname.includes("/builder") ||
+              window.location.pathname.includes("/studio"))
+          ) {
+            window.history.pushState({}, "", "/");
+          }
+        }}
+      />
+    );
+  }
+
   return (
     <div className={`min-h-[100dvh] h-[100dvh] max-h-[100dvh] w-full max-w-full flex flex-col justify-between relative overflow-hidden transition-colors duration-500 ${
       isParty
@@ -379,6 +441,7 @@ export const App: React.FC = () => {
         weddingConfig={weddingConfig}
         partyConfig={partyConfig}
         themeMode={themeMode}
+        customDesign={activeCustomDesign}
         soundEnabled={boothSettings.soundEnabled}
         onToggleSound={() =>
           handleSaveBooth({ ...boothSettings, soundEnabled: !boothSettings.soundEnabled })
@@ -386,6 +449,7 @@ export const App: React.FC = () => {
         isFullscreen={isFullscreen}
         onToggleFullscreen={toggleFullscreen}
         onOpenAdmin={() => setIsAdminOpen(true)}
+        onOpenStudio={() => setIsStudioOpen(true)}
       />
 
       {/* Main Dynamic Viewport */}
@@ -396,6 +460,7 @@ export const App: React.FC = () => {
             weddingConfig={weddingConfig}
             partyConfig={partyConfig}
             themeMode={themeMode}
+            customDesign={activeCustomDesign}
             onStart={() => setCurrentScreen("frame")}
           />
         )}
@@ -541,6 +606,10 @@ export const App: React.FC = () => {
         onSaveFrameSlots={handleSaveSlots}
         partyFrameSlots={partyFrameSlots}
         onSavePartyFrameSlots={handleSavePartySlots}
+        onOpenStudio={() => {
+          setIsAdminOpen(false);
+          setIsStudioOpen(true);
+        }}
       />
     </div>
   );

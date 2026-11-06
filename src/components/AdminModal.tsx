@@ -20,6 +20,7 @@ import {
   Printer,
   PartyPopper,
   Sparkles,
+  Paintbrush,
 } from "lucide-react";
 import {
   BoothSettings,
@@ -72,6 +73,7 @@ interface AdminModalProps {
   onSaveFrameSlots: (slots: FrameSlot[]) => void;
   partyFrameSlots: FrameSlot[];
   onSavePartyFrameSlots: (slots: FrameSlot[]) => void;
+  onOpenStudio?: () => void;
 }
 
 type TabType = "wedding" | "party" | "templates" | "cloud" | "drive" | "booth" | "history";
@@ -232,6 +234,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
   onSaveFrameSlots,
   partyFrameSlots,
   onSavePartyFrameSlots,
+  onOpenStudio,
 }) => {
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -849,6 +852,20 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 <History size={14} />
                 <span>Riwayat Sesi</span>
               </button>
+
+              {onOpenStudio && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    soundFx.playChime();
+                    onOpenStudio();
+                  }}
+                  className="px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap bg-gradient-to-r from-purple-600 via-indigo-600 to-cyan-600 text-white shadow-md hover:from-purple-500 hover:to-cyan-500 ml-auto"
+                >
+                  <Paintbrush size={14} />
+                  <span>🎨 Buka DIY Theme Studio</span>
+                </button>
+              )}
             </div>
 
             {/* Tab Contents Container */}

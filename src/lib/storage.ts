@@ -1,5 +1,6 @@
 import {
   BoothSettings,
+  CustomHomeDesign,
   CustomTemplate,
   DriveConfig,
   FrameSlot,
@@ -9,6 +10,7 @@ import {
 } from "../types";
 import {
   DEFAULT_BOOTH_SETTINGS,
+  DEFAULT_CUSTOM_DESIGNS,
   DEFAULT_DRIVE_CONFIG,
   DEFAULT_FRAME_SLOTS,
   DEFAULT_PARTY_CONFIG,
@@ -35,6 +37,8 @@ const KEYS = {
   HISTORY: "yodha_session_history",
   SLOTS: "yodha_frame_slots",
   PARTY_SLOTS: "yodha_party_frame_slots",
+  CUSTOM_DESIGNS: "yodha_custom_designs",
+  ACTIVE_DESIGN_ID: "yodha_active_design_id",
 };
 
 export interface ServerSharedConfig {
@@ -45,6 +49,9 @@ export interface ServerSharedConfig {
   driveConfig?: DriveConfig;
   boothSettings?: BoothSettings;
   cloudSyncConfig?: CloudSyncConfig;
+  customDesigns?: CustomHomeDesign[];
+  activeDesignId?: string;
+  customDesignsUpdatedAt?: number;
   updatedAt?: number;
   partyUpdatedAt?: number;
 }
@@ -133,6 +140,9 @@ export async function pushToServer(partialData: Partial<ServerSharedConfig>): Pr
       driveConfig: partialData.driveConfig || loadDriveConfig(),
       boothSettings: partialData.boothSettings || loadBoothSettings(),
       cloudSyncConfig: partialData.cloudSyncConfig || loadCloudSyncConfig(),
+      customDesigns: partialData.customDesigns || cachedCustomDesigns || loadCustomDesigns(),
+      activeDesignId: partialData.activeDesignId || (typeof localStorage !== "undefined" ? localStorage.getItem(KEYS.ACTIVE_DESIGN_ID) || undefined : undefined),
+      customDesignsUpdatedAt: partialData.customDesignsUpdatedAt || lastCustomDesignsUpdate || Date.now(),
       updatedAt: timestamp,
       partyUpdatedAt: partyTimestamp,
     };
@@ -205,6 +215,20 @@ export async function syncFromServer(): Promise<ServerSharedConfig | null> {
               } else {
                 data.partyFrameSlots = undefined;
                 pushToServer({ partyUpdatedAt: lastLocalPartyFrameUpdate }).catch(() => {});
+              }
+            }
+
+            if (data.customDesigns && Array.isArray(data.customDesigns) && data.customDesigns.length > 0) {
+              const cdTs = data.customDesignsUpdatedAt || 0;
+              if (cdTs >= lastCustomDesignsUpdate) {
+                lastCustomDesignsUpdate = cdTs;
+                cachedCustomDesigns = data.customDesigns;
+                try {
+                  localStorage.setItem(KEYS.CUSTOM_DESIGNS, JSON.stringify(data.customDesigns));
+                  if (data.activeDesignId) {
+                    localStorage.setItem(KEYS.ACTIVE_DESIGN_ID, data.activeDesignId);
+                  }
+                } catch (_) {}
               }
             }
 
@@ -655,5 +679,77 @@ export async function clearSessionHistory(): Promise<void> {
     store.clear();
   } catch (e) {
     console.warn("Failed to clear session history:", e);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Custom DIY Themes / Designs Storage
+// ---------------------------------------------------------------------------
+let cachedCustomDesigns: CustomHomeDesign[] | null = null;
+let lastCustomDesignsUpdate = 0;
+
+export function getLastCustomDesignsUpdate(): number {
+  return lastCustomDesignsUpdate;
+}
+
+export function setLastCustomDesignsUpdate(ts: number): void {
+  lastCustomDesignsUpdate = ts;
+}
+
+export function loadCustomDesigns(): CustomHomeDesign[] {
+  if (cachedCustomDesigns && cachedCustomDesigns.length > 0) {
+    return cachedCustomDesigns;
+  }
+  try {
+    const raw = localStorage.getItem(KEYS.CUSTOM_DESIGNS);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        cachedCustomDesigns = parsed;
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Failed to load custom designs from localStorage:", e);
+  }
+  cachedCustomDesigns = DEFAULT_CUSTOM_DESIGNS;
+  return DEFAULT_CUSTOM_DESIGNS;
+}
+
+export function saveCustomDesigns(designs: CustomHomeDesign[]): void {
+  try {
+    cachedCustomDesigns = designs;
+    localStorage.setItem(KEYS.CUSTOM_DESIGNS, JSON.stringify(designs));
+    lastCustomDesignsUpdate = Date.now();
+  } catch (e) {
+    console.error("Failed to save custom designs:", e);
+  }
+}
+
+export function getActiveCustomDesign(): CustomHomeDesign {
+  const list = loadCustomDesigns();
+  try {
+    const activeId = localStorage.getItem(KEYS.ACTIVE_DESIGN_ID);
+    if (activeId) {
+      const found = list.find((d) => d.id === activeId);
+      if (found) return found;
+    }
+  } catch (_) {}
+  const activeByProp = list.find((d) => d.isActive);
+  if (activeByProp) return activeByProp;
+  return list[0] || DEFAULT_CUSTOM_DESIGNS[0];
+}
+
+export function setActiveCustomDesignId(id: string): void {
+  try {
+    localStorage.setItem(KEYS.ACTIVE_DESIGN_ID, id);
+    const list = loadCustomDesigns();
+    const updated = list.map((d) => ({
+      ...d,
+      isActive: d.id === id,
+    }));
+    saveCustomDesigns(updated);
+  } catch (e) {
+    console.warn("Failed to set active custom design id:", e);
   }
 }
