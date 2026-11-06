@@ -234,7 +234,7 @@ export async function fetchFramesFromCloud(
 }
 
 /**
- * Uploads BOTH wedding frames and party (JOTA-JOTI) frames to Supabase
+ * Uploads BOTH wedding frames and party (RAICAB BANJAR V) frames to Supabase
  */
 export async function pushAllCollectionsToCloud(
   weddingSlots: FrameSlot[],

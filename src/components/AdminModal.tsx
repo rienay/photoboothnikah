@@ -331,7 +331,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
     const res = await pushAllCollectionsToCloud(slotsWeddingForm, slotsPartyForm, cloudConfig);
     setCloudPushing(false);
     if (res.success) {
-      showToast("✓ Seluruh bingkai (Wedding & JOTA-JOTI) berhasil di-upload ke Supabase Cloud!");
+      showToast("✓ Seluruh bingkai (Wedding & RAICAB BANJAR V) berhasil di-upload ke Supabase Cloud!");
       setCloudConfig(loadCloudSyncConfig());
     } else {
       alert(`Gagal upload ke cloud: ${res.message}`);
@@ -355,7 +355,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
         onSavePartyFrameSlots(res.partyFrames);
         count += res.partyFrames.length;
       }
-      showToast(`✓ Berhasil menarik ${count} bingkai (Wedding & JOTA-JOTI) dari Supabase Cloud!`);
+      showToast(`✓ Berhasil menarik ${count} bingkai (Wedding & RAICAB BANJAR V) dari Supabase Cloud!`);
       setCloudConfig(loadCloudSyncConfig());
     } else {
       alert(`Gagal menarik dari cloud: ${res.message}`);
@@ -739,22 +739,22 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                       setBoothForm(updated);
                       onSaveBoothSettings(updated);
                       setSelectedFrameThemeMode("party");
-                      showToast("✓ Mode Photobooth diubah ke: JOTA-JOTI 2026 (Scouts & Digital Event)");
+                      showToast("✓ Mode Photobooth diubah ke: RAICAB BANJAR V (Pramuka Banjarnegara)");
                     }}
                     className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                       boothForm.themeMode === "party"
-                        ? "bg-gradient-to-r from-purple-700 via-pink-600 to-amber-500 text-white shadow-md font-bold"
+                        ? "bg-gradient-to-r from-orange-600 via-amber-500 to-sky-500 text-white shadow-md font-bold"
                         : "text-stone-400 hover:text-stone-200"
                     }`}
                   >
-                    🏕️ JOTA-JOTI 2026 (Scouts)
+                    🏕️ RAICAB BANJAR V (Pramuka)
                   </button>
                 </div>
               </div>
 
               <div className="text-[11px] text-stone-400">
                 Mode saat ini: <strong className={boothForm.themeMode === "party" ? "text-amber-300" : "text-amber-300"}>
-                  {boothForm.themeMode === "party" ? "JOTA-JOTI 2026 (Scouts)" : "Wedding Elegan"}
+                  {boothForm.themeMode === "party" ? "RAICAB BANJAR V (Pramuka)" : "Wedding Elegan"}
                 </strong>
               </div>
             </div>
@@ -777,12 +777,12 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                 onClick={() => setActiveTab("party")}
                 className={`px-4 py-2 rounded-xl text-xs font-medium flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === "party"
-                    ? "bg-gradient-to-r from-purple-700 via-pink-600 to-amber-500 text-white font-semibold shadow-md"
+                    ? "bg-gradient-to-r from-orange-600 via-amber-500 to-sky-500 text-white font-semibold shadow-md"
                     : "text-stone-300 hover:bg-white/5"
                 }`}
               >
                 <PartyPopper size={14} className={activeTab === "party" ? "text-amber-300" : "text-amber-400"} />
-                <span>Acara JOTA-JOTI</span>
+                <span>Acara RAICAB BANJAR</span>
               </button>
 
               <button
@@ -1094,7 +1094,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           }`}
                         >
                           <PartyPopper size={13} />
-                          <span>🏕️ Bingkai JOTA-JOTI ({slotsPartyForm.length})</span>
+                          <span>🏕️ Bingkai RAICAB BANJAR ({slotsPartyForm.length})</span>
                         </button>
                       </div>
                     </div>
@@ -1102,7 +1102,7 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                     <div className="text-[11px] text-stone-400 flex items-center gap-1.5">
                       <span>Sedang mengedit bingkai untuk:</span>
                       <span className={`px-2 py-0.5 rounded-full font-bold ${isPartyFrames ? "bg-amber-400/20 text-amber-300 border border-amber-400/40" : "bg-amber-400/20 text-amber-300 border border-amber-400/40"}`}>
-                        {isPartyFrames ? "🏕️ JOTA-JOTI 2026" : "💍 Wedding Elegan"}
+                        {isPartyFrames ? "🏕️ RAICAB BANJAR V" : "💍 Wedding Elegan"}
                       </span>
                     </div>
                   </div>
@@ -1115,11 +1115,11 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           ? "bg-gradient-to-r from-amber-300 via-pink-400 to-cyan-300 bg-clip-text text-transparent"
                           : "text-gold-gradient"
                       }`}>
-                        {isPartyFrames ? "Manajemen Bingkai: JOTA-JOTI 2026" : "Manajemen Bingkai: Wedding"}
+                        {isPartyFrames ? "Manajemen Bingkai: RAICAB BANJAR V" : "Manajemen Bingkai: Wedding"}
                       </h2>
                       <p className="text-xs sm:text-sm text-stone-400 mt-1">
                         {isPartyFrames
-                          ? "Kelola template bingkai resmi JOTA-JOTI 2026 (Festival Waves, Digital Explorer, Cyber Scout, Double Strip, dll)."
+                          ? "Kelola template bingkai resmi RAICAB BANJAR V (Raimuna Cabang Banjarnegara)."
                           : "Kelola template frame untuk photobooth, atur layout lubang, atau tambahkan frame baru."}
                       </p>
                     </div>
@@ -1175,13 +1175,13 @@ export const AdminModal: React.FC<AdminModalProps> = ({
                           type="button"
                           onClick={() => {
                             updateActiveSlots(DEFAULT_PARTY_FRAME_SLOTS);
-                            showToast("✓ Berhasil menyetel hanya 5 Template Resmi JOTA-JOTI!");
+                            showToast("✓ Berhasil menyetel Bingkai Resmi RAICAB BANJAR V!");
                           }}
-                          title="Hanya gunakan 5 template resmi JOTA-JOTI 10x15: Scrapbook, Colorful, Newspaper, Cyber Scout, Jamboree"
-                          className="px-3.5 py-2.5 rounded-xl border border-purple-500/50 bg-purple-950/50 hover:bg-purple-900/70 text-purple-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
+                          title="Gunakan bingkai resmi Raimuna Cabang V Banjarnegara"
+                          className="px-3.5 py-2.5 rounded-xl border border-amber-500/50 bg-amber-950/50 hover:bg-amber-900/70 text-amber-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shadow-md"
                         >
-                          <Sparkles size={14} className="text-purple-300 animate-pulse" />
-                          <span>⚡ Setel Hanya 5 Template Resmi</span>
+                          <Sparkles size={14} className="text-amber-300 animate-pulse" />
+                          <span>⚡ Setel Bingkai Resmi RAICAB V</span>
                         </button>
                       )}
 

@@ -152,7 +152,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     
     // Generate safe filename following current event
     const eventSlug = isParty
-      ? (partyConfig?.eventName || partyConfig?.title || "jota-joti-2026")
+      ? (partyConfig?.eventName || partyConfig?.title || "raicab-banjar-v")
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, "-")
           .replace(/^-+|-+$/g, "")
@@ -191,7 +191,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
     soundFx.playChime();
     const isParty = themeMode === "party";
     const eventNameSlug = isParty
-      ? (partyConfig?.eventName || partyConfig?.title || "JOTA-JOTI-2026")
+      ? (partyConfig?.eventName || partyConfig?.title || "RAICAB-BANJAR-V")
           .replace(/[^a-zA-Z0-9_-]+/g, "_")
       : `${weddingConfig.brideName}-${weddingConfig.groomName}`.replace(/[^a-zA-Z0-9_-]+/g, "_");
 
@@ -395,7 +395,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
       {/* Screen Title */}
       <div className="text-center mb-2 sm:mb-4 shrink-0">
         <h2 className={isParty ? "text-2xl sm:text-4xl text-party-gradient font-black mt-0.5 tracking-tight" : "font-serif text-2xl sm:text-4xl text-gold-gradient font-normal mt-0.5"}>
-          {isParty ? "Hasil Foto JOTA-JOTI 2026" : "Hasil Foto Pernikahan"}
+          {isParty ? `Hasil Foto ${partyConfig?.title || "RAICAB BANJAR V"}` : "Hasil Foto Pernikahan"}
         </h2>
       </div>
 
@@ -407,7 +407,7 @@ export const ResultScreen: React.FC<ResultScreenProps> = ({
             {isComposing || !renderedStrip ? (
               <div className={`w-48 sm:w-64 h-72 sm:h-96 flex flex-col items-center justify-center ${isParty ? "text-purple-800" : "text-amber-200/80"} gap-3`}>
                 <RotateCw size={36} className={`animate-spin ${isParty ? "text-purple-600" : "text-amber-400"}`} />
-                <span className="font-medium text-xs tracking-wider">{isParty ? "Menyusun Foto JOTA-JOTI..." : "Menyusun Foto Elegan..."}</span>
+                <span className="font-medium text-xs tracking-wider">{isParty ? "Menyusun Foto..." : "Menyusun Foto Elegan..."}</span>
               </div>
             ) : (
               <img

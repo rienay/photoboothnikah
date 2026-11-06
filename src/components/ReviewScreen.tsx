@@ -709,7 +709,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           <div className="flex items-center justify-between mb-2">
             <div>
               <h3 className={isParty ? "font-bold text-base sm:text-lg text-party-gradient" : "font-serif text-base sm:text-lg text-gold-gradient font-normal"}>
-                {isParty ? "Tinjau Foto JOTA-JOTI" : "Tinjau Hasil Foto"}
+                {isParty ? `Tinjau Foto ${partyConfig?.title || "RAICAB BANJAR V"}` : "Tinjau Hasil Foto"}
               </h3>
               <p className={`text-[10px] ${isParty ? "text-purple-700 font-medium" : "text-stone-400"}`}>
                 Pilih filter tone & klik foto jika ingin mengulang

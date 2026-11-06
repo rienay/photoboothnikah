@@ -312,7 +312,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
             )}
             <div className="flex flex-col text-left">
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-700/80">
-                {d.headerBrandText || "JOTA-JOTI 2026 • PHOTOBOOTH"}
+                {d.headerBrandText || "RAICAB BANJAR V • PHOTOBOOTH"}
               </span>
               <span className="text-xs font-bold text-slate-900 truncate max-w-[200px]">
                 {d.headerSubtitleText || d.titleText}
@@ -740,8 +740,12 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     <div className="grid grid-cols-2 gap-2">
                       {[
                         {
-                          name: "Scout Ungu-Cyan (JOTA)",
-                          val: "linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%)",
+                          name: "Scout Oranye-Biru (RAICAB)",
+                          val: "linear-gradient(135deg, #FF7A00 0%, #00A3E0 100%)",
+                        },
+                        {
+                          name: "Scout Putih Elegan",
+                          val: "linear-gradient(180deg, #ffffff 0%, #f0f9ff 50%, #fff7ed 100%)",
                         },
                         {
                           name: "Royal Wedding Dark",
@@ -908,7 +912,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                         type="text"
                         value={currentDesign.logoBadgeText || ""}
                         onChange={(e) => updateCurrentDesign({ logoBadgeText: e.target.value })}
-                        placeholder="Contoh: JOTA-JOTI 2026 atau SPECIAL EVENT"
+                        placeholder="Contoh: RAICAB V 2026 atau SPECIAL EVENT"
                         className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                       />
                       <div className="flex items-center gap-4 pt-1">
@@ -947,7 +951,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     type="text"
                     value={currentDesign.titleText}
                     onChange={(e) => updateCurrentDesign({ titleText: e.target.value })}
-                    placeholder="Contoh: JOTA-JOTI 2026 CILACAP"
+                    placeholder="Contoh: RAIMUNA CABANG V BANJARNEGARA"
                     className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-sm font-bold"
                   />
 
@@ -1040,7 +1044,7 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                       type="text"
                       value={currentDesign.subtitleText || ""}
                       onChange={(e) => updateCurrentDesign({ subtitleText: e.target.value })}
-                      placeholder="Contoh: KWARTIR CABANG CILACAP • YH2ABJ"
+                      placeholder="Contoh: KWARTIR CABANG BANJARNEGARA"
                       className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                     />
                   )}
@@ -1054,14 +1058,14 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                       type="text"
                       value={currentDesign.dateText || ""}
                       onChange={(e) => updateCurrentDesign({ dateText: e.target.value, showDateTag: true })}
-                      placeholder="Tanggal (Contoh: 16 - 18 Oktober 2026)"
+                      placeholder="Tanggal (Contoh: Tahun 2026)"
                       className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                     />
                     <input
                       type="text"
                       value={currentDesign.hashtagText || ""}
                       onChange={(e) => updateCurrentDesign({ hashtagText: e.target.value, showHashtagTag: true })}
-                      placeholder="Hashtag (Contoh: #JOTAJOTI2026 #Scouts)"
+                      placeholder="Hashtag (Contoh: #RaicabBanjarV #PramukaBanjarnegara)"
                       className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                     />
                   </div>
@@ -1074,14 +1078,14 @@ export const ThemeStudio: React.FC<ThemeStudioProps> = ({
                     type="text"
                     value={currentDesign.headerBrandText || ""}
                     onChange={(e) => updateCurrentDesign({ headerBrandText: e.target.value })}
-                    placeholder="Header Atas (Contoh: JOTA-JOTI 2026 • PHOTOBOOTH)"
+                    placeholder="Header Atas (Contoh: RAICAB BANJAR V • PHOTOBOOTH)"
                     className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                   />
                   <input
                     type="text"
                     value={currentDesign.footerText || ""}
                     onChange={(e) => updateCurrentDesign({ footerText: e.target.value })}
-                    placeholder="Footer Bawah (Contoh: WORLD SCOUTING EVENT - YODHA PHOTOBOOTH)"
+                    placeholder="Footer Bawah (Contoh: RAIMUNA CABANG V BANJARNEGARA • YODHA PHOTOBOOTH)"
                     className="w-full px-3 py-2 rounded-xl bg-stone-800 border border-white/20 text-white text-xs"
                   />
                 </div>

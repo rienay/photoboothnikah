@@ -140,7 +140,7 @@ export interface SavedSession {
 
 export interface CustomHomeDesign {
   id: string;
-  name: string; // e.g. "JOTA-JOTI 2026 Cilacap" or "Wedding Sarah & Kevin"
+  name: string; // e.g. "RAICAB BANJAR V" or "Wedding Sarah & Kevin"
   isActive?: boolean;
   createdAt?: number;
   updatedAt?: number;
@@ -163,19 +163,19 @@ export interface CustomHomeDesign {
   logoBorderColor?: string;
   logoBorderWidth?: number; // px
   logoSize?: number; // px (e.g. 110)
-  logoBadgeText?: string; // e.g. "JOTA-JOTI 2026"
+  logoBadgeText?: string; // e.g. "RAICAB V 2026"
   logoBadgeBgColor?: string;
   logoBadgeTextColor?: string;
 
   // Subtitle / Pill
   showSubtitle?: boolean;
-  subtitleText?: string; // e.g. "KWARTIR CABANG CILACAP • YH2ABJ"
+  subtitleText?: string; // e.g. "KWARTIR CABANG BANJARNEGARA"
   subtitleTextColor?: string;
   subtitleBgColor?: string;
   subtitleBorderColor?: string;
 
   // Main Event Title
-  titleText: string; // e.g. "JOTA-JOTI 2026 CILACAP"
+  titleText: string; // e.g. "RAIMUNA CABANG V BANJARNEGARA"
   titleColorType?: "solid" | "gradient";
   titleColor?: string; // hex
   titleGradient?: string; // CSS gradient
@@ -184,13 +184,13 @@ export interface CustomHomeDesign {
 
   // Event Badges / Tags (Date & Hashtag)
   showDateTag?: boolean;
-  dateText?: string; // e.g. "16 - 18 Oktober 2026"
+  dateText?: string; // e.g. "Tahun 2026"
   dateTextColor?: string;
   dateBgColor?: string;
   dateBorderColor?: string;
 
   showHashtagTag?: boolean;
-  hashtagText?: string; // e.g. "#JOTAJOTI2026 #Scouts #YH2ABJ"
+  hashtagText?: string; // e.g. "#RaicabBanjarV #PramukaBanjarnegara"
   hashtagTextColor?: string;
   hashtagBgColor?: string;
   hashtagBorderColor?: string;
@@ -207,8 +207,8 @@ export interface CustomHomeDesign {
   buttonShadowColor?: string;
 
   // Header & Footer
-  headerBrandText?: string; // e.g. "JOTA-JOTI 2026 • PHOTOBOOTH"
-  headerSubtitleText?: string; // e.g. "JOTA-JOTI 2026 CILACAP"
+  headerBrandText?: string; // e.g. "RAICAB BANJAR V • PHOTOBOOTH"
+  headerSubtitleText?: string; // e.g. "RAIMUNA CABANG V BANJARNEGARA"
   footerText?: string; // e.g. "WORLD SCOUTING EVENT - YODHA PHOTOBOOTH"
   footerTextColor?: string;
 }

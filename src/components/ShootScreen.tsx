@@ -531,13 +531,13 @@ export const ShootScreen: React.FC<ShootScreenProps> = ({
                     className="text-[7px] sm:text-[8px] tracking-[0.2em] font-cinzel uppercase"
                     style={{ color: preset.secondaryTextColor }}
                   >
-                    {isParty ? (partyConfig?.title || "JOTA-JOTI 2026") : "THE WEDDING OF"}
+                    {isParty ? (partyConfig?.title || "RAICAB BANJAR V") : "THE WEDDING OF"}
                   </div>
                   <div
                     className="font-script text-base sm:text-lg leading-tight mt-0.5"
                     style={{ color: preset.textColor }}
                   >
-                    {isParty ? (partyConfig?.subtitle || "KWARTIR CABANG CILACAP") : `${weddingConfig.brideName} & ${weddingConfig.groomName}`}
+                    {isParty ? (partyConfig?.subtitle || "KWARTIR CABANG BANJARNEGARA") : `${weddingConfig.brideName} & ${weddingConfig.groomName}`}
                   </div>
                 </div>
 

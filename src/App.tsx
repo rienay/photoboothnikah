@@ -157,7 +157,7 @@ export const App: React.FC = () => {
               } catch (_) {}
             }
           }
-          // Party (JOTA-JOTI) frames sync
+          // Party (RAICAB BANJAR V) frames sync
           if (cloud.partyFrames && cloud.partyFrames.length > 0) {
             const pCloudTs = cloud.partyUpdatedAt ? new Date(cloud.partyUpdatedAt).getTime() : 0;
             const pLocalTs = getLastLocalPartyFrameUpdate();
@@ -586,7 +586,7 @@ export const App: React.FC = () => {
           {isParty ? partyConfig.footerText : weddingConfig.footerText}
         </span>
         <span className={`hidden sm:inline ${isParty ? "text-[#EF5000] font-black" : ""}`}>
-          {isParty ? (partyConfig.eventName || "JOTA-JOTI 2026 CILACAP") : "Yodha Wedding Photobooth"}
+          {isParty ? (partyConfig.eventName || "RAIMUNA CABANG V BANJARNEGARA") : "Yodha Wedding Photobooth"}
         </span>
       </footer>
 

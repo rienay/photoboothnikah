@@ -492,7 +492,14 @@ export function loadPartyConfig(): PartyConfig {
     const raw = localStorage.getItem(KEYS.PARTY);
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed.title === "PHOTOBOOTH PARTY" || parsed.eventName === "Yodha Party & Celebration") {
+      if (
+        parsed.title === "PHOTOBOOTH PARTY" ||
+        parsed.eventName === "Yodha Party & Celebration" ||
+        parsed.title?.includes("JOTA") ||
+        parsed.eventName?.includes("JOTA") ||
+        parsed.eventName?.includes("CILACAP")
+      ) {
+        localStorage.setItem(KEYS.PARTY, JSON.stringify(DEFAULT_PARTY_CONFIG));
         return DEFAULT_PARTY_CONFIG;
       }
       return { ...DEFAULT_PARTY_CONFIG, ...parsed };
@@ -698,6 +705,11 @@ export function setLastCustomDesignsUpdate(ts: number): void {
 
 export function loadCustomDesigns(): CustomHomeDesign[] {
   if (cachedCustomDesigns && cachedCustomDesigns.length > 0) {
+    if (cachedCustomDesigns.some((d) => d.id === "design_jotajoti" || d.titleText?.includes("JOTA"))) {
+      cachedCustomDesigns = DEFAULT_CUSTOM_DESIGNS;
+      saveCustomDesigns(DEFAULT_CUSTOM_DESIGNS);
+      return DEFAULT_CUSTOM_DESIGNS;
+    }
     return cachedCustomDesigns;
   }
   try {
@@ -705,6 +717,11 @@ export function loadCustomDesigns(): CustomHomeDesign[] {
     if (raw) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed) && parsed.length > 0) {
+        if (parsed.some((d: any) => d.id === "design_jotajoti" || d.titleText?.includes("JOTA"))) {
+          cachedCustomDesigns = DEFAULT_CUSTOM_DESIGNS;
+          saveCustomDesigns(DEFAULT_CUSTOM_DESIGNS);
+          return DEFAULT_CUSTOM_DESIGNS;
+        }
         cachedCustomDesigns = parsed;
         return parsed;
       }

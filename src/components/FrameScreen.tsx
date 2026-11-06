@@ -211,8 +211,8 @@ export const FrameScreen: React.FC<FrameScreenProps> = ({
     <div className="flex-1 flex flex-col max-w-full mx-auto w-full px-2 sm:px-4 md:px-6 py-1 sm:py-2 justify-between min-h-0 h-full overflow-hidden">
       {/* Title */}
       <div className="text-center mb-1 sm:mb-2 shrink-0">
-        <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-black bg-gradient-to-r from-[#2E0E4C] via-[#622599] to-[#EF5000] bg-clip-text text-transparent drop-shadow-sm" : "font-serif text-gold-gradient font-normal"}`}>
-          {isParty ? "Pilih Bingkai JOTA-JOTI 2026" : "Pilih Desain Bingkai"}
+        <h2 className={`text-2xl sm:text-3xl mt-0 ${isParty ? "font-sans font-black bg-gradient-to-r from-[#FF7A00] via-[#F9B708] to-[#00A3E0] bg-clip-text text-transparent drop-shadow-sm" : "font-serif text-gold-gradient font-normal"}`}>
+          {isParty ? `Pilih Bingkai ${partyConfig?.title || "RAICAB BANJAR V"}` : "Pilih Desain Bingkai"}
         </h2>
       </div>
 

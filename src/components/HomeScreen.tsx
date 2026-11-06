@@ -269,23 +269,41 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
   }
 
   // ----------------------------------------------------
-  // TEMA BEBAS / COLORFUL PARTY
+  // TEMA BEBAS / RAIMUNA CABANG V BANJARNEGARA
   // ----------------------------------------------------
   if (themeMode === "party") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative text-center">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 relative text-center overflow-hidden">
         {/* Soft Colorful Animated Background Ambient Rings */}
-        <div className="absolute w-[520px] h-[520px] rounded-full border border-purple-300/40 pointer-events-none animate-[pulse_4s_ease-in-out_infinite]" />
-        <div className="absolute w-[700px] h-[700px] rounded-full border border-cyan-300/30 pointer-events-none" />
-        <div className="absolute w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-purple-400/10 via-amber-300/10 to-cyan-400/10 blur-3xl pointer-events-none" />
+        <div className="absolute w-[520px] h-[520px] rounded-full border border-orange-300/40 pointer-events-none animate-[pulse_4s_ease-in-out_infinite]" />
+        <div className="absolute w-[700px] h-[700px] rounded-full border border-sky-300/30 pointer-events-none" />
+        <div className="absolute w-[420px] h-[420px] rounded-full bg-gradient-to-tr from-orange-400/15 via-amber-300/10 to-sky-400/15 blur-3xl pointer-events-none" />
 
-        {/* JOTA-JOTI Official Badge Seal */}
-        <div className="relative mb-6">
-          <div className="w-28 h-28 sm:w-32 sm:h-32 rounded-full p-[3px] bg-gradient-to-tr from-[#F9B708] via-[#622599] to-[#0094B4] shadow-[0_10px_35px_rgba(98,37,153,0.3)] hover:scale-105 transition-transform">
-            <div className="w-full h-full rounded-full bg-white p-2.5 flex items-center justify-center overflow-hidden border border-white/60 shadow-inner">
+        {/* Mascot Putra (Left Side) */}
+        <div className="hidden lg:block absolute left-8 bottom-4 w-40 xl:w-48 z-10 pointer-events-none drop-shadow-xl animate-fade-in hover:scale-105 transition-transform">
+          <img
+            src="/assets/raicab/maskot-putra.png"
+            alt="Maskot Putra Raicab Banjar V"
+            className="w-full h-auto object-contain"
+          />
+        </div>
+
+        {/* Mascot Putri (Right Side) */}
+        <div className="hidden lg:block absolute right-8 bottom-4 w-40 xl:w-48 z-10 pointer-events-none drop-shadow-xl animate-fade-in hover:scale-105 transition-transform">
+          <img
+            src="/assets/raicab/maskot-putri.png"
+            alt="Maskot Putri Raicab Banjar V"
+            className="w-full h-auto object-contain"
+          />
+        </div>
+
+        {/* Official Raicab V Banjarnegara Logo */}
+        <div className="relative mb-5 z-20">
+          <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl p-[3px] bg-gradient-to-tr from-[#FF7A00] via-[#F9B708] to-[#00A3E0] shadow-[0_10px_35px_rgba(255,122,0,0.3)] hover:scale-105 transition-transform">
+            <div className="w-full h-full rounded-3xl bg-white p-2 flex items-center justify-center overflow-hidden border border-white/60 shadow-inner">
               <img
-                src="/frames/jotajoti/JOTA-JOTI-2026_Badge-To-Pablo.png"
-                alt="JOTA-JOTI 2026 Official Badge"
+                src="/assets/raicab/logo-raicab-banjar.png"
+                alt="Logo Resmi Raimuna Cabang V Banjarnegara"
                 className="w-full h-full object-contain"
                 onError={(e) => {
                   (e.target as HTMLElement).style.display = "none";
@@ -293,41 +311,50 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
               />
             </div>
           </div>
-          <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-[#2E0E4C] px-3.5 py-0.5 rounded-full border-2 border-[#F9B708] flex items-center gap-1.5 shadow-md">
-            <Sparkles size={12} className="text-[#F9B708] animate-spin" />
-            <span className="text-[10px] font-black tracking-widest text-[#F9B708] uppercase">JOTA-JOTI 2026</span>
+          <div className="absolute -bottom-2.5 left-1/2 -translate-x-1/2 bg-[#FF7A00] px-4 py-0.5 rounded-full border-2 border-white flex items-center gap-1.5 shadow-md whitespace-nowrap">
+            <Sparkles size={12} className="text-white animate-spin" />
+            <span className="text-[10px] font-black tracking-widest text-white uppercase">RAICAB V 2026</span>
           </div>
         </div>
 
         {/* Subtitle with Bright Scout Pill */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-12 h-[2px] bg-gradient-to-r from-transparent to-[#EF5000]" />
-          <span className="px-5 py-1.5 rounded-full bg-white border-2 border-purple-200 text-[#622599] font-black tracking-[0.2em] text-xs sm:text-sm uppercase shadow-sm">
-            {partyConfig?.subtitle || "KWARTIR CABANG CILACAP • YH2ABJ"}
+        <div className="flex items-center gap-3 mb-2 z-20">
+          <div className="w-12 h-[2px] bg-gradient-to-r from-transparent to-[#FF7A00]" />
+          <span className="px-5 py-1.5 rounded-full bg-white border-2 border-orange-200 text-[#FF7A00] font-black tracking-[0.2em] text-xs sm:text-sm uppercase shadow-sm">
+            {partyConfig?.subtitle || "KWARTIR CABANG BANJARNEGARA"}
           </span>
-          <div className="w-12 h-[2px] bg-gradient-to-l from-transparent to-[#EF5000]" />
+          <div className="w-12 h-[2px] bg-gradient-to-l from-transparent to-[#FF7A00]" />
         </div>
 
         {/* Event Name */}
-        <h1 className="font-sans font-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl text-party-gradient py-2 px-6 my-1 drop-shadow-sm overflow-visible leading-tight tracking-tight">
-          {partyConfig?.eventName || "JOTA-JOTI 2026 CILACAP"}
+        <h1 className="font-sans font-black text-5xl sm:text-6xl md:text-7xl lg:text-8xl py-2 px-6 my-1 drop-shadow-sm overflow-visible leading-tight tracking-tight z-20"
+            style={{
+              background: "linear-gradient(135deg, #FF7A00 0%, #00A3E0 100%)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+            }}
+        >
+          {partyConfig?.eventName || "RAIMUNA CABANG V BANJARNEGARA"}
         </h1>
 
         {/* Date & Hashtag */}
-        <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm tracking-wider font-bold text-slate-700 mt-2 mb-10">
-          <span className="px-4 py-1.5 rounded-full bg-white border border-[#0094B4]/40 text-[#0094B4] shadow-sm">
-            {partyConfig?.eventDate || "16 - 18 Oktober 2026"}
+        <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm tracking-wider font-bold text-slate-700 mt-2 mb-10 z-20">
+          <span className="px-4 py-1.5 rounded-full bg-white border border-[#00A3E0]/40 text-[#00A3E0] shadow-sm">
+            {partyConfig?.eventDate || "Tahun 2026"}
           </span>
           <span className="text-slate-400">•</span>
-          <span className="px-4 py-1.5 rounded-full bg-white border border-[#622599]/40 text-[#622599] shadow-sm">
-            {partyConfig?.hashtag || "#JOTAJOTI2026 #YH2ABJ"}
+          <span className="px-4 py-1.5 rounded-full bg-white border border-[#FF7A00]/40 text-[#FF7A00] shadow-sm">
+            {partyConfig?.hashtag || "#RaicabBanjarV #PramukaBanjarnegara"}
           </span>
         </div>
 
-        {/* Bright JOTA-JOTI Button */}
+        {/* Bright Raicab Button */}
         <button
           onClick={handleStartClick}
-          className="btn-party px-12 py-5 sm:px-16 sm:py-6 rounded-full flex items-center justify-center gap-3 text-base sm:text-lg group cursor-pointer shadow-[0_8px_30px_rgba(98,37,153,0.35)]"
+          className="px-12 py-5 sm:px-16 sm:py-6 rounded-full flex items-center justify-center gap-3 text-base sm:text-lg font-bold group cursor-pointer shadow-[0_8px_30px_rgba(255,122,0,0.35)] transition-all hover:scale-105 active:scale-95 z-20 text-white"
+          style={{
+            background: "linear-gradient(90deg, #FF7A00 0%, #00A3E0 100%)",
+          }}
         >
           <Camera size={26} className="text-white group-hover:scale-115 transition-transform drop-shadow" />
           <span>Sentuh Layar untuk Mulai</span>
