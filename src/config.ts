@@ -497,6 +497,40 @@ export const PHOTO_FILTERS: CameraFilter[] = [
 
 export const DEFAULT_FRAME_SLOTS: FrameSlot[] = [
   {
+    id: "frame_raicab_banjar_wedding",
+    name: "RAICAB BANJAR V (10x15 Double Strip)",
+    layoutId: "3x2",
+    presetThemeId: "scout_purple",
+    customImage: "/frames/custom/Frame_Raicab_Banjar_Cutout.png",
+    previewImage: "/frames/custom/Frame_Raicab_Banjar_Cutout.png",
+    enabled: true,
+    photoBoxes: [
+      { id: "box_1", x: 7.07, y: 5.62, w: 36.41, h: 21.2 },
+      { id: "box_2", x: 57.07, y: 22.83, w: 36.41, h: 21.56 },
+      { id: "box_3", x: 6.52, y: 30.43, w: 37.5, h: 21.01 },
+      { id: "box_4", x: 56.79, y: 48.37, w: 36.41, h: 21.2 },
+      { id: "box_5", x: 7.61, y: 56.16, w: 35.87, h: 21.2 },
+      { id: "box_6", x: 55.98, y: 73.01, w: 37.23, h: 21.01 },
+    ],
+  },
+  {
+    id: "frame_retro_orange_wedding",
+    name: "Oranye & Kuning Retro (10x15 Double Strip)",
+    layoutId: "3x2",
+    presetThemeId: "retro_vibes",
+    customImage: "/frames/custom/Frame_Retro_Orange_Cutout.png",
+    previewImage: "/frames/custom/Frame_Retro_Orange_Cutout.png",
+    enabled: true,
+    photoBoxes: [
+      { id: "box_1", x: 4.23, y: 5.42, w: 41.49, h: 25.17 },
+      { id: "box_2", x: 54.36, y: 5.42, w: 41.49, h: 25.17 },
+      { id: "box_3", x: 4.23, y: 33.75, w: 41.49, h: 25.17 },
+      { id: "box_4", x: 54.36, y: 33.75, w: 41.49, h: 25.17 },
+      { id: "box_5", x: 4.23, y: 61.96, w: 41.49, h: 25.28 },
+      { id: "box_6", x: 54.36, y: 61.96, w: 41.49, h: 25.28 },
+    ],
+  },
+  {
     id: "slot_1",
     name: "Desain Bingkai 1",
     layoutId: "3x1",
@@ -517,6 +551,40 @@ export const DEFAULT_FRAME_SLOTS: FrameSlot[] = [
 ];
 
 export const DEFAULT_PARTY_FRAME_SLOTS: FrameSlot[] = [
+  {
+    id: "frame_raicab_banjar",
+    name: "RAICAB BANJAR V (10x15 Double Strip)",
+    layoutId: "3x2",
+    presetThemeId: "scout_purple",
+    customImage: "/frames/custom/Frame_Raicab_Banjar_Cutout.png",
+    previewImage: "/frames/custom/Frame_Raicab_Banjar_Cutout.png",
+    enabled: true,
+    photoBoxes: [
+      { id: "box_1", x: 7.07, y: 5.62, w: 36.41, h: 21.2 },
+      { id: "box_2", x: 57.07, y: 22.83, w: 36.41, h: 21.56 },
+      { id: "box_3", x: 6.52, y: 30.43, w: 37.5, h: 21.01 },
+      { id: "box_4", x: 56.79, y: 48.37, w: 36.41, h: 21.2 },
+      { id: "box_5", x: 7.61, y: 56.16, w: 35.87, h: 21.2 },
+      { id: "box_6", x: 55.98, y: 73.01, w: 37.23, h: 21.01 },
+    ],
+  },
+  {
+    id: "frame_retro_orange",
+    name: "Oranye & Kuning Retro (10x15 Double Strip)",
+    layoutId: "3x2",
+    presetThemeId: "retro_vibes",
+    customImage: "/frames/custom/Frame_Retro_Orange_Cutout.png",
+    previewImage: "/frames/custom/Frame_Retro_Orange_Cutout.png",
+    enabled: true,
+    photoBoxes: [
+      { id: "box_1", x: 4.23, y: 5.42, w: 41.49, h: 25.17 },
+      { id: "box_2", x: 54.36, y: 5.42, w: 41.49, h: 25.17 },
+      { id: "box_3", x: 4.23, y: 33.75, w: 41.49, h: 25.17 },
+      { id: "box_4", x: 54.36, y: 33.75, w: 41.49, h: 25.17 },
+      { id: "box_5", x: 4.23, y: 61.96, w: 41.49, h: 25.28 },
+      { id: "box_6", x: 54.36, y: 61.96, w: 41.49, h: 25.28 },
+    ],
+  },
   {
     id: "jota_scrapbook_10x15",
     name: "Scrapbook Journal 10x15 (Double Strip)",
