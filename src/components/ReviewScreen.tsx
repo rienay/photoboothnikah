@@ -79,8 +79,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
   const retakeTargetBox =
     retakeIdx !== null
       ? activeBoxes.find((_, idx) => getBoxShotIndex(idx, activeBoxes, layout) === retakeIdx) ||
-        activeBoxes[retakeIdx] ||
-        activeBoxes[0]
+      activeBoxes[retakeIdx] ||
+      activeBoxes[0]
       : activeBoxes[0];
 
   // Viewfinder and capture aspect ratio for retake
@@ -113,7 +113,7 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         singleStreamRef.current = stream;
         if (singleVideoRef.current) {
           singleVideoRef.current.srcObject = stream;
-          singleVideoRef.current.play().catch(() => {});
+          singleVideoRef.current.play().catch(() => { });
         }
       } catch (err) {
         console.error("Failed to start retake camera:", err);
@@ -261,11 +261,11 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     transform: `${mirror ? "scaleX(-1)" : ""} ${cameraRotation ? `rotate(${cameraRotation}deg)` : ""}`.trim() || undefined,
                     ...(cameraRotation === 90 || cameraRotation === 270
                       ? {
-                          position: "absolute",
-                          width: "180%",
-                          height: "180%",
-                          objectFit: "cover",
-                        }
+                        position: "absolute",
+                        width: "180%",
+                        height: "180%",
+                        objectFit: "cover",
+                      }
                       : {}),
                   }}
                 />
@@ -318,11 +318,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     const next = (cameraRotation === 0 ? 90 : cameraRotation === 90 ? 180 : cameraRotation === 180 ? 270 : 0) as 0 | 90 | 180 | 270;
                     onChangeCameraRotation(next);
                   }}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
-                    cameraRotation !== 0
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${cameraRotation !== 0
                       ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
                       : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
-                  }`}
+                    }`}
                   title="Putar Orientasi Kamera (0° / 90° / 180° / 270°)"
                 >
                   <RotateCw size={13} />
@@ -335,11 +334,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                   soundFx.playChime();
                   setMirror(!mirror);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${
-                  mirror
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs border transition-all cursor-pointer ${mirror
                     ? "bg-amber-400/20 border-amber-400/50 text-amber-200 shadow-[0_0_10px_rgba(212,175,55,0.2)]"
                     : "bg-white/5 border-white/10 text-stone-400 hover:text-stone-200"
-                }`}
+                  }`}
                 title="Cermin / Flip Kamera"
               >
                 <FlipHorizontal size={14} />
@@ -365,13 +363,12 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       return (
                         <div
                           key={box.id || slotIdx}
-                          className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${
-                            isRetakeTarget
+                          className={`absolute rounded overflow-hidden flex items-center justify-center transition-all ${isRetakeTarget
                               ? "bg-amber-400/20 border-2 border-amber-400 animate-pulse z-10"
                               : photoSrc
-                              ? "bg-black"
-                              : "bg-stone-800 border border-stone-700"
-                          }`}
+                                ? "bg-black"
+                                : "bg-stone-800 border border-stone-700"
+                            }`}
                           style={{
                             left: `${box.x}%`,
                             top: `${box.y}%`,
@@ -424,9 +421,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
               ) : (
                 /* Built-in Preset Theme Mockup */
                 <div
-                  className={`w-full ${
-                    layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
-                  } h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
+                  className={`w-full ${layout.cols === 1 ? "max-w-[190px] xl:max-w-[210px]" : "max-w-[230px] xl:max-w-[260px]"
+                    } h-full max-h-[46vh] xl:max-h-[50vh] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2 transition-all select-none`}
                   style={{
                     aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
                     background: preset.bgColor,
@@ -470,13 +466,12 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       return (
                         <div
                           key={slotIdx}
-                          className={`w-full h-full rounded overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${
-                            isRetakeTarget
+                          className={`w-full h-full rounded overflow-hidden relative border transition-all flex items-center justify-center min-h-0 ${isRetakeTarget
                               ? "border-amber-400 border-2 bg-amber-400/15 shadow-[0_0_15px_rgba(212,175,55,0.4)] animate-pulse"
                               : photoSrc
-                              ? "border-amber-400/60 shadow-sm"
-                              : "border-white/15 bg-white/5 opacity-70"
-                          }`}
+                                ? "border-amber-400/60 shadow-sm"
+                                : "border-white/15 bg-white/5 opacity-70"
+                            }`}
                           style={{
                             borderColor: isRetakeTarget ? undefined : preset.borderColor,
                           }}
@@ -569,11 +564,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       soundFx.playChime();
                       setActivePhotoIdx(shotIdx);
                     }}
-                    className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${
-                      isSelected
+                    className={`absolute rounded overflow-hidden flex items-center justify-center transition-all cursor-pointer ${isSelected
                         ? "ring-2 ring-amber-400 z-10 shadow-lg scale-[1.01]"
                         : "opacity-90 hover:opacity-100"
-                    }`}
+                      }`}
                     style={{
                       left: `${box.x}%`,
                       top: `${box.y}%`,
@@ -616,9 +610,8 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         ) : (
           /* Built-in Preset Theme Mockup */
           <div
-            className={`w-full ${
-              layout.cols === 1 ? "max-w-[150px] sm:max-w-[190px] xl:max-w-[210px]" : "max-w-[190px] sm:max-w-[230px] xl:max-w-[260px]"
-            } h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0 select-none`}
+            className={`w-full ${layout.cols === 1 ? "max-w-[150px] sm:max-w-[190px] xl:max-w-[210px]" : "max-w-[190px] sm:max-w-[230px] xl:max-w-[260px]"
+              } h-full max-h-[240px] sm:max-h-[340px] lg:max-h-[480px] rounded-xl overflow-hidden shadow-2xl relative border flex flex-col items-center justify-between p-2.5 transition-all shrink-0 select-none`}
             style={{
               aspectRatio: layout.cols === 1 ? "1 / 2.7" : "2 / 3",
               background: preset.bgColor,
@@ -665,11 +658,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                       soundFx.playChime();
                       setActivePhotoIdx(slotIdx);
                     }}
-                    className={`w-full h-full rounded overflow-hidden relative border transition-all cursor-pointer ${
-                      isSelected
+                    className={`w-full h-full rounded overflow-hidden relative border transition-all cursor-pointer ${isSelected
                         ? "border-amber-400 border-2 shadow-[0_0_12px_rgba(212,175,55,0.5)] scale-[1.02] z-10"
                         : "border-white/20 opacity-80 hover:opacity-100"
-                    }`}
+                      }`}
                     style={{
                       borderColor: isSelected ? undefined : preset.borderColor,
                     }}
@@ -700,11 +692,10 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
         )}
 
         {/* ================= RIGHT: Photo Review, 6 Filters & Buttons ================= */}
-        <div className={`flex-1 max-w-lg w-full flex flex-col justify-between h-full max-h-[480px] ${
-          isParty
+        <div className={`flex-1 max-w-lg w-full flex flex-col justify-between h-full max-h-[480px] ${isParty
             ? "glass-party-card border border-purple-200/80 shadow-lg text-slate-800"
             : "bg-stone-900/40 border border-amber-400/15 text-stone-200 shadow-xl"
-        } rounded-2xl p-3.5 backdrop-blur-sm min-h-0`}>
+          } rounded-2xl p-3.5 backdrop-blur-sm min-h-0`}>
           {/* Header Row: Title & Photo Switcher Pills */}
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -725,15 +716,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     soundFx.playChime();
                     setActivePhotoIdx(pIdx);
                   }}
-                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer ${
-                    activePhotoIdx === pIdx
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-all cursor-pointer ${activePhotoIdx === pIdx
                       ? isParty
                         ? "bg-purple-700 text-white font-bold shadow"
                         : "bg-amber-400 text-stone-950 font-bold shadow"
                       : isParty
-                      ? "text-purple-800 hover:text-purple-950"
-                      : "text-stone-400 hover:text-stone-200"
-                  }`}
+                        ? "text-purple-800 hover:text-purple-950"
+                        : "text-stone-400 hover:text-stone-200"
+                    }`}
                 >
                   Foto {pIdx + 1}
                 </button>
@@ -752,15 +742,14 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
                     soundFx.playChime();
                     onChangeFilter(f.id);
                   }}
-                  className={`py-1 px-1.5 rounded-lg text-[11px] transition-all flex items-center justify-center gap-1 border cursor-pointer ${
-                    isSelected
+                  className={`py-1 px-1.5 rounded-lg text-[11px] transition-all flex items-center justify-center gap-1 border cursor-pointer ${isSelected
                       ? isParty
                         ? "bg-purple-100 border-purple-500 text-purple-900 font-bold shadow-sm"
                         : "bg-amber-400/25 border-amber-400 text-amber-200 font-semibold shadow-[0_0_10px_rgba(212,175,55,0.25)]"
                       : isParty
-                      ? "bg-white/80 border-purple-200/60 text-purple-800 hover:bg-white hover:text-purple-950"
-                      : "bg-white/5 border-white/10 text-stone-400 hover:bg-white/10 hover:text-stone-200"
-                  }`}
+                        ? "bg-white/80 border-purple-200/60 text-purple-800 hover:bg-white hover:text-purple-950"
+                        : "bg-white/5 border-white/10 text-stone-400 hover:bg-white/10 hover:text-stone-200"
+                    }`}
                 >
                   <span className="text-xs">{f.emoji}</span>
                   <span className="truncate">{f.name.split(" ")[0]}</span>
@@ -770,18 +759,16 @@ export const ReviewScreen: React.FC<ReviewScreenProps> = ({
           </div>
 
           {/* Center: Big Active Photo Display */}
-          <div className={`flex-1 min-h-0 rounded-xl overflow-hidden relative border-2 ${
-            isParty ? "border-purple-300/80 bg-black shadow-md" : "border-amber-400/30 bg-stone-950 shadow-inner"
-          } flex items-center justify-center mb-2.5`}>
+          <div className={`flex-1 min-h-0 rounded-xl overflow-hidden relative border-2 ${isParty ? "border-purple-300/80 bg-black shadow-md" : "border-amber-400/30 bg-stone-950 shadow-inner"
+            } flex items-center justify-center mb-2.5`}>
             <img
               src={photos[activePhotoIdx]}
               alt={`Foto ${activePhotoIdx + 1}`}
               className="w-full h-full object-cover transition-all"
               style={{ filter: currentFilterObj?.css || "none" }}
             />
-            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded ${
-              isParty ? "bg-white/90 text-purple-900 border border-purple-200 font-bold" : "bg-black/60 text-amber-300 border border-white/10 font-mono"
-            } backdrop-blur-sm text-[10px]`}>
+            <div className={`absolute top-2 left-2 px-2 py-0.5 rounded ${isParty ? "bg-white/90 text-purple-900 border border-purple-200 font-bold" : "bg-black/60 text-amber-300 border border-white/10 font-mono"
+              } backdrop-blur-sm text-[10px]`}>
               Foto #{activePhotoIdx + 1}
             </div>
           </div>
