@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 function serverStoragePlugin(): Plugin {
-  const configFile = path.resolve(__dirname, "server_storage.json");
+  const configFile = path.resolve(process.cwd(), "server_storage.json");
   return {
     name: "server-storage-plugin",
     configureServer(server) {
